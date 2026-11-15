@@ -10,6 +10,7 @@ Gry za gwiazdki zdobyte w [Matmie](https://paduszynski.github.io/matma/), [Angie
 - Koniec zestawu: +1 ★ za każde 2 odpowiedzi, podwójnie bez błędu (10 pytań: +5, bez błędu +10). Pierwszy zestaw dnia: +5 ★, każdy kolejny dzień z rzędu +1, max +10.
 - Poziom liczy się od sumy zdobytych gwiazdek (wydawanie nie cofa poziomu). Próg z poziomu 1 na 2 to 60 ★, każdy następny ×1,1 (zaokrąglony do 5). Co 5 poziomów prezent +20 ★ (do salda, nie do poziomu).
 - Ceny: runda gry 50 ★ (Trójki 40 ★ za poziom), nasiona i rybki od 25 ★. Czysty zestaw 10 pytań (ok. 45 ★) to mniej więcej jedna runda.
+- Matma liczy podwójnie (`Skarbonka.session('matma', { mult: 2 })`): odpowiedź trwa tam dłużej (słupki, czekanie po błędzie).
 - Ekonomia v2 (listopad 2026): stan z v1 jest jednorazowo dzielony przez 5 (`rate: 2` w `skarbonka.v1`), więc poziom zostaje.
 - Bez dziennych limitów.
 

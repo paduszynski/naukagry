@@ -288,6 +288,9 @@
           R.items.push({ type: 'mush', x: x + 20, y: 30 });
           R.gap = v * 1.1 + 160; return;
         }
+        // the jump arc gets longer as the hedgehog speeds up (same air time, more ground covered),
+        // so apples placed along a jump spread out with speed; spacing was tuned at the start speed 230
+        var sv = Math.max(1, v / 230);
         var pool = ['stone', 'puddle', 'stone', 'puddle'];
         if (t > 12) pool.push('log', 'log');
         if (t > 35) pool.push('bee', 'bee');
@@ -303,11 +306,11 @@
           R.obs.push({ type: 'stone', x: x, w: 32, h: 24 });
           R.obs.push({ type: 'stone', x: x + d, w: 32, h: 24 });
           w = d + 32; gap += d;
-          if (Math.random() < 0.6) apples([[x + d / 2, 150], [x + d / 2 - 36, 128], [x + d / 2 + 36, 128]]);
+          if (Math.random() < 0.6) { var pa = 36 * sv; apples([[x + d / 2, 150], [x + d / 2 - pa, 128], [x + d / 2 + pa, 128]]); }
         } else {
           R.obs.push(o);
           if (k === 'bee') apples([[x - 30, 22], [x, 22], [x + 30, 22]]);
-          else if (Math.random() < 0.5) { var c = x + w / 2; apples([[c - 44, 95], [c, 135], [c + 44, 95]]); }
+          else if (Math.random() < 0.5) { var c = x + w / 2, ja = 44 * sv; apples([[c - ja, 95], [c, 135], [c + ja, 95]]); }
         }
         if (Math.random() < 0.3) {
           var gx = x + w + (gap - w) * 0.3;
