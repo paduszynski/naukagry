@@ -577,13 +577,20 @@
         r.x = lerp(r.x0, ex, r.prog) + side;
         r.y = lerp(r.y0, ey, r.prog);
         if (r.red > limit) { escapeReel(); return; }
-        if (r.prog >= 1) landCatch();
+        if (r.prog >= 1) { landCatch(); return; }
+        // time is up: give the hooked fish ~10 s of no progress, then let it swim away and end the trip
+        if (trip && trip.timeUp) {
+          if (r.prog > (r.best || 0) + 0.02) { r.best = r.prog; r.stall = 0; }
+          else r.stall = (r.stall || 0) + dt;
+          if (r.stall > 10) escapeReel(true);
+        }
       }
-      function escapeReel() {
+      function escapeReel(gentle) {
         var r = reel;
-        ctx.sfx('lose');
+        ctx.sfx(gentle ? 'splash' : 'lose');
         if (!r.K.junk) { var s = spawnShadow(false, r.K, { x: r.x, y: clamp(r.y, L.far, L.near) }); s.state = 'flee'; s.fleeT = 1.4; s.ang = -Math.PI / 2 + rnd(-0.6, 0.6); }
-        say(r.K.junk ? 'Zaczepiło się i odpadło. Jeszcze raz!' : 'Za mocno! Uciekła, ale dalej pływa.');
+        if (gentle) say(r.K.junk ? 'Odpadło. Koniec łowienia!' : 'Rybka odpłynęła. Koniec łowienia!');
+        else say(r.K.junk ? 'Zaczepiło się i odpadło. Jeszcze raz!' : 'Za mocno! Uciekła, ale dalej pływa.');
         reel = null; holding = false;
         bob = { x: r.x, y: r.y, sx: r.x, sy: r.y, tx: 0, ty: 0, t: 0, dur: 0, dip: 0 };
         startRetrieve();
@@ -876,6 +883,7 @@
             say('Koniec czasu!', true);
             ctx.sfx('tick');
             if (phase === 'idle' || phase === 'aim') { aim = null; endTrip(); return; }
+            if (phase === 'reel' && reel) { reel.best = reel.prog; reel.stall = 0; say('Koniec czasu! Trzymaj i wyciągnij rybkę.', true); }
             if (phase === 'cast' || phase === 'wait' || phase === 'nibble') {
               if (target) { target.state = 'swim'; target = null; }
               junkK = null;

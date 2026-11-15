@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Gry za gwiazdki</title>
-<meta name="version" content="2.0">
+<meta name="version" content="2.1">
 <meta name="description" content="Gry dla dzieci za gwiazdki zdobyte w Matmie, Angielskim i Polskim.">
 <meta name="theme-color" content="#3f86d8">
 <link rel="manifest" href="manifest.webmanifest">
@@ -146,7 +146,7 @@ h1{margin:0;font-weight:400;font-size:2.1rem;line-height:1}
 <div id="hub">
   <div class="wrap hub-top">
     <div class="title-row">
-      <h1>Gry za gwiazdki <span class="ver" title="Wersja 2.0">2.0</span></h1>
+      <h1>Gry za gwiazdki <span class="ver" title="Wersja 2.1">2.1</span></h1>
       <span class="snd" id="snd-hub"></span>
     </div>
     <div class="wallet" id="wallet" aria-live="polite">
@@ -270,7 +270,7 @@ var GAMES = [
         (locked ? '🔒 od poziomu ' + g.unlock : '<b>' + g.price + '</b>') + '</span></span>';
       b.onclick = function () {
         if (locked) { toast(hub, 'Ta gra otworzy się na poziomie ' + g.unlock + '. Zbieraj gwiazdki!'); return; }
-        location.hash = g.id;
+        go(g.id);
       };
       box.appendChild(b);
     });
@@ -282,7 +282,7 @@ var GAMES = [
     if (Date.now() < toastBusy) { toastQ.push([where, text]); return; }
     toastBusy = Date.now() + 1900; // each toast fades out after ~1.7 s, so the next one never overlaps
     setTimeout(function () { toastBusy = 0; var n = toastQ.shift(); if (n) toast(n[0], n[1]); }, 1900);
-    if (!where.isConnected || where.hidden) where = game.hidden ? hub : stage;
+    if (!where.isConnected || where.hidden || (where === stage && game.hidden)) where = game.hidden ? hub : stage;
     var t = document.createElement('div');
     t.className = 'ng-toast'; t.textContent = text;
     if (where === hub) { t.style.position = 'fixed'; t.style.top = 'calc(env(safe-area-inset-top,0px) + 14px)'; t.style.whiteSpace = 'normal'; t.style.width = 'max-content'; t.style.maxWidth = '90vw'; t.style.textAlign = 'center'; }
@@ -322,7 +322,7 @@ var GAMES = [
         return v;
       },
       save: function (data) { try { localStorage.setItem(lsKey, JSON.stringify(data)); } catch (e) {} },
-      exit: function () { if (location.hash) history.back(); else close(); },
+      exit: function () { back(); },
       toast: function (text) { toast(stage, text); },
       // sound: ctx.sfx('pop'), ctx.note(60), ctx.music('meadow'|'calm'|'water'|'sky'|'play'|'cozy'), ctx.music(null) stops
       sfx: function (name) { NG.sound.sfx(name); },
@@ -390,6 +390,14 @@ var GAMES = [
   }
 
   // ---------- routing ----------
+  // a game opened from the hub pushed a history entry, so "back" pops it; a game opened straight from a
+  // link or a restored tab has nothing to pop (history.back would leave the app), so it just closes
+  var pushed = false;
+  function go(id) { pushed = true; location.hash = id; }
+  function back() {
+    if (location.hash && pushed) { pushed = false; history.back(); }
+    else { history.replaceState(null, '', location.pathname); close(); }
+  }
   function open(id) {
     var g = games().filter(function (x) { return x.id === id; })[0];
     if (!g) { close(); return; }
@@ -412,14 +420,17 @@ var GAMES = [
     stage.innerHTML = '';
   }
   function close() {
+    pushed = false;
     unmount();
     game.hidden = true; hub.hidden = false;
     renderWallet(); renderTiles(); renderExtras();
   }
   function route() { var id = location.hash.replace('#', ''); if (id) open(id); else close(); }
-  $('g-back').onclick = function () { if (location.hash) history.back(); else close(); };
+  $('g-back').onclick = back;
   window.addEventListener('hashchange', route);
   document.addEventListener('visibilitychange', function () {
+    // after a night in the background: today's quests and the wallet may have changed
+    if (!document.hidden && !hub.hidden) { renderWallet(); renderExtras(); }
     if (current && current.instance) {
       if (document.hidden && current.instance.pause) current.instance.pause();
       if (!document.hidden && current.instance.resume) current.instance.resume();
@@ -469,7 +480,7 @@ var GAMES = [
   }
   $('quests').onclick = function () {
     var q = NG.meta.quests(), first = q.list.filter(function (x) { return !x.done && x.game; })[0];
-    if (first) { location.hash = first.game; return; }
+    if (first) { go(first.game); return; }
     toast(hub, q.all ? 'Dzisiejsze zadania zrobione! Jutro nowe.' : 'Zrób zestaw nauki, a zadanie zaliczy się samo.');
   };
   function sheet(title, body) {

@@ -411,6 +411,7 @@
 
   NG.register('zwierzak', {
     meta: { name: 'Zwierzątko', price: 'jedzenie od 10 ★', bg: '#fdeedd', pic: PIC, music: 'cozy' },
+    ownMusic: true,
     medals: [
       { id: 'feeds10', stat: 'feeds', at: 10, tier: 1, text: '10 posiłków' },
       { id: 'days7', stat: 'days', at: 7, tier: 2, text: '7 dni opieki' },
@@ -605,6 +606,7 @@
       function closeSheet() {
         if (!sheet) return;
         var s = sheet; sheet = null; s.wrap.classList.remove('on');
+        s.wrap.style.pointerEvents = 'none';   // sliding away: a second tap must not buy again
         ctx.sfx('close');
         later(function () { s.wrap.remove(); }, reduce ? 0 : 260);
       }
@@ -654,6 +656,7 @@
           var left = basket();
           row(body, thingThumb('koszyk'), 'Koszyk jabłek', left ? 'Za darmo · ' + left + ' ' + pl(left, 'jabłko', 'jabłka', 'jabłek') + ' na dziś' : 'Pusty. Jutro znowu pełny!',
             btn(left ? 'Daj' : 'jutro', function () {
+              if (sheet !== S2 || food || mode !== 'home' || basket() <= 0) return;
               if (save.needs.food >= 95) { S2.msg = { text: 'Brzuszek pełny! Może później.', cls: 'ok' }; S2.render(); return; }
               save.basketLeft--; persist(); closeSheet(); feed(FOODS[0], true);
             }, 'pick', !left || full));
@@ -661,6 +664,7 @@
           FOODS.forEach(function (f) {
             row(body, thingThumb(f.k), f.n, '+' + f.food + ' do brzuszka' + (f.fun ? ' · + humor' : ''),
               btn(f.price + ' ★', function () {
+                if (sheet !== S2 || food || mode !== 'home') return;
                 if (save.needs.food >= 95) { S2.msg = { text: 'Brzuszek pełny! Może później.', cls: 'ok' }; S2.render(); return; }
                 if (!ctx.spend(f.price, f.n)) { S2.msg = { text: 'Za mało gwiazdek. Zbieraj je w nauce!', cls: 'warn' }; S2.render(); return; }
                 ctx.sfx('coin'); closeSheet(); feed(f, false);
@@ -847,6 +851,7 @@
             var best = save.best[gm.k] || 0;
             row(body, gameThumb(gm.k), gm.n, gm.sub + (best ? ' Rekord: ' + best + '.' : ''),
               btn(GAME_PRICE + ' ★', function () {
+                if (sheet !== S2 || mode !== 'home') return;
                 if (!ctx.spend(GAME_PRICE, gm.n)) { S2.msg = { text: 'Za mało gwiazdek. Zbieraj je w nauce!', cls: 'warn' }; S2.render(); return; }
                 ctx.sfx('coin'); closeSheet(); startMini(gm.k);
               }, '', bal < GAME_PRICE));
@@ -1455,7 +1460,7 @@
       var ro = new ResizeObserver(function () { layout(); });
       ro.observe(cvWrap);
       setMode(mode);
-      if (mode === 'sleep') ctx.music('calm');
+      ctx.music(mode === 'sleep' ? 'calm' : 'cozy');   // ownMusic: the hub doesn't start 'cozy' over the sleep music
       start();
       if (!save.seenHelp) {
         save.seenHelp = true; persist();

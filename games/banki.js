@@ -345,6 +345,16 @@
       frogHop = 1;
       aim.on = false;
       ctx.sfx('whoosh');
+      // save the landed board now: leaving during the flight must not give the shot back
+      var sg = cloneGrid(grid), sd = drops, ss = sinceDrop;
+      resolve(sg, tr.cell[0], tr.cell[1], shot.col);
+      if (ss >= def.every) { ss = 0; sd++; }
+      if (count(sg) && !isDead(sg, sd) && shotsLeft > 0) {
+        save.cur = { n: def.n, rows: gridToRows(sg), drops: sd, left: shotsLeft, since: ss, cur: cur, next: next };
+      } else if (save.cur) {
+        save.cur.left = shotsLeft;   // the shot ends the level: destroy()/pause() finish it with land()
+      }
+      persist();
       return true;
     }
     function land() {
@@ -413,10 +423,11 @@
       save.cur = null;
       persist();
       ctx.sfx('lose');
+      if (half) ctx.refund(REFUND, 'poziom ' + n + ', ponad połowa');   // now, not in the timer: leaving early must not lose it
       endTimer = setTimeout(function () {
         endTimer = 0; if (!alive) return;
         var lines = [why === 'line' ? 'Bańki doszły do żabki.' : 'Skończyły się strzały.', 'Zbite: ' + Math.round(cleared * 100) + '% planszy.'];
-        if (half) { ctx.refund(REFUND, 'poziom ' + n + ', ponad połowa'); lines.push('Ponad połowa! Oddaję ' + REFUND + ' ★.'); }
+        if (half) lines.push('Ponad połowa! Oddaję ' + REFUND + ' ★.');
         else lines.push({ text: 'Za ponad połowę planszy oddaję ' + REFUND + ' ★.', muted: true });
         panel = ctx.panel({
           title: half ? 'Prawie!' : 'Spróbuj jeszcze raz', lines: lines,
@@ -805,7 +816,7 @@
 
     return {
       destroy: function () {
-        if (save.cur && mode === 'fly') persist();
+        if (mode === 'fly' && shot) land();   // finish the shot in flight (saves the board, or wins/loses)
         alive = false;
         cancelAnimationFrame(raf);
         clearTimeout(endTimer);
@@ -818,7 +829,7 @@
         canvas.remove();
         if (NG.impl.banki) delete NG.impl.banki._live;
       },
-      pause: function () { paused = true; cancelAnimationFrame(raf); raf = 0; },
+      pause: function () { paused = true; cancelAnimationFrame(raf); raf = 0; if (mode === 'fly' && shot) land(); },
       resume: function () {
         if (!alive || !paused) return;
         paused = false; last = 0;

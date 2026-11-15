@@ -614,6 +614,12 @@
       if (!Array.isArray(state.gal)) state.gal = [];
       if (!state.work || typeof state.work !== 'object') state.work = {};
       if (!state.fin || typeof state.fin !== 'object') state.fin = {};
+      // cnt[pic] = colours of the last finish that counted as a new picture ('done' stat, quest).
+      // Finishing again counts only after "Od nowa" or when most fields changed since then.
+      if (!state.cnt || typeof state.cnt !== 'object') {
+        state.cnt = {};
+        state.gal.forEach(function (g) { if (g && state.fin[g.p] && typeof g.c === 'string') state.cnt[g.p] = g.c; });
+      }
       var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       var root = document.createElement('div');
@@ -748,11 +754,26 @@
         var row = c.querySelector('.kol-vrow');
         function btn(label, cls, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'ng-btn' + (cls ? ' ' + cls : ''); b.textContent = label; b.onclick = fn; row.appendChild(b); return b; }
         btn('Maluj dalej', '', function () {
-          var prev = workOf(p);
-          state.work[p.id] = { c: fixColors(p, g.c), s: (g.s || []).slice() };
+          var prev = workOf(p), gc = fixColors(p, g.c), gs = (g.s || []).slice();
+          function take() {
+            state.work[p.id] = { c: gc, s: gs };
+            ctx.sfx('open');
+            openEditor(p, { t: 'all', colors: prev.c, strokes: prev.s });
+          }
           closeOverlay();
-          ctx.sfx('open');
-          openEditor(p, { t: 'all', colors: prev.c, strokes: prev.s });
+          var blankNow = !colored(prev.c) && !prev.s.length;
+          if (blankNow || (prev.c === gc && prev.s.map(encStroke).join('|') === gs.join('|'))) { take(); return; }
+          // the working copy has other colours: don't overwrite it without asking
+          ctx.sfx('tap');
+          showPanel({
+            title: 'Zamienić malowanie?', lines: ['Ten obrazek ma teraz inne kolory niż w galerii.', { text: 'Zamienić je na wersję z galerii, czy malować dalej swoje?', muted: true }],
+            button: 'Wersja z galerii',
+            onPlay: function () { panel = null; take(); },
+            secondary: [
+              { label: 'Moje malowanie', onClick: function () { panel = null; ctx.sfx('open'); openEditor(p); } },
+              { label: 'Nie', onClick: function () { panel = null; } }
+            ]
+          });
         });
         var del = btn('Usuń', 'sec', function () {
           if (!del.dataset.sure) { del.dataset.sure = '1'; del.textContent = 'Na pewno usunąć?'; ctx.sfx('tap'); return; }
@@ -1085,6 +1106,7 @@
           u.list.slice().reverse().forEach(function (x) { ed.strokes.splice(Math.min(x.i, ed.strokes.length), 0, x.s); });
           rebuildStrokes();
         } else if (u.t === 'all') {
+          if (u.cnt) { if (u.cnt.v) state.cnt[ed.p.id] = u.cnt.v; else delete state.cnt[ed.p.id]; }
           ed.colors = u.colors; ed.strokes = u.strokes.slice();
           for (var r = 0; r < ed.n; r++) ed.regionEls[r].setAttribute('fill', fillOf(ed.colors.charAt(r)));
           rebuildStrokes();
@@ -1100,7 +1122,9 @@
           button: 'Wyczyść',
           onPlay: function () {
             panel = null;
-            pushUndo({ t: 'all', colors: ed.colors, strokes: ed.strokes.slice() });
+            var pid = ed.p.id;
+            pushUndo({ t: 'all', colors: ed.colors, strokes: ed.strokes.slice(), cnt: { v: state.cnt[pid] } });
+            delete state.cnt[pid];   // a fresh start: the next finish is a new picture
             ed.colors = blank(ed.p); ed.strokes = [];
             for (var r = 0; r < ed.n; r++) ed.regionEls[r].setAttribute('fill', '#ffffff');
             rebuildStrokes();
@@ -1130,19 +1154,32 @@
           for (var j = 0; j < s.pts.length; j += 2) if ((j / 2) % step === 0 || j === s.pts.length - 2) pts.push(s.pts[j], s.pts[j + 1]);
           return encStroke({ c: s.c, w: s.w, pts: pts });
         });
-        state.gal.push({ p: ed.p.id, c: ed.colors, s: gs, d: today() });
-        var dropped = false;
+        var pid = ed.p.id, base = state.cnt[pid], diff = 0;
+        if (typeof base === 'string') for (var k = 0; k < ed.n; k++) if (base.charAt(k) !== ed.colors.charAt(k)) diff++;
+        var isNew = typeof base !== 'string' || diff * 2 > ed.n;
+        var entry = { p: pid, c: ed.colors, s: gs, d: today() }, dropped = false, lines;
+        var lastI = -1;
+        if (!isNew) for (var gi = state.gal.length - 1; gi >= 0; gi--) if (state.gal[gi].p === pid) { lastI = gi; break; }
+        if (lastI >= 0) state.gal.splice(lastI, 1);   // re-finish: replace that picture's latest gallery copy
+        state.gal.push(entry);
         while (state.gal.length > MAXGAL) { state.gal.shift(); dropped = true; }
+        if (isNew) state.cnt[pid] = ed.colors;
         persist();
         ctx.sfx('win');
-        confetti();
-        var first = state.gal.length === 1 && !ctx.getStat('done');
-        ctx.stat('done', 1);
-        ctx.sticker('first');
+        if (isNew) {
+          confetti();
+          var first = state.gal.length === 1 && !ctx.getStat('done');
+          ctx.stat('done', 1);
+          ctx.sticker('first');
+          lines = ['Obrazek jest w galerii.'];
+          if (dropped) lines.push({ text: 'Najstarszy obrazek zrobił miejsce (galeria mieści ' + MAXGAL + ').', muted: true });
+          else if (first) lines.push({ text: 'Kolorować go można dalej, ile chcesz.', muted: true });
+        } else {
+          lines = [lastI >= 0 ? 'Obrazek w galerii jest poprawiony.' : 'Obrazek jest w galerii.',
+            { text: 'Jako nowy obrazek liczy się, gdy zaczniesz od nowa (kosz).', muted: true }];
+          if (dropped) lines.push({ text: 'Najstarszy obrazek zrobił miejsce (galeria mieści ' + MAXGAL + ').', muted: true });
+        }
         syncProgress();
-        var lines = ['Obrazek jest w galerii.'];
-        if (dropped) lines.push({ text: 'Najstarszy obrazek zrobił miejsce (galeria mieści ' + MAXGAL + ').', muted: true });
-        else if (first) lines.push({ text: 'Kolorować go można dalej, ile chcesz.', muted: true });
         showPanel({
           big: '★', title: 'Brawo!', medals: true, lines: lines, button: 'Maluj dalej',
           onPlay: function () { panel = null; },

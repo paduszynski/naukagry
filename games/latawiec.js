@@ -736,7 +736,7 @@
         R.pops.push({ x: KX + 10, y: K.y - 30, t: 0, text: 'Au!', col: '#cf412d' });
       }
 
-      function crash() { state = 'crash'; R.crashT = 0; K.vy = -120; holding = false; pointers = {}; }
+      function crash() { state = 'crash'; R.crashT = 0; K.vy = -120; holding = false; pointers = {}; if (R.stage) recordStage(false); }
       function updateCrash(dt) {
         var r = R;
         r.crashT += dt;
@@ -751,6 +751,7 @@
       function lmX() { return LW * 0.62 + (R.goalU - R.dist); }
       function reachGoal() {
         state = 'goal'; R.goalT = 0; holding = false; pointers = {};
+        recordStage(true);
         ctx.sfx('win');
         if (!reduced) {
           var cols = ['#e2533f', '#f5c330', '#3fae5f', '#3f86d8', '#8a5cd0', '#ff8ab0'];
@@ -801,8 +802,9 @@
       function starLine(n) { return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
       function rateOf(got, total) { return got >= total * 0.7 ? 3 : got >= total * 0.4 ? 2 : 1; }
 
-      function finishStage(ok) {
-        state = 'over';
+      // saved the moment the goal is reached (or the kite crashes), so leaving during the animation keeps the result
+      function recordStage(ok) {
+        if (R.res) return R.res;
         var st = R.stage, wi = st.wi, si = st.si, w = WORLDS[wi], key = stageKey(wi, si);
         var got = R.stars, total = Math.max(1, R.spawned), rate = ok ? rateOf(got, total) : 0;
         var prev = rating(wi, si), wasDone = worldDone(wi), hadEndless = endlessOpen();
@@ -811,13 +813,23 @@
         save.last = key;
         ctx.save(save);
         ctx.stat('stars', got);
-        if (!ok) ctx.sfx('lose');
         if (ok) {
           ctx.stat('stage', 1);
           ctx.stat('stages', doneCount(), 'max');
           if (rate === 3) ctx.sticker('trzy');
           if (!wasDone && worldDone(wi)) ctx.sticker('w-' + w.id);
         }
+        R.res = { ok: ok, got: got, total: total, rate: rate, prev: prev, wasDone: wasDone, hadEndless: hadEndless };
+        return R.res;
+      }
+
+      function finishStage(ok) {
+        state = 'over';
+        var st = R.stage, wi = st.wi, si = st.si, w = WORLDS[wi];
+        var res = recordStage(ok);
+        ok = res.ok;
+        var got = res.got, total = res.total, rate = res.rate, prev = res.prev, wasDone = res.wasDone, hadEndless = res.hadEndless;
+        if (!ok) ctx.sfx('lose');
         var lines = [], title, big, button, next = null;
         if (ok) {
           big = starLine(rate);

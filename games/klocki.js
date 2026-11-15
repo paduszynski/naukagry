@@ -807,6 +807,7 @@
         if (!tray.some(Boolean)) dealSet(); else updateFits();
         if (!tray.some(function (q) { return q && q.fits; }) && setsDealt <= 5) rescue();
         if (!tray.some(function (q) { return q && q.fits; })) gameOver();
+        else persist();
         requestDraw();
       }
 
@@ -834,6 +835,7 @@
         overT0 = performance.now();
         drag = null; ghost = null;
         save.best = Math.max(save.best, score);
+        save.cur = null;
         ctx.save(save);
         ctx.sfx(newBest ? 'win' : 'lose');
         flushStats();
@@ -996,16 +998,65 @@
         resetBoard();
         state = 'play';
         save.games = (save.games || 0) + 1;
-        ctx.save(save);
+        persist();
         requestDraw();
+      }
+
+      // ----- round in progress: saved after every move, so a paid game survives the app being closed -----
+      function persist() {
+        if (state !== 'play') return;
+        save.cur = {
+          grid: copyGrid(grid), score: score, streak: streak, sets: setsDealt, placed: placed, newBest: newBest, bestAtStart: bestAtStart,
+          tray: tray.map(function (p) { return p ? { fam: p.fam, cells: p.cells, col: p.col, vars: p.vars } : null; })
+        };
+        ctx.save(save);
+      }
+      function validCur(c) {
+        if (!c || !Array.isArray(c.grid) || c.grid.length !== N || !Array.isArray(c.tray) || c.tray.length !== 3) return false;
+        if (!c.grid.every(function (row) { return Array.isArray(row) && row.length === N && row.every(function (v) { return typeof v === 'number'; }); })) return false;
+        var ok = c.tray.every(function (p) {
+          return p === null || (p && Array.isArray(p.cells) && p.cells.length && Array.isArray(p.vars) && p.vars.length === p.cells.length &&
+            p.cells.every(function (q) { return Array.isArray(q) && q[0] >= 0 && q[1] >= 0 && q[0] < N && q[1] < N; }));
+        });
+        return ok && c.tray.some(function (p) { return p && anyFit(c.grid, p.cells); }) && typeof c.score === 'number';
+      }
+      function restoreCur(c) {
+        grid = copyGrid(c.grid); score = c.score; shownScore = c.score; streak = c.streak || 0; setsDealt = c.sets || 0; placed = c.placed || 0;
+        pops = []; parts = []; floats = []; placeAnims = {}; returning = []; drag = null; ghost = null;
+        newBest = !!c.newBest; bestAtStart = typeof c.bestAtStart === 'number' ? c.bestAtStart : save.best;
+        lineBuf = 0; statDone = false; // lines were reported before the save; 'max' stats are safe to report again
+        var now = performance.now();
+        tray = c.tray.map(function (p, i) {
+          if (!p) return null;
+          var d = dims(p.cells);
+          return { fam: p.fam, cells: p.cells, w: d.w, h: d.h, col: p.col, vars: p.vars, inT0: now + i * 70, fits: true };
+        });
+        updateFits();
+      }
+      function showResume() {
+        closePanel();
+        panelRef = ctx.panel({
+          title: 'Klockownia',
+          lines: ['Masz zaczętą grę.', 'Wynik: ' + score + ' pkt', { text: 'Rekord: ' + Math.max(save.best, score), muted: true }],
+          button: 'Graj dalej', medals: true,
+          onPlay: function () { panelRef = null; closePicker(); state = 'play'; requestDraw(); },
+          secondary: [
+            { label: 'Nowa gra', onClick: function () {
+              panelRef = null;
+              if (score > 0) { ctx.stat('score', score, 'max'); ctx.stat('record', save.best, 'max'); }
+              save.cur = null; ctx.save(save);
+              resetBoard(); requestDraw(); showStart();
+            } },
+            { label: 'Wróć do gier', onClick: function () { ctx.exit(); } }
+          ]
+        });
       }
 
       // ----- lifecycle -----
       var ro = new ResizeObserver(resize);
       ro.observe(el);
-      resetBoard();
-      resize();
-      showStart();
+      if (validCur(save.cur)) { restoreCur(save.cur); resize(); showResume(); }
+      else { if (save.cur) { save.cur = null; ctx.save(save); } resetBoard(); resize(); showStart(); }
 
       if (/[?&]test\b/.test(location.search)) {
         window.__klocki = {
@@ -1031,13 +1082,14 @@
           cv.removeEventListener('lostpointercapture', onCancel);
           closePanel(); closePicker();
           if (score > save.best) { save.best = score; ctx.save(save); }
-          if (state === 'play') { flushStats(); reportBest(); }
+          if (state === 'play') { flushStats(); reportBest(); persist(); }
           if (window.__klocki) delete window.__klocki;
           sprites = {};
         },
         pause: function () {
           paused = true;
           if (drag) { returning = []; drag = null; ghost = null; }
+          if (state === 'play') { flushStats(); persist(); }
           if (raf) { cancelAnimationFrame(raf); raf = 0; }
         },
         resume: function () { paused = false; requestDraw(); }

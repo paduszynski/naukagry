@@ -561,7 +561,7 @@
         state = 'menu'; P = null; layout(); syncHud(); draw();
         overlay(function (card, o) {
           var h = document.createElement('h2'); h.textContent = 'Wybierz obrazek'; card.appendChild(h);
-          card.appendChild(para('Zostały ' + save.credits + ' z ' + PACK + ' w paczce.', true));
+          card.appendChild(para(plural(save.credits, 'Został', 'Zostały', 'Zostało') + ' ' + save.credits + ' z ' + PACK + ' w paczce.', true));
           var box = document.createElement('div'); box.className = 'ob-pick';
           LEVELS.forEach(function (lv) {
             var list = ofSize(lv.n), have = list.filter(function (p) { return save.solved[p.id]; }).length;

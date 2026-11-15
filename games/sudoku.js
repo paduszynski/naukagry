@@ -623,7 +623,7 @@
         clearBoard();
         overlay(function (card, o) {
           var h = document.createElement('h2'); h.textContent = 'Wybierz sudoku'; card.appendChild(h);
-          card.appendChild(para('Zostały ' + save.credits + ' z ' + PACK + ' w paczce.', true));
+          card.appendChild(para(plural(save.credits, 'Został', 'Zostały', 'Zostało') + ' ' + save.credits + ' z ' + PACK + ' w paczce.', true));
           var box = document.createElement('div'); box.className = 'sd-pick';
           LEVELS.forEach(function (L0) {
             var b = document.createElement('button'); b.type = 'button'; b.className = 'sd-lvl'; b.style.background = L0.color;

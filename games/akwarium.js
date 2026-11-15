@@ -885,8 +885,12 @@
               if (locked && !own) r.classList.add('lock');
             });
           }
-          var cheapest = 50;
-          if (bal < cheapest) note('Brakuje gwiazdek. Zdobądź je w <a href="/matma/">Matmie</a>, <a href="/angielski/">Angielskim</a> albo <a href="/polski/">Polskim</a>.', true);
+          // cheapest thing this tab can still sell (unlocked, room left / not owned yet)
+          var cheapest = Infinity;
+          if (tab === 'fish') { if (!full) FISH.forEach(function (F) { if (F.lv <= lvl) cheapest = Math.min(cheapest, F.price); }); }
+          else if (tab === 'deco') { if (!dfull) DECOS.forEach(function (D) { if (D.lv <= lvl) cheapest = Math.min(cheapest, D.price); }); }
+          else BGS.forEach(function (B) { if (B.lv <= lvl && B.price > 0 && st.bgs.indexOf(B.k) < 0) cheapest = Math.min(cheapest, B.price); });
+          if (cheapest < Infinity && bal < cheapest) note('Brakuje gwiazdek. Zdobądź je w <a href="/matma/">Matmie</a>, <a href="/angielski/">Angielskim</a> albo <a href="/polski/">Polskim</a>.', true);
         }
         function buyFish(F) {
           if (st.fish.length >= MAX_FISH) return;

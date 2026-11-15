@@ -974,11 +974,18 @@
       function bump(b) { b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); }
 
       // ---------- growth ----------
-      // real time on watered days (planting day counts as watered) + boosts in pl.extra (cans, compost)
+      // real time on watered days (planting day counts as watered) + boosts in pl.extra (cans, compost).
+      // Fast plants (h <= 2) keep the planting day's water through the next day too, so one planted
+      // late in the evening does not stall at midnight.
+      function nextDay(d) { return dstr(new Date(dayRange(d)[1])); }
+      function freeDays(pl) {
+        var plantDay = dstr(new Date(pl.t)), P = BY[pl.k];
+        return P && P.fast ? [plantDay, nextDay(plantDay)] : [plantDay];
+      }
       function progress(pl, now) {
         var P = BY[pl.k]; if (!P) return 0;
         var plantDay = dstr(new Date(pl.t)), ms = 0, seen = {};
-        var days = st.wet.concat([plantDay]);
+        var days = st.wet.concat(freeDays(pl));
         for (var i = 0; i < days.length; i++) {
           var d = days[i]; if (seen[d] || d < plantDay) continue; seen[d] = 1;
           var r = dayRange(d), s = Math.max(r[0], pl.t), e = Math.min(r[1], now);
@@ -987,7 +994,7 @@
         ms += pl.extra || 0;
         return ms / (P.h * HOUR);
       }
-      function wateredToday(pl) { var td = today(); return st.wet.indexOf(td) >= 0 || dstr(new Date(pl.t)) === td; }
+      function wateredToday(pl) { var td = today(); return st.wet.indexOf(td) >= 0 || freeDays(pl).indexOf(td) >= 0; }
       function thirsty(pl, now) { return pl && progress(pl, now) < 1 && !wateredToday(pl); }
 
       // ---------- watering cans: one per finished learning set today ----------

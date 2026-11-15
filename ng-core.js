@@ -350,5 +350,6 @@
     _read: readMeta, _write: writeMeta
   };
   // learning done in another tab/app shows up here
-  if (S && S.on) S.on(function () { var m = readMeta(); if (syncLearnQuests(m, null)) writeMeta(m); });
+  // (only in a visible window: two open windows would otherwise both pay the same quest)
+  if (S && S.on) S.on(function () { if (document.hidden) return; var m = readMeta(); if (syncLearnQuests(m, null)) writeMeta(m); });
 })();

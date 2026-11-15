@@ -1111,6 +1111,7 @@
       function closeSheet() {
         if (!sheet) return;
         var s = sheet; sheet = null; s.wrap.classList.remove('on');
+        s.wrap.style.pointerEvents = 'none';   // sliding away: a second tap must not buy again
         later(function () { s.wrap.remove(); }, 260);
       }
       function openSheet(title, tabs, tab, renderBody) {
@@ -1202,6 +1203,7 @@
         render();
       }
       function buyItem(I, render) {
+        if (!sheet || sheet.render !== render) return;   // this sheet is already closing (double tap)
         if (!ctx.spend(I.p, I.n)) { render(); return; }
         st.owned[I.k] = (st.owned[I.k] || 0) + 1;
         ctx.sfx('buy');
@@ -1232,7 +1234,7 @@
         });
       }
       function takeOut(I) {
-        if (!inBox(I.k)) return;
+        if (!sheet || !inBox(I.k)) return;
         if (room().items.length >= MAX_ROOM) { toast('W tym pokoju nie ma już miejsca.'); ctx.sfx('error'); return; }
         var it = addToRoom(I.k);
         save(); closeSheet();

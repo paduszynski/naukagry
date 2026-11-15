@@ -1076,11 +1076,18 @@
 
     // ---------- game flow ----------
     function goalsDone() { return goals.every(function (gl) { return gl.got >= gl.need; }); }
-    function startLevel(n) {
+    function startLevel(n, cur) {
       lvl = n; def = levelDef(n);
-      B = new Board(def); B.fill();
-      moves = def.moves; score = 0;
-      goals = def.goals.map(function (gl) { return { kind: gl.kind, need: gl.need, got: 0, shown: 0, bump: 0 }; });
+      if (cur) {
+        B = boardFrom(def, cur.board);
+        moves = cur.moves; score = cur.score || 0;
+        goals = def.goals.map(function (gl, i) { var got = Math.min(gl.need, cur.got[i] || 0); return { kind: gl.kind, need: gl.need, got: got, shown: got, bump: 0 }; });
+      } else {
+        B = new Board(def); B.fill();
+        moves = def.moves; score = 0;
+        goals = def.goals.map(function (gl) { return { kind: gl.kind, need: gl.need, got: 0, shown: 0, bump: 0 }; });
+      }
+      persist();
       dying = []; fx = []; parts = []; flyers = []; banners = []; sel = null; hint = null; drag = null;
       mapEl.hidden = true;
       layout(); buildCaches();
@@ -1097,7 +1104,7 @@
       wait(maxT + 100).then(function () {
         if (dead) return;
         phase = 'idle'; idleAt = clock;
-        if (n === 1) banner('Przesuń warzywko!', 1500, 32);
+        if (n === 1 && !cur) banner('Przesuń warzywko!', 1500, 32);
       });
     }
     function doSwap(a, b) {
@@ -1115,17 +1122,114 @@
       flushVeg();
       if (goalsDone()) return win();
       if (moves <= 0) return fail();
-      if (!B.findMove()) await reshuffle();
+      if (!B.findMove() && !(await reshuffle())) return stuck();
       if (dead) return;
+      persist();
       phase = 'idle'; idleAt = clock;
     }
+    // false when even a fresh board (same weeds, goals and moves) has no move: the level ends with a refund
     async function reshuffle() {
       banner('Tasuję!', 1300, 44, LVL);
       ctx.sfx('whoosh');
       await wait(500);
-      B.shuffle();
-      for (var r = 0; r < B.R; r++) for (var c = 0; c < B.C; c++) { var t = B.g[r][c]; if (t) moveTo(t, c, r, 450); }
+      if (dead) return true;
+      var ok = B.shuffle();
+      if (!ok) {
+        var nb = rebuilt();
+        if (!nb) return false;
+        B = nb;
+        dying = []; sel = null; hint = null;
+        for (var r = 0; r < B.R; r++) for (var c = 0; c < B.C; c++) { var t = B.g[r][c]; if (t) { t.x = c; t.y = r - B.R - 1; moveTo(t, c, r, 450, true, c * 30); } }
+        await wait(800);
+        return true;
+      }
+      for (var r2 = 0; r2 < B.R; r2++) for (var c2 = 0; c2 < B.C; c2++) { var t2 = B.g[r2][c2]; if (t2) moveTo(t2, c2, r2, 450); }
       await wait(500);
+      return true;
+    }
+    // a new board keeping the weeds still standing (and their strength)
+    function rebuilt() {
+      var map = [];
+      for (var r = 0; r < B.R; r++) {
+        var row = '';
+        for (var c = 0; c < B.C; c++) {
+          var t = B.hole[r][c] ? null : B.g[r][c];
+          row += B.hole[r][c] ? '#' : t && t.k === WEED ? (t.hp >= 2 ? 'W' : 'w') : '.';
+        }
+        map.push(row);
+      }
+      var d2 = { size: def.size, kinds: def.kinds, moves: def.moves, goals: def.goals, map: map };
+      var nb = new Board(d2); nb.fill();
+      nb.def = def;
+      return !nb.runs().length && nb.findMove() ? nb : null;
+    }
+    // board with no possible move even after a rebuild: give the stars back
+    async function stuck() {
+      phase = 'over';
+      clearCur();
+      ctx.refund(PRICE, 'poziom ' + lvl + ', zaplątane warzywka');
+      ctx.sfx('error');
+      await wait(700);
+      if (dead) return;
+      var n = lvl;
+      panelRef = ctx.panel({
+        title: 'Warzywka się zaplątały', lines: ['Nie da się już ułożyć żadnej trójki.', 'Oddaję ' + PRICE + ' ★. Spróbuj jeszcze raz!'],
+        price: PRICE, button: 'Jeszcze raz', note: 'poziom ' + n,
+        onPlay: function () { closePanel(); startLevel(n); }, secondary: secondary()
+      });
+    }
+
+    // ---------- round in progress: saved after every move, so a paid level survives the app being closed ----------
+    function persist() {
+      if (!B) return;
+      var board = [];
+      for (var r = 0; r < B.R; r++) {
+        var row = [];
+        for (var c = 0; c < B.C; c++) { var t = B.g[r][c]; row.push(t ? [t.k, t.sp || 0, t.dir || 0, t.hp || 0] : 0); }
+        board.push(row);
+      }
+      save.cur = { lvl: lvl, moves: moves, score: score, got: goals.map(function (gl) { return gl.got; }), board: board };
+      S();
+    }
+    function clearCur() { if (save.cur) { save.cur = null; S(); } }
+    function boardFrom(d, rows) {
+      var b = new Board(d);
+      for (var r = 0; r < b.R; r++) for (var c = 0; c < b.C; c++) {
+        var q = rows[r][c];
+        if (b.hole[r][c] || !q) { b.g[r][c] = null; continue; }
+        var t = b.tile(q[0]); t.sp = q[1] || null; t.dir = q[2] || null; t.hp = q[3] || 0; t.x = c; t.y = r;
+        b.g[r][c] = t;
+      }
+      return b;
+    }
+    function validCur(c) {
+      if (!c || !(c.lvl >= 1) || !(c.moves > 0) || !Array.isArray(c.got) || !Array.isArray(c.board)) return false;
+      var d = levelDef(c.lvl);
+      if (c.lvl > save.unlocked || c.got.length !== d.goals.length || c.board.length !== d.size) return false;
+      for (var r = 0; r < d.size; r++) {
+        if (!Array.isArray(c.board[r]) || c.board[r].length !== d.size) return false;
+        for (var k = 0; k < d.size; k++) {
+          var q = c.board[r][k], hole = d.map[r][k] === '#';
+          if (hole ? q : !(Array.isArray(q) && typeof q[0] === 'number' && q[0] >= WEED && q[0] < d.kinds)) return false;
+        }
+      }
+      return !!boardFrom(d, c.board).findMove();
+    }
+    function resumePanel() {
+      closePanel();
+      var c = save.cur, d = levelDef(c.lvl);
+      var left = d.goals.map(function (gl, i) { return { kind: gl.kind, need: gl.need, got: Math.min(gl.need, c.got[i] || 0) }; });
+      panelRef = ctx.panel({
+        title: 'Poziom ' + c.lvl, medals: true,
+        lines: ['Masz zaczęty poziom ' + c.lvl + '.', 'Zostało ' + c.moves + ' ' + plural(['ruch', 'ruchy', 'ruchów'], c.moves) + '.',
+          { text: left.map(function (gl) { return goalText(gl, true); }).join(' · '), muted: true }],
+        button: 'Graj dalej',
+        onPlay: function () { closePanel(); startLevel(c.lvl, c); },
+        secondary: [
+          { label: 'Nowa gra', onClick: function () { panelRef = null; clearCur(); showMap(); levelPanel(save.unlocked); } },
+          { label: 'Wróć do gier', onClick: function () { closePanel(); ctx.exit(); } }
+        ]
+      });
     }
     function starsFor(left, total) { return left >= Math.ceil(total * 0.25) ? 3 : left >= Math.ceil(total * 0.1) ? 2 : 1; }
     function starStr(n) { return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
@@ -1177,25 +1281,27 @@
       } catch (e) {}
       return list;
     }
+    // the result is saved the moment the goals are met, so leaving during the animation keeps it
     async function win() {
       phase = 'over';
-      await wait(700);
-      if (dead) return;
       var stars = starsFor(moves, def.moves);
-      banner('Brawo!', 1100, 52, GREEN);
-      ctx.sfx('win');
-      for (var i = 0; i < 6; i++) { var p = cellXY(Math.floor(B.R / 2), i % B.C); burst(p.x + (Math.random() - 0.5) * Lt.bw, p.y, RAINBOW[i], 10, 2); }
-      await wait(1100);
-      if (dead) return;
       save.stars[lvl] = Math.max(save.stars[lvl] || 0, stars);
       var best = save.best[lvl] || 0, isBest = score > best;
       if (isBest) save.best[lvl] = score;
       save.unlocked = Math.max(save.unlocked, lvl + 1);
+      save.cur = null;
       S();
       ctx.stat('wins', 1);
       ctx.stat('levels', lvl, 'max');
       if (stars === 3) ctx.sticker('stars3');
       var seeds = giveSeeds(stars);
+      await wait(700);
+      if (dead) return;
+      banner('Brawo!', 1100, 52, GREEN);
+      ctx.sfx('win');
+      for (var i = 0; i < 6; i++) { var p = cellXY(Math.floor(B.R / 2), i % B.C); burst(p.x + (Math.random() - 0.5) * Lt.bw, p.y, RAINBOW[i], 10, 2); }
+      await wait(1100);
+      if (dead) return;
       var seedLine = 'Do Ogródka: ' + seeds.map(function (s) { return (s.n === 1 ? 'nasionko ' : '2 nasionka ') + SEED_GEN[s.kind]; }).join(' i ') + '.';
       var n = lvl;
       panelRef = ctx.panel({
@@ -1207,14 +1313,16 @@
     }
     async function fail() {
       phase = 'over';
+      clearCur();
       ctx.sfx('lose');
-      await wait(700);
-      if (dead) return;
       var got = 0, need = 0;
       goals.forEach(function (gl) { got += Math.min(gl.got, gl.need); need += gl.need; });
       var half = need > 0 && got / need > 0.5, n = lvl;
+      if (half) ctx.refund(REFUND, 'poziom ' + n + ', ponad połowa');
+      await wait(700);
+      if (dead) return;
       var lines = ['Zabrakło ruchów.'].concat(goals.map(function (gl) { return 'Masz ' + goalText(gl, true) + '.'; }));
-      if (half) { ctx.refund(REFUND, 'poziom ' + n + ', ponad połowa'); lines.push('Ponad połowa! Oddaję ' + REFUND + ' ★.'); }
+      if (half) lines.push('Ponad połowa! Oddaję ' + REFUND + ' ★.');
       else lines.push({ text: 'Za ponad połowę celu oddaję ' + REFUND + ' ★.', muted: true });
       panelRef = ctx.panel({
         title: half ? 'Prawie!' : 'Koniec ruchów', lines: lines, price: PRICE, button: 'Jeszcze raz', note: 'poziom ' + n,
@@ -1295,14 +1403,16 @@
     resize();
     raf = requestAnimationFrame(tick);
     showMap();
-    levelPanel(save.unlocked);
+    if (save.cur && validCur(save.cur)) resumePanel();
+    else { if (save.cur) clearCur(); levelPanel(save.unlocked); }
     // read-only peek for automated tests
     NG.impl.trojki.debug = function () { return { B: B, phase: phase, moves: moves, goals: goals, L: Lt, lvl: lvl, cv: cv, setMoves: function (n) { moves = n; } }; };
 
     return {
       destroy: function () {
         dead = true;
-        flushVeg();
+        // mid-move the saved round is the one before this move, which will be played again: don't count its veg twice
+        if (save.cur) vegBuf = 0; else flushVeg();
         cancelAnimationFrame(raf);
         ro.disconnect();
         cv.removeEventListener('pointerdown', onDown);
@@ -1315,7 +1425,7 @@
         waits = [];
         el.innerHTML = '';
       },
-      pause: function () { paused = true; },
+      pause: function () { paused = true; if (phase === 'idle') persist(); },
       resume: function () { paused = false; last = 0; }
     };
   }
