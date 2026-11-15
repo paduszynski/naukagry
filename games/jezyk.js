@@ -13,7 +13,9 @@
   var FONT = '"Patrick Hand", "Comic Sans MS", cursive';
   var PRICE = 50, ITEM_PRICE = 75, SEASON_LEN = 30;
   var HOG_SC = 1.3;                 // hedgehog drawing scale
-  var GRAV = 2400, JUMP = 820, JUMP2 = 900;
+  // jumps are 1.5x longer than the original 2400/820/900 at the same height:
+  // air time x1.5 -> jump speed x2/3, gravity x4/9
+  var GRAV = 2400 * 4 / 9, JUMP = 820 * 2 / 3, JUMP2 = 900 * 2 / 3, GRAV_CRASH = 2400;
 
   var SEASONS = [
     { name: 'Wiosna', sky1: '#9fd6ff', sky2: '#e8f7ff', far: '#b9e4a3', near: '#93d273', grass: '#79c457', grass2: '#5ea844', dirt: '#b07f52', dirt2: '#966843', sun: '#ffd84a' },
@@ -306,11 +308,11 @@
           R.obs.push({ type: 'stone', x: x, w: 32, h: 24 });
           R.obs.push({ type: 'stone', x: x + d, w: 32, h: 24 });
           w = d + 32; gap += d;
-          if (Math.random() < 0.6) { var pa = 36 * sv; apples([[x + d / 2, 150], [x + d / 2 - pa, 128], [x + d / 2 + pa, 128]]); }
+          if (Math.random() < 0.6) { var pa = 54 * sv; apples([[x + d / 2, 150], [x + d / 2 - pa, 128], [x + d / 2 + pa, 128]]); }
         } else {
           R.obs.push(o);
           if (k === 'bee') apples([[x - 30, 22], [x, 22], [x + 30, 22]]);
-          else if (Math.random() < 0.5) { var c = x + w / 2, ja = 44 * sv; apples([[c - ja, 95], [c, 135], [c + ja, 95]]); }
+          else if (Math.random() < 0.5) { var c = x + w / 2, ja = 66 * sv; apples([[c - ja, 95], [c, 135], [c + ja, 95]]); }
         }
         if (Math.random() < 0.3) {
           var gx = x + w + (gap - w) * 0.3;
@@ -424,7 +426,7 @@
       function updateCrash(dt) {
         var r = R;
         r.crashT += dt;
-        r.vy -= GRAV * 0.7 * dt; r.h = Math.max(0, r.h + r.vy * dt);
+        r.vy -= GRAV_CRASH * 0.7 * dt; r.h = Math.max(0, r.h + r.vy * dt);
         if (r.h === 0) r.vy = Math.abs(r.vy) > 200 ? -r.vy * 0.3 : 0;
         r.pops.forEach(function (p) { p.t += dt; });
         if (r.crashT > 1.2) finishRun();

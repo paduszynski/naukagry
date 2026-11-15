@@ -588,6 +588,7 @@
           var r = dayRange(d), s = Math.max(r[0], pl.t), e = Math.min(r[1], now);
           if (e > s) ms += e - s;
         }
+        ms += pl.extra || 0; // parent's sun trick: whole days of growth added on top
         return ms / (P.h * HOUR);
       }
       function wateredToday(pl) { var td = today(); return st.wet.indexOf(td) >= 0 || dstr(new Date(pl.t)) === td; }
@@ -1004,10 +1005,24 @@
         if (moved > 14) return;
         var r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
         if (info) { closeInfo(); }
+        if (Math.hypot(x - (W - 38), y - skyH * 0.4) < 30) { tapSun(); return; }
         for (var i = 0; i < cells.length; i++) {
           var c = cells[i];
           if (x >= c.x && x < c.x + c.w && y >= c.y && y < c.y + c.h) { tapPlot(i); return; }
         }
+      }
+      // parent-only: 20 taps in a row on the sun = every plant grows one more day
+      var sunTaps = 0, sunLast = 0;
+      function tapSun() {
+        var t = performance.now();
+        sunTaps = t - sunLast < 1500 ? sunTaps + 1 : 1; sunLast = t;
+        if (sunTaps < 20) return;
+        sunTaps = 0;
+        var any = false;
+        st.plots.forEach(function (pl) { if (pl) { pl.extra = (pl.extra || 0) + 24 * HOUR; any = true; } });
+        if (!any) return;
+        save(); updateBar();
+        toast('☀ Minął jeden dzień!');
       }
       function tapPlot(i) {
         var c = cells[i];
