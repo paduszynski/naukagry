@@ -10,6 +10,8 @@
   var INK = '#1d2f6f', MUTED = '#5a6690', LVL = '#7a4fc4';
   var FONT = '"Patrick Hand","Comic Sans MS",cursive';
   var MAX_FISH = 20, MAX_DECO = 14;
+  // fish caught in Wędkarz wait here (JSON array of FISH[].k ids) until the aquarium has room
+  var INBOX = 'naukagry.akwarium.inbox', RARE_LV = 10;
 
   var FISH = [
     { k: 'gupik', pl: 'gupik', en: 'guppy', lv: 1, price: 25, size: 0.6, shape: 'basic', body: '#a8dcf2', fin: '#f47fb0', pat: 'spots', tail: 'fan', speed: 1.2 },
@@ -480,6 +482,22 @@
   }
 
   NG.register('akwarium', {
+    meta: { music: 'water' },
+    medals: [
+      { id: 'kinds3', stat: 'kinds', at: 3, tier: 1, text: '3 rodzaje rybek' },
+      { id: 'feed7', stat: 'feed', at: 7, tier: 2, text: '7 dni karmienia' },
+      { id: 'kinds10', stat: 'kinds', at: 10, tier: 3, text: '10 rodzajów rybek' }
+    ],
+    quests: [
+      { id: 'feed', stat: 'feed', n: [1], text: 'Nakarm rybki w Akwarium' },
+      { id: 'names', stat: 'names', n: [5, 8], text: 'Dotknij {n} rybek w Akwarium' }
+    ],
+    stickers: [
+      { id: 'first', emoji: '🐟', name: 'Pierwsza rybka' },
+      { id: 'rare', emoji: '🐠', name: 'Rzadka rybka' },
+      { id: 'wedka', emoji: '🎣', name: 'Rybka z wędki' },
+      { id: 'full', emoji: '🌊', name: 'Pełne akwarium' }
+    ],
     mount: function (el, ctx) {
       var st = ctx.load({ v: 1, fish: [], deco: [], bg: 'zwykle', bgs: ['zwykle'], fedDay: '', seenHelp: false, nextId: 1 });
       ['fish', 'deco', 'bgs'].forEach(function (k) { if (!Array.isArray(st[k])) st[k] = []; });
@@ -515,6 +533,42 @@
         if (t) t.style.cssText += ';inset:auto;top:14px;left:50%;right:auto;bottom:auto;white-space:normal;width:max-content;max-width:calc(100% - 24px);text-align:center';
       }
       function hungry(f) { return st.fedDay !== today() && f.born !== today(); }
+
+      // ---------- stats, stickers, Wędkarz inbox ----------
+      function fishStats() {
+        if (!st.fish.length) return;
+        var kinds = {};
+        st.fish.forEach(function (f) { kinds[f.sp] = 1; });
+        var nk = Object.keys(kinds).length;
+        if (ctx.getStat('kinds') < nk) ctx.stat('kinds', nk, 'max');
+        ctx.sticker('first');
+        if (st.fish.some(function (f) { return FB[f.sp].lv >= RARE_LV; })) ctx.sticker('rare');
+        if (st.fish.length >= MAX_FISH) ctx.sticker('full');
+      }
+      function takeInbox() {
+        var box;
+        try { box = JSON.parse(localStorage.getItem(INBOX) || '[]'); } catch (e) { box = []; }
+        if (!Array.isArray(box) || !box.length) return;
+        var keep = [], got = [];
+        box.forEach(function (it) {
+          var k = it && typeof it === 'object' ? (it.k || it.kind || it.sp) : it;
+          if (!FB[k]) return; // unknown fish: drop it
+          if (st.fish.length >= MAX_FISH) { keep.push(k); return; }
+          var rec = { id: st.nextId++, sp: k, born: today(), from: 'wedka' };
+          st.fish.push(rec);
+          var o = spawn(rec, true);
+          labels.push({ o: o, pl: FB[k].pl, en: FB[k].en, life: 3.5 });
+          got.push(FB[k].pl);
+        });
+        save();
+        try { if (keep.length) localStorage.setItem(INBOX, JSON.stringify(keep)); else localStorage.removeItem(INBOX); } catch (e) {}
+        var wait = keep.length ? 'Akwarium jest pełne. ' + (keep.length === 1 ? 'Jedna rybka czeka' : keep.length + ' ' + (keep.length < 5 ? 'rybki czekają' : 'rybek czeka')) + ' w wiaderku.' : '';
+        if (got.length) {
+          later(function () { ctx.sfx('splash'); }, 150);
+          toast('Z wędki: ' + got.join(', ') + '!' + (wait ? ' ' + wait : ''));
+          ctx.sticker('wedka');
+        } else if (wait) toast(wait);
+      }
 
       // ---------- fish runtime ----------
       function zone(F) {
@@ -745,20 +799,23 @@
       }
       function feedBtn() {
         if (foodMode) { foodMode = 0; updateBar(); return; }
-        if (!st.fish.length) { toast('Najpierw kup rybkę w sklepie.'); return; }
-        if (st.fedDay === today()) { toast('Rybki już dziś jadły. Jutro znowu!'); return; }
+        if (!st.fish.length) { ctx.sfx('error'); toast('Najpierw kup rybkę w sklepie.'); return; }
+        if (st.fedDay === today()) { ctx.sfx('tap'); toast('Rybki już dziś jadły. Jutro znowu!'); return; }
         foodMode = 3; updateBar();
+        ctx.sfx('tap');
       }
       function sprinkle(x) {
         for (var i = 0; i < 7; i++) food.push({ x: clamp(x + rnd(-18, 18) * u, 10, W - 10), y: surf + rnd(-4, 6) * u, rest: 0, k: Math.floor(Math.random() * 1000) });
         fish.forEach(function (o) { o.ate = Math.min(o.ate, 1); });
-        if (st.fedDay !== today()) { st.fedDay = today(); save(); }
+        ctx.sfx('splash');
+        if (st.fedDay !== today()) { st.fedDay = today(); save(); ctx.stat('feed', 1); }
         foodMode--;
         updateBar();
       }
 
       function closeSheet() {
         if (!sheet) return;
+        ctx.sfx('close');
         var s = sheet; sheet = null; s.wrap.classList.remove('on');
         later(function () { s.wrap.remove(); }, 260);
       }
@@ -773,6 +830,7 @@
         wrap.addEventListener('pointerdown', function (e) { if (e.target === wrap) closeSheet(); });
         Array.prototype.forEach.call(sh.querySelectorAll('.aq-tab'), function (b) { b.onclick = function () { tab = b.getAttribute('data-t'); render(); }; });
         root.appendChild(wrap); void wrap.offsetWidth; wrap.classList.add('on');
+        ctx.sfx('open');
         sheet = { wrap: wrap };
         function note(text, warn) { var p = document.createElement('p'); p.className = 'aq-note' + (warn ? ' warn' : ''); p.innerHTML = text; body.appendChild(p); }
         function row(img, wide, title, sub, extra) {
@@ -819,9 +877,9 @@
             BGS.forEach(function (B) {
               var locked = B.lv > lvl, own = st.bgs.indexOf(B.k) >= 0, cur = st.bg === B.k, btn;
               if (cur) btn = buyBtn('Teraz', true, null, 'pick');
-              else if (own) btn = buyBtn('Wybierz', false, function () { setBg(B.k); render(); }, 'pick');
+              else if (own) btn = buyBtn('Wybierz', false, function () { ctx.sfx('click'); setBg(B.k); render(); }, 'pick');
               else if (locked) btn = lockT(B.lv);
-              else btn = buyBtn(B.price + ' ★', B.price > bal, function () { if (ctx.spend(B.price, 'tło: ' + B.n)) { st.bgs.push(B.k); setBg(B.k); toast('Nowe tło: ' + B.n + '!'); render(); } else render(); });
+              else btn = buyBtn(B.price + ' ★', B.price > bal, function () { if (ctx.spend(B.price, 'tło: ' + B.n)) { ctx.sfx('buy'); st.bgs.push(B.k); setBg(B.k); toast('Nowe tło: ' + B.n + '!'); render(); } else render(); });
               var r = row(bgThumb(B, 168, 112), true, esc(B.n), '', btn);
               if (cur) r.classList.add('cur');
               if (locked && !own) r.classList.add('lock');
@@ -835,7 +893,10 @@
           if (!ctx.spend(F.price, 'rybka: ' + F.pl)) { render(); return; }
           var rec = { id: st.nextId++, sp: F.k, born: today() };
           st.fish.push(rec); save();
+          ctx.sfx('buy');
           closeSheet();
+          later(function () { ctx.sfx('splash'); }, 250);
+          fishStats();
           var o = spawn(rec, true);
           labels.push({ o: o, pl: F.pl, en: F.en, life: 3.5 });
           updateBar();
@@ -845,6 +906,7 @@
           if (!ctx.spend(D.price, 'ozdoba: ' + D.n)) { render(); return; }
           var d = { id: st.nextId++, k: D.k, x: rnd(0.15, 0.85), y: rnd(0.2, 0.8) };
           st.deco.push(d); save();
+          ctx.sfx('buy');
           closeSheet();
           var p = decoPos(d);
           labels.push({ x: p.x, y: p.y - DB[D.k].h * u - 10, pl: D.n, en: '', life: 2.5 });
@@ -890,7 +952,7 @@
         down = null;
         if (drag) {
           var d = drag.d, was = drag.moving; drag = null;
-          if (was) { save(); return; }
+          if (was) { save(); ctx.sfx('place'); return; }
           if (moved < 12) { var dp = decoPos(d); labels.push({ x: dp.x, y: dp.y - DB[d.k].h * decoScale(d) - 6, pl: DB[d.k].n, en: '', life: 2 }); return; }
         }
         if (moved > 14) return;
@@ -900,10 +962,14 @@
           labels = labels.filter(function (l) { return l.o !== o; });
           labels.push({ o: o, pl: o.F.pl, en: o.F.en, life: 2.8 });
           o.wig = 1;
+          ctx.sfx('pop');
+          if (!o.named || T - o.named > 4) ctx.stat('names', 1); // same fish counts again after a short while
+          o.named = T || 0.001;
           return;
         }
         // tap on the glass: fish scatter
         ripples.push({ x: p.x, y: p.y, t: 0 });
+        ctx.sfx('bubble');
         fish.forEach(function (q) {
           var dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy) || 1, R = 150 * u;
           if (d < R) {
@@ -927,18 +993,20 @@
       ro.observe(cvWrap);
       layout();
       st.fish.forEach(function (r) { spawn(r, false); });
+      takeInbox();
+      fishStats();
       updateBar();
       var offS = window.Skarbonka.on(function () { var l = ctx.level(); if (l !== lvl) lvl = l; });
       var iv = setInterval(function () { if (running) updateBar(); }, 20000);
       start();
       if (!st.seenHelp) {
         st.seenHelp = true; save();
-        ctx.panel({ title: 'Akwarium', lines: ['Kup rybki i ozdoby w sklepie.', 'Karm rybki raz dziennie.', { text: 'Dotknij rybki, a powie, jak się nazywa po polsku i po angielsku.', muted: true }], button: 'Do akwarium', closable: false });
+        ctx.panel({ title: 'Akwarium', medals: true, lines: ['Kup rybki i ozdoby w sklepie.', 'Karm rybki raz dziennie.', { text: 'Dotknij rybki, a powie, jak się nazywa po polsku i po angielsku.', muted: true }], button: 'Do akwarium', closable: false });
       }
 
       return {
         pause: function () { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; },
-        resume: function () { if (running) return; running = true; updateBar(); start(); },
+        resume: function () { if (running) return; running = true; var n = st.fish.length; takeInbox(); if (st.fish.length > n) fishStats(); updateBar(); start(); },
         destroy: function () {
           running = false; if (raf) cancelAnimationFrame(raf); raf = 0;
           timers.forEach(clearTimeout); clearInterval(iv);

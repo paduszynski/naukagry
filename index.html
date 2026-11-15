@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Gry za gwiazdki</title>
-<meta name="version" content="1.4">
+<meta name="version" content="2.0">
 <meta name="description" content="Gry dla dzieci za gwiazdki zdobyte w Matmie, Angielskim i Polskim.">
 <meta name="theme-color" content="#3f86d8">
 <link rel="manifest" href="manifest.webmanifest">
@@ -77,7 +77,8 @@ h1{margin:0;font-weight:400;font-size:2.1rem;line-height:1}
 #stage{flex:1;position:relative;overflow:hidden;min-height:0;touch-action:none}
 #stage > *{position:absolute;inset:0}
 #stage > .ng-toast{inset:auto;top:14px;left:50%;white-space:normal;width:max-content;max-width:calc(100% - 32px);text-align:center}
-@media (max-width:440px){#g-wallet .skb-bar{display:none} #g-wallet .skb{gap:6px;padding:3px 9px 3px 7px}}
+@media (max-width:440px){#g-wallet .skb-bar{display:none} #g-wallet .skb{gap:6px;padding:3px 9px 3px 7px} .g-top .snd button{width:30px;height:32px;font-size:.85rem} .g-top .snd{gap:4px} .g-back{padding:3px 8px}}
+@media (max-width:380px){.g-top #g-wallet .skb-lvl{display:none} .g-name{font-size:1.15rem}}
 #stage canvas{display:block;width:100%;height:100%}
 
 /* shared panel for start / end screens (ctx.panel) */
@@ -99,6 +100,45 @@ h1{margin:0;font-weight:400;font-size:2.1rem;line-height:1}
   white-space:nowrap;pointer-events:none;animation:ngtoast 2s ease forwards}
 @keyframes ngpop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes ngtoast{0%{opacity:0;transform:translate(-50%,-10px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+/* sound switches, quests, album */
+.snd{display:flex;gap:6px;flex:none}
+.snd button{border:2px solid var(--ink);background:#fff;border-radius:12px;width:40px;height:36px;padding:0;font-size:1.05rem;line-height:1;position:relative}
+.snd button.off{opacity:.45}
+.snd button.off::after{content:"";position:absolute;left:6px;right:6px;top:50%;height:2.5px;background:var(--red);transform:rotate(-35deg)}
+.extras{display:grid;grid-template-columns:1fr auto;gap:10px}
+.quests{background:var(--card);border:3px solid var(--ink);border-radius:18px;padding:8px 14px 10px;text-align:left;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 0 rgba(29,47,111,.18)}
+.quests .qh{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.quests .qh b{font-weight:400;font-size:1.25rem}
+.quests .qh small{color:var(--muted);font-size:.95rem}
+.q-item{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;font-size:1.02rem;line-height:1.1}
+.q-item .ck{width:20px;height:20px;border:2px solid var(--ink);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:#fff}
+.q-item.done .ck{background:var(--green);border-color:var(--green)}
+.q-item.done .qt{color:var(--muted);text-decoration:line-through}
+.q-item .qp{color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
+.album-btn{background:var(--card);border:3px solid var(--ink);border-radius:18px;padding:8px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:92px;box-shadow:0 4px 0 rgba(29,47,111,.18)}
+.album-btn .ic{font-size:1.9rem;line-height:1}
+.album-btn small{color:var(--muted);font-size:.95rem;font-variant-numeric:tabular-nums}
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(29,47,111,.35);display:flex;align-items:flex-end;justify-content:center}
+.sheet-in{background:#fff;border:3px solid var(--ink);border-bottom:none;border-radius:22px 22px 0 0;width:100%;max-width:640px;max-height:88%;display:flex;flex-direction:column;animation:ngup .3s ease}
+.sheet-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;border-bottom:2px solid var(--line)}
+.sheet-hd h2{margin:0;font-weight:400;font-size:1.8rem}
+.sheet-hd button{border:2px solid var(--ink);background:#fff;border-radius:12px;padding:2px 12px;font-size:1.2rem}
+.sheet-bd{overflow:auto;padding:12px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.al-page h3{margin:0 0 6px;font-weight:400;font-size:1.3rem}
+.al-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px}
+.al-slot{border:2px dashed var(--line);border-radius:14px;padding:6px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:86px}
+.al-slot .em{font-size:2rem;line-height:1.1;filter:grayscale(1);opacity:.25}
+.al-slot small{font-size:.8rem;line-height:1.05;color:var(--muted)}
+.al-slot.got{border:2px solid var(--ink);background:#fffbea;transform:rotate(-1.5deg)}
+.al-slot.got:nth-child(2n){transform:rotate(1.5deg)}
+.al-slot.got .em{filter:none;opacity:1}
+.al-slot.got small{color:var(--ink)}
+.medal-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.medal-row span{display:flex;flex-direction:column;align-items:center;font-size:.95rem;color:var(--muted);line-height:1.05;min-width:64px}
+.medal-row span i{font-style:normal;font-size:1.7rem;filter:grayscale(1);opacity:.3}
+.medal-row span.got i{filter:none;opacity:1}
+.medal-row span.got{color:var(--ink)}
+@keyframes ngup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s !important;transition:none !important}}
 </style>
 </head>
@@ -106,11 +146,16 @@ h1{margin:0;font-weight:400;font-size:2.1rem;line-height:1}
 <div id="hub">
   <div class="wrap hub-top">
     <div class="title-row">
-      <h1>Gry za gwiazdki <span class="ver" title="Wersja 1.4">1.4</span></h1>
+      <h1>Gry za gwiazdki <span class="ver" title="Wersja 2.0">2.0</span></h1>
+      <span class="snd" id="snd-hub"></span>
     </div>
     <div class="wallet" id="wallet" aria-live="polite">
       <div class="bal"><span>★</span> <b id="w-bal" style="font-weight:400">0</b></div>
       <div class="lv"><b id="w-lvl">Poziom 1</b><div class="bar"><i id="w-bar"></i></div><small id="w-next"></small></div>
+    </div>
+    <div class="extras">
+      <button class="quests" id="quests" type="button"></button>
+      <button class="album-btn" id="album-btn" type="button"><span class="ic">📒</span><span>Album</span><small id="album-n"></small></button>
     </div>
     <div class="learn">Zbieraj gwiazdki: <a href="/matma/">Matma</a><a href="/angielski/">Angielski</a><a href="/polski/">Polski</a></div>
   </div>
@@ -124,21 +169,19 @@ h1{margin:0;font-weight:400;font-size:2.1rem;line-height:1}
   <div class="g-top">
     <button class="g-back" id="g-back" type="button">← Gry</button>
     <span class="g-name" id="g-name"></span>
+    <span class="snd" id="snd-game"></span>
     <span id="g-wallet"></span>
   </div>
   <div id="stage"></div>
 </div>
 
 <script src="skarbonka.js"></script>
+<script src="ng-core.js"></script>
 <script>
 /* ---------- game registry ----------
- * Each games/<id>.js calls NG.register(id, { mount(el, ctx) { ...; return { destroy() {} } } }).
- * Metadata (name, unlock level, price label, tile picture) lives in GAMES below so tiles render without the game code.
+ * Each games/<id>.js calls NG.register(id, { meta, medals, quests, stickers, mount(el, ctx) { ...; return { destroy() {} } } }).
+ * Tile metadata (name, unlock level, price label, tile picture) is either here in GAMES or in the game's own `meta`.
  */
-window.NG = {
-  impl: {},
-  register: function (id, impl) { this.impl[id] = impl; }
-};
 
 var GAMES = [
   { id: 'klocki', name: 'Klockownia', unlock: 1, price: '50 ★ za grę', bg: '#fbe9c9',
@@ -149,7 +192,7 @@ var GAMES = [
       [[92,28],[98,28],[104,28],[98,34]].forEach(function (p) { s += '<rect x="' + p[0] + '" y="' + p[1] + '" width="6" height="6" fill="#3fae5f" stroke="#1d2f6f" stroke-width="1"/>'; });
       return s;
     })() },
-  { id: 'ogrodek', name: 'Ogródek', unlock: 1, price: 'nasiona od 25 ★', bg: '#dff3d2',
+  { id: 'ogrodek', name: 'Ogródek', unlock: 1, price: 'nasiona od 15 ★', bg: '#dff3d2',
     pic: '<rect x="0" y="56" width="120" height="16" fill="#8a5a33"/><path d="M30 56 v-10 M30 50 q-6 -2 -8 -8 M30 48 q6 -2 8 -8" fill="none" stroke="#2a8a56" stroke-width="2.5" stroke-linecap="round"/><path d="M80 56 v-30" stroke="#2a8a56" stroke-width="2.5"/><path d="M80 40 q-10 -2 -12 -10 q10 0 12 10 z" fill="#3fae5f"/><circle cx="80" cy="12" r="5" fill="#e2533f"/><circle cx="88" cy="20" r="5" fill="#e2533f"/><circle cx="72" cy="20" r="5" fill="#e2533f"/><circle cx="80" cy="28" r="5" fill="#e2533f"/><circle cx="80" cy="20" r="5" fill="#f2b51d"/><path d="M98 20 l10 -6 v10 l-4 4 h-6 z M108 14 l6 -2" fill="#9fc3ea" stroke="#1d2f6f" stroke-width="2" stroke-linejoin="round"/><path d="M100 32 v4 M104 32 v6" stroke="#3f86d8" stroke-width="2" stroke-linecap="round"/>' },
   { id: 'jezyk', name: 'Jeżyk w biegu', unlock: 1, price: '50 ★ za bieg', bg: '#e2f4ff',
     pic: '<rect x="0" y="62" width="120" height="10" fill="#8fd06b"/><ellipse cx="88" cy="63" rx="16" ry="4" fill="#3f86d8"/><path d="M28 60 a16 14 0 0 1 32 0 z" fill="#8a5a33" stroke="#1d2f6f" stroke-width="2"/><path d="M30 50 l-4 -6 l6 1 l0 -7 l5 4 l2 -7 l4 6 l4 -6 l2 7 l5 -4 l0 7 l6 -1 l-4 6" fill="none" stroke="#1d2f6f" stroke-width="2.5" stroke-linejoin="round"/><circle cx="56" cy="54" r="1.8" fill="#1d2f6f"/><circle cx="102" cy="34" r="6" fill="#e2533f"/>' },
@@ -172,7 +215,9 @@ var GAMES = [
   { id: 'latawiec', name: 'Latawiec', unlock: 1, price: '50 ★ za lot', bg: '#e6f0ff',
     pic: '<path d="M50 6 l18 20 l-18 26 l-18 -26 z" fill="#e2533f" stroke="#1d2f6f" stroke-width="2"/><path d="M50 6 v46 M32 26 h36" stroke="#1d2f6f" stroke-width="2"/><path d="M50 52 q-8 6 0 10 q8 4 0 10" fill="none" stroke="#1d2f6f" stroke-width="2"/><path d="M96 14 l3 7 l7 1 l-5 5 l1 7 l-6 -3 l-6 3 l1 -7 l-5 -5 l7 -1 z" fill="#f2b51d"/><path d="M80 50 q4 -4 8 0 q4 -4 8 0" fill="none" stroke="#1d2f6f" stroke-width="2"/>' },
   { id: 'rury', name: 'Rury do ogródka', unlock: 1, price: '50 ★ za 5 plansz', bg: '#e8f6e4',
-    pic: '<g fill="#fff" stroke="#1d2f6f" stroke-width="2"><rect x="14" y="10" width="28" height="28"/><rect x="42" y="10" width="28" height="28"/><rect x="70" y="10" width="28" height="28"/><rect x="14" y="38" width="28" height="28"/><rect x="42" y="38" width="28" height="28"/><rect x="70" y="38" width="28" height="28"/></g><path d="M14 24 h42 v28 h28" fill="none" stroke="#3f86d8" stroke-width="6" stroke-linecap="round"/><path d="M84 52 v-28" stroke="#c9d6ea" stroke-width="6"/><circle cx="110" cy="48" r="5" fill="#e2533f"/><path d="M110 53 v14" stroke="#2a8a56" stroke-width="2.5"/>' }
+    pic: '<g fill="#fff" stroke="#1d2f6f" stroke-width="2"><rect x="14" y="10" width="28" height="28"/><rect x="42" y="10" width="28" height="28"/><rect x="70" y="10" width="28" height="28"/><rect x="14" y="38" width="28" height="28"/><rect x="42" y="38" width="28" height="28"/><rect x="70" y="38" width="28" height="28"/></g><path d="M14 24 h42 v28 h28" fill="none" stroke="#3f86d8" stroke-width="6" stroke-linecap="round"/><path d="M84 52 v-28" stroke="#c9d6ea" stroke-width="6"/><circle cx="110" cy="48" r="5" fill="#e2533f"/><path d="M110 53 v14" stroke="#2a8a56" stroke-width="2.5"/>' },
+  { id: 'memo' }, { id: 'banki' }, { id: 'wedkarz' }, { id: 'pianinko' }, { id: 'obrazki' }, { id: 'sudoku' },
+  { id: 'kolorowanka' }, { id: 'pokoik' }, { id: 'zwierzak' }
 ];
 </script>
 <script src="games/klocki.js"></script>
@@ -182,6 +227,15 @@ var GAMES = [
 <script src="games/trojki.js"></script>
 <script src="games/latawiec.js"></script>
 <script src="games/rury.js"></script>
+<script src="games/memo.js"></script>
+<script src="games/banki.js"></script>
+<script src="games/wedkarz.js"></script>
+<script src="games/pianinko.js"></script>
+<script src="games/obrazki.js"></script>
+<script src="games/sudoku.js"></script>
+<script src="games/kolorowanka.js"></script>
+<script src="games/pokoik.js"></script>
+<script src="games/zwierzak.js"></script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
@@ -197,10 +251,16 @@ var GAMES = [
     $('w-bar').style.width = (L.into / L.need * 100).toFixed(1) + '%';
     $('w-next').textContent = L.into + ' / ' + L.need + ' ★ do poziomu ' + (L.level + 1);
   }
+  // GAMES entry + the game's own meta (new games describe their tile themselves)
+  function info(g) {
+    var m = (NG.impl[g.id] && NG.impl[g.id].meta) || {};
+    return { id: g.id, name: g.name || m.name || g.id, unlock: g.unlock || m.unlock || 1, price: g.price || m.price || '', bg: g.bg || m.bg || '#eef3ff', pic: g.pic || m.pic || '', music: m.music || g.music || null };
+  }
+  function games() { return GAMES.filter(function (g) { return g.name || NG.impl[g.id]; }).map(info); }
   function renderTiles() {
     var lvl = S.level().level, box = $('tiles');
     box.innerHTML = '';
-    GAMES.forEach(function (g) {
+    games().forEach(function (g) {
       var locked = lvl < g.unlock;
       var b = document.createElement('button');
       b.type = 'button';
@@ -217,13 +277,30 @@ var GAMES = [
   }
   S.on(function () { renderWallet(); renderTiles(); });
 
+  var toastBusy = 0, toastQ = [];
   function toast(where, text) {
+    if (Date.now() < toastBusy) { toastQ.push([where, text]); return; }
+    toastBusy = Date.now() + 1900; // each toast fades out after ~1.7 s, so the next one never overlaps
+    setTimeout(function () { toastBusy = 0; var n = toastQ.shift(); if (n) toast(n[0], n[1]); }, 1900);
+    if (!where.isConnected || where.hidden) where = game.hidden ? hub : stage;
     var t = document.createElement('div');
     t.className = 'ng-toast'; t.textContent = text;
     if (where === hub) { t.style.position = 'fixed'; t.style.top = 'calc(env(safe-area-inset-top,0px) + 14px)'; t.style.whiteSpace = 'normal'; t.style.width = 'max-content'; t.style.maxWidth = '90vw'; t.style.textAlign = 'center'; }
     where.appendChild(t);
     setTimeout(function () { t.remove(); }, 2100);
   }
+
+  function medalRow(gid) {
+    var row = document.createElement('div'); row.className = 'medal-row';
+    NG.meta.medals(gid).forEach(function (md) {
+      var sp = document.createElement('span'); if (md.got) sp.className = 'got';
+      sp.innerHTML = '<i>' + NG.meta.TIER[md.tier].e + '</i>';
+      sp.appendChild(document.createTextNode(md.text));
+      row.appendChild(sp);
+    });
+    return row;
+  }
+  function gameToast(text) { toast(stage, text); }
 
   // ---------- ctx for games ----------
   function makeCtx(g) {
@@ -247,6 +324,15 @@ var GAMES = [
       save: function (data) { try { localStorage.setItem(lsKey, JSON.stringify(data)); } catch (e) {} },
       exit: function () { if (location.hash) history.back(); else close(); },
       toast: function (text) { toast(stage, text); },
+      // sound: ctx.sfx('pop'), ctx.note(60), ctx.music('meadow'|'calm'|'water'|'sky'|'play'|'cozy'), ctx.music(null) stops
+      sfx: function (name) { NG.sound.sfx(name); },
+      note: function (m, dur, vol) { NG.sound.note(m, dur, vol); },
+      music: function (theme) { if (theme) NG.sound.music(theme); else NG.sound.stopMusic(); },
+      // stats -> medals + daily quests: ctx.stat('apples', 3) adds, ctx.stat('best', 640, 'max') keeps the best
+      stat: function (key, value, mode) { return NG.meta.stat(g.id, key, value, mode, gameToast); },
+      getStat: function (key) { return NG.meta.getStat(g.id, key); },
+      sticker: function (id) { NG.meta.sticker(g.id, id, gameToast); },
+      medals: function () { return NG.meta.medals(g.id); },
       // panel({ title, big, lines: [..], price, button, onPlay, secondary: [{label, onClick}], closable })
       // Shows a start/end card over the stage. With `price`, the main button charges that many stars first.
       // Returns { close() }.
@@ -261,6 +347,7 @@ var GAMES = [
           card.innerHTML = '';
           if (o.big) { var bg = document.createElement('div'); bg.className = 'big'; bg.textContent = o.big; card.appendChild(bg); }
           if (o.title) { var h = document.createElement('h2'); h.textContent = o.title; card.appendChild(h); }
+          if (o.medals) card.appendChild(medalRow(g.id));
           (o.lines || []).forEach(function (l) { var pp = document.createElement('p'); if (typeof l === 'object') { pp.textContent = l.text; if (l.muted) pp.className = 'muted'; } else pp.textContent = l; card.appendChild(pp); });
           if (o.button !== false) {
             var b = document.createElement('button');
@@ -304,7 +391,7 @@ var GAMES = [
 
   // ---------- routing ----------
   function open(id) {
-    var g = GAMES.filter(function (x) { return x.id === id; })[0];
+    var g = games().filter(function (x) { return x.id === id; })[0];
     if (!g) { close(); return; }
     if (S.level().level < g.unlock) { history.replaceState(null, '', location.pathname); close(); return; }
     if (current && current.id === id) return;
@@ -316,8 +403,10 @@ var GAMES = [
     var inst = null;
     try { inst = impl.mount(stage, makeCtx(g)); } catch (e) { console.error(e); stage.innerHTML = '<p style="padding:20px">Ups, gra się nie uruchomiła.</p>'; }
     current = { id: id, instance: inst };
+    if (g.music && !NG.impl[id].ownMusic) NG.sound.music(g.music);
   }
   function unmount() {
+    NG.sound.stopMusic();
     if (current && current.instance && current.instance.destroy) { try { current.instance.destroy(); } catch (e) { console.error(e); } }
     current = null;
     stage.innerHTML = '';
@@ -325,7 +414,7 @@ var GAMES = [
   function close() {
     unmount();
     game.hidden = true; hub.hidden = false;
-    renderWallet(); renderTiles();
+    renderWallet(); renderTiles(); renderExtras();
   }
   function route() { var id = location.hash.replace('#', ''); if (id) open(id); else close(); }
   $('g-back').onclick = function () { if (location.hash) history.back(); else close(); };
@@ -352,8 +441,73 @@ var GAMES = [
     }
   });
 
+  // ---------- sound switches ----------
+  function mountSnd(box) {
+    box.innerHTML = '<button type="button" data-k="sfx" aria-label="Dźwięki">🔊</button><button type="button" data-k="music" aria-label="Muzyka">🎵</button>';
+    [].forEach.call(box.querySelectorAll('button'), function (b) {
+      b.onclick = function () { var k = b.dataset.k; NG.sound.set(k, !NG.sound.pref()[k]); };
+    });
+    function sync(p) { [].forEach.call(box.querySelectorAll('button'), function (b) { var on = p[b.dataset.k]; b.classList.toggle('off', !on); b.setAttribute('aria-pressed', on); }); }
+    sync(NG.sound.pref()); NG.sound.on(sync);
+  }
+  mountSnd($('snd-hub')); mountSnd($('snd-game'));
+
+  // ---------- daily quests + album ----------
+  function renderExtras() {
+    var q = NG.meta.quests(), box = $('quests'), done = q.list.filter(function (x) { return x.done; }).length;
+    box.innerHTML = '<span class="qh"><b>Zadania dnia</b><small>' + (q.all ? 'komplet! ✓' : done + ' / ' + q.list.length + ' · +' + q.reward + ' ★ za każde') + '</small></span>';
+    q.list.forEach(function (it) {
+      var r = document.createElement('span'); r.className = 'q-item' + (it.done ? ' done' : '');
+      r.innerHTML = '<span class="ck">' + (it.done ? '✓' : '') + '</span><span class="qt"></span><span class="qp"></span>';
+      r.querySelector('.qt').textContent = it.text;
+      r.querySelector('.qp').textContent = it.done ? '' : it.prog + '/' + it.need;
+      box.appendChild(r);
+    });
+    var a = NG.meta.album();
+    $('album-n').textContent = a.got + ' / ' + a.total;
+    NG.meta.flushToasts(function (t) { toast(hub, t); });
+  }
+  $('quests').onclick = function () {
+    var q = NG.meta.quests(), first = q.list.filter(function (x) { return !x.done && x.game; })[0];
+    if (first) { location.hash = first.game; return; }
+    toast(hub, q.all ? 'Dzisiejsze zadania zrobione! Jutro nowe.' : 'Zrób zestaw nauki, a zadanie zaliczy się samo.');
+  };
+  function sheet(title, body) {
+    var w = document.createElement('div'); w.className = 'sheet';
+    w.innerHTML = '<div class="sheet-in" role="dialog" aria-modal="true"><div class="sheet-hd"><h2></h2><button type="button">Zamknij</button></div><div class="sheet-bd"></div></div>';
+    w.querySelector('h2').textContent = title;
+    w.querySelector('.sheet-bd').appendChild(body);
+    function shut() { w.remove(); document.removeEventListener('keydown', esc); NG.sound.sfx('close'); }
+    function esc(e) { if (e.key === 'Escape') shut(); }
+    w.querySelector('.sheet-hd button').onclick = shut;
+    w.addEventListener('pointerdown', function (e) { if (e.target === w) shut(); });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(w); NG.sound.sfx('open');
+  }
+  $('album-btn').onclick = function () {
+    var a = NG.meta.album(), body = document.createElement('div');
+    body.style.cssText = 'display:flex;flex-direction:column;gap:16px';
+    var nameOf = {}; games().forEach(function (g) { nameOf[g.id] = g.name; });
+    a.pages.forEach(function (p) {
+      var sec = document.createElement('section'); sec.className = 'al-page';
+      var got = p.slots.filter(function (s) { return s.got; }).length;
+      sec.innerHTML = '<h3></h3><div class="al-slots"></div>';
+      sec.querySelector('h3').textContent = (nameOf[p.id] || p.name) + ' · ' + got + '/' + p.slots.length;
+      p.slots.forEach(function (s) {
+        var d = document.createElement('div'); d.className = 'al-slot' + (s.got ? ' got' : '');
+        d.innerHTML = '<span class="em"></span><small></small>';
+        d.querySelector('.em').textContent = s.emoji; d.querySelector('small').textContent = s.got ? s.name : (s.kind === 'medal' ? s.name : '?');
+        sec.querySelector('.al-slots').appendChild(d);
+      });
+      body.appendChild(sec);
+    });
+    sheet('Album · ' + a.got + '/' + a.total, body);
+  };
+  NG.meta.on(function () { if (!hub.hidden) renderExtras(); });
+  S.on(function () { if (!hub.hidden) renderExtras(); });
+
   S.mountBadge($('g-wallet'), { href: null });
-  renderWallet(); renderTiles();
+  renderWallet(); renderTiles(); renderExtras();
   // wait for the hand font so canvas text renders in it
   (document.fonts && document.fonts.load ? document.fonts.load('20px "Patrick Hand"') : Promise.resolve()).catch(function () {}).then(route);
 

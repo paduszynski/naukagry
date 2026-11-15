@@ -1,8 +1,10 @@
 // Naukagry service worker: works offline, always tries the network first for the app itself.
-const CACHE = 'naukagry-1.4';
+const CACHE = 'naukagry-2.0';
 const ASSETS = ['./', './index.html', './skarbonka.js', './manifest.webmanifest',
   './games/klocki.js', './games/ogrodek.js', './games/jezyk.js', './games/akwarium.js',
   './games/trojki.js', './games/latawiec.js', './games/rury.js',
+  './ng-core.js', './games/memo.js', './games/banki.js', './games/wedkarz.js', './games/pianinko.js', './games/obrazki.js',
+  './games/sudoku.js', './games/kolorowanka.js', './games/pokoik.js', './games/zwierzak.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

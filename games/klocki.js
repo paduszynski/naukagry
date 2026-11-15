@@ -234,9 +234,26 @@
 
   // ---------- game ----------
   NG.register('klocki', {
+    meta: { music: 'play' },
+    medals: [
+      { id: 'lines25', stat: 'lines', at: 25, tier: 1, text: '25 linii' },
+      { id: 'best600', stat: 'record', at: 600, tier: 2, text: '600 pkt w grze' },
+      { id: 'best1500', stat: 'record', at: 1500, tier: 3, text: '1500 pkt w grze' }
+    ],
+    quests: [
+      { id: 'lines', stat: 'lines', n: [5, 10], text: 'Ułóż {n} {linii} w Klockowni', forms: ['linię', 'linie', 'linii'] },
+      { id: 'score', stat: 'score', n: [200, 400], mode: 'max', text: 'Zdobądź {n} pkt w Klockowni' }
+    ],
+    stickers: [
+      { id: 'double', emoji: '✨', name: 'Dwie linie naraz' },
+      { id: 'combo3', emoji: '🔥', name: 'Combo ×3' },
+      { id: 'clean', emoji: '🧹', name: 'Czysta plansza' }
+    ],
     mount: function (el, ctx) {
       var save = ctx.load({ best: 0, theme: 'drewno', games: 0 });
       if (!THEMES[save.theme] || ctx.level() < THEMES[save.theme].lvl) save.theme = 'drewno';
+      // old saves: the record made before medals existed still counts
+      if (save.best > 0 && ctx.getStat('record') < save.best) ctx.stat('record', save.best, 'max');
 
       var cv = document.createElement('canvas');
       el.appendChild(cv);
@@ -255,6 +272,9 @@
       var overT0 = 0, newBest = false, bestAtStart = save.best;
       var raf = 0, paused = false, destroyed = false, timers = [];
       var panelRef = null, picker = null;
+      var lineBuf = 0, statDone = false; // lines waiting to be reported; best reported for this game
+      function flushStats() { if (lineBuf) { var n = lineBuf; lineBuf = 0; ctx.stat('lines', n); } }
+      function reportBest() { if (!statDone && score > 0) { statDone = true; ctx.stat('score', score, 'max'); ctx.stat('record', save.best, 'max'); } }
 
       // ----- board logic -----
       function emptyGrid() { var a = []; for (var r = 0; r < N; r++) { a.push([]); for (var c = 0; c < N; c++) a[r].push(-1); } return a; }
@@ -744,6 +764,10 @@
         var ln = linesAfter(grid, [], 0, 0);
         if (ln.n > 0) {
           streak++;
+          lineBuf += ln.n;
+          ctx.sfx(streak >= 2 || ln.n >= 2 ? 'combo' : 'clear');
+          if (ln.n >= 2) ctx.sticker('double');
+          if (streak >= 3) ctx.sticker('combo3');
           var mult = streak;
           var lineGain = 10 * ln.n * ln.n * mult;
           gain += lineGain;
@@ -770,11 +794,14 @@
           var emptyAll = grid.every(function (row) { return row.every(function (v) { return v < 0; }); });
           if (emptyAll) {
             gain += 100;
+            ctx.sticker('clean');
             floats.push({ text: 'Czysta plansza! +100', x: cx, y: cy + L.cell * 1.7, size: Math.round(L.cell * 0.6), color: '#cf412d', t0: now + 250, life: 1300 });
           }
         } else {
           streak = 0;
+          ctx.sfx('place');
         }
+        if (lineBuf >= 3) flushStats();
         score += gain;
         if (score > save.best) { save.best = score; newBest = true; ctx.save(save); }
         if (!tray.some(Boolean)) dealSet(); else updateFits();
@@ -791,6 +818,7 @@
           f.shapes.forEach(function (sh) { if (anyFit(grid, sh)) small.push({ fam: f.id, cells: sh }); });
         });
         if (!small.length) return;
+        ctx.sfx('pop');
         var now = performance.now();
         tray.forEach(function (p, i) {
           if (!p) return;
@@ -807,6 +835,9 @@
         drag = null; ghost = null;
         save.best = Math.max(save.best, score);
         ctx.save(save);
+        ctx.sfx(newBest ? 'win' : 'lose');
+        flushStats();
+        reportBest();
         timers.push(setTimeout(showEnd, 1700));
         requestDraw();
       }
@@ -828,6 +859,7 @@
         e.preventDefault();
         try { cv.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
         drag = { idx: idx, x: p.x, y: p.y, t0: performance.now(), id: e.pointerId, mouse: e.pointerType === 'mouse' };
+        ctx.sfx('tap');
         ghost = findGhost();
         requestDraw();
       }
@@ -900,6 +932,7 @@
           b.onclick = function () {
             if (locked) { msg.textContent = 'Te kolory otworzą się na poziomie ' + T.lvl + '. Zbieraj gwiazdki!'; return; }
             save.theme = id; ctx.save(save);
+            ctx.sfx('click');
             sprites = {}; boardCache = null; bgCache = null;
             closePicker();
             requestDraw();
@@ -933,7 +966,7 @@
           title: 'Klockownia',
           lines: ['Przeciągnij klocek na planszę.', 'Pełny rząd albo kolumna znika!',
             { text: save.best ? 'Rekord: ' + save.best : 'Zdobądź pierwszy rekord!', muted: true }],
-          price: PRICE, button: 'Zagraj', note: 'gra',
+          price: PRICE, button: 'Zagraj', note: 'gra', medals: true,
           onPlay: startGame,
           secondary: secondary(showStart)
         });
@@ -944,7 +977,7 @@
           big: score + ' pkt',
           title: newBest ? 'Nowy rekord!' : 'Koniec gry',
           lines: [newBest ? 'Brawo! Lepiej niż kiedykolwiek.' : { text: 'Rekord: ' + save.best, muted: true }],
-          price: PRICE, button: 'Zagraj jeszcze raz', note: 'gra',
+          price: PRICE, button: 'Zagraj jeszcze raz', note: 'gra', medals: true,
           onPlay: startGame,
           secondary: secondary(showEnd)
         });
@@ -954,6 +987,7 @@
         grid = emptyGrid(); score = 0; shownScore = 0; streak = 0; setsDealt = 0; placed = 0;
         pops = []; parts = []; floats = []; placeAnims = {}; returning = []; drag = null; ghost = null;
         newBest = false; bestAtStart = save.best;
+        lineBuf = 0; statDone = false;
         dealSet();
       }
       function startGame() {
@@ -978,7 +1012,7 @@
           get state() { return state; }, get score() { return score; }, get grid() { return grid; }, get tray() { return tray; },
           get layout() { return L; }, set grid(v) { grid = v; updateFits(); requestDraw(); },
           deal: function () { dealSet(); requestDraw(); },
-          restart: function () { timers.forEach(clearTimeout); closePanel(); resetBoard(); state = 'play'; requestDraw(); },
+          restart: function () { timers.forEach(clearTimeout); closePanel(); flushStats(); resetBoard(); state = 'play'; requestDraw(); },
           place: function (i, r, c) { if (tray[i] && fitsAt(grid, tray[i].cells, r, c)) place(i, r, c); }
         };
       }
@@ -997,6 +1031,7 @@
           cv.removeEventListener('lostpointercapture', onCancel);
           closePanel(); closePicker();
           if (score > save.best) { save.best = score; ctx.save(save); }
+          if (state === 'play') { flushStats(); reportBest(); }
           if (window.__klocki) delete window.__klocki;
           sprites = {};
         },

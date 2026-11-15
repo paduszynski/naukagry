@@ -660,6 +660,10 @@
     var dying = [], fx = [], parts = [], flyers = [], banners = [], waits = [];
     var clock = 0, last = 0, raf = 0, paused = false, dead = false;
     var sel = null, drag = null, idleAt = 0, hint = null, shake = null, panelRef = null;
+    var vegBuf = 0; // vegetables picked since the last stat report
+    function flushVeg() { if (vegBuf) { var n = vegBuf; vegBuf = 0; ctx.stat('veg', n); } }
+    // old saves: levels won before medals existed still count
+    if (save.unlocked > 1 && ctx.getStat('levels') < save.unlocked - 1) ctx.stat('levels', save.unlocked - 1, 'max');
 
     function wait(ms) { return new Promise(function (res) { waits.push({ t: clock + ms, res: res }); }); }
     function S() { ctx.save(save); }
@@ -1009,18 +1013,26 @@
     var hooks = {
       swap: function (a, b, back) {
         var ta = B.at(a), tb = B.at(b), d = back ? 150 : 170;
+        ctx.sfx(back ? 'error' : 'swap');
         if (ta) moveTo(ta, a.c, a.r, d);
         if (tb) moveTo(tb, b.c, b.r, d);
         return wait(d + 10);
       },
       used: function () { moves--; },
       step: function (res, chain) {
-        var removed = 0, firstSp = null;
-        res.effects.forEach(function (e) { e.t0 = clock + e.t; fx.push(e); });
+        var removed = 0, firstSp = null, heard = {};
+        ctx.sfx(chain >= 2 ? 'combo' : 'clear');
+        if (chain >= 3) ctx.sticker('chain3');
+        res.effects.forEach(function (e) {
+          e.t0 = clock + e.t; fx.push(e);
+          var snd = { bee: 'whoosh', mole: 'land', rain: 'water' }[e.type];
+          if (snd && !heard[snd]) { heard[snd] = 1; setTimeoutClock(e.t + 30, function () { ctx.sfx(snd); }); }
+        });
         res.clears.forEach(function (cl) {
           var at = clock + cl.d;
           if (!cl.removed) { cl.t.hitAt = at; var p = cellXY(cl.r, cl.c); setTimeoutClock(cl.d, function () { burst(p.x, p.y, '#6fa232', 6, 1); }); return; }
           removed++;
+          if (cl.t.k >= 0) vegBuf++;
           cl.t.x = cl.c; cl.t.y = cl.r; cl.t.an = null;
           dying.push({ t: cl.t, r: cl.r, c: cl.c, at: at });
           var gi = -1;
@@ -1036,7 +1048,9 @@
           cr.t.bornAt = clock + 80;
           score += cr.sp === 'rain' ? 100 : 50;
           if (!firstSp) firstSp = cr.sp;
+          ctx.sticker(cr.sp);
         });
+        if (firstSp) setTimeoutClock(120, function () { ctx.sfx('pop'); });
         score += removed * 10 * chain;
         if (firstSp && !save.seen[firstSp]) {
           save.seen[firstSp] = 1; S();
@@ -1089,7 +1103,7 @@
     function doSwap(a, b) {
       if (!B.in(b.r, b.c) || phase !== 'idle') return;
       sel = null; hint = null;
-      if (!B.canSwap(a, b)) { var t = B.at(a); if (t) shake = { t: t, t0: clock }; return; }
+      if (!B.canSwap(a, b)) { var t = B.at(a); if (t) { shake = { t: t, t0: clock }; ctx.sfx('error'); } return; }
       phase = 'busy';
       playMove(B, a, b, hooks).then(function (res) {
         if (dead) return;
@@ -1098,6 +1112,7 @@
       });
     }
     async function afterMove() {
+      flushVeg();
       if (goalsDone()) return win();
       if (moves <= 0) return fail();
       if (!B.findMove()) await reshuffle();
@@ -1106,6 +1121,7 @@
     }
     async function reshuffle() {
       banner('Tasuję!', 1300, 44, LVL);
+      ctx.sfx('whoosh');
       await wait(500);
       B.shuffle();
       for (var r = 0; r < B.R; r++) for (var c = 0; c < B.C; c++) { var t = B.g[r][c]; if (t) moveTo(t, c, r, 450); }
@@ -1143,7 +1159,7 @@
       var d = levelDef(n), st = save.stars[n] || 0, lines = [goalsLine(d), 'Masz ' + d.moves + ' ruchów.'];
       if (TIPS[n]) lines.push({ text: TIPS[n], muted: true });
       panelRef = ctx.panel({
-        title: 'Poziom ' + n, big: st ? starStr(st) : '', lines: lines, price: PRICE, button: 'Graj', note: 'poziom ' + n,
+        title: 'Poziom ' + n, big: st ? starStr(st) : '', lines: lines, price: PRICE, button: 'Graj', note: 'poziom ' + n, medals: true,
         onPlay: function () { closePanel(); startLevel(n); }, secondary: secondary()
       });
     }
@@ -1167,6 +1183,7 @@
       if (dead) return;
       var stars = starsFor(moves, def.moves);
       banner('Brawo!', 1100, 52, GREEN);
+      ctx.sfx('win');
       for (var i = 0; i < 6; i++) { var p = cellXY(Math.floor(B.R / 2), i % B.C); burst(p.x + (Math.random() - 0.5) * Lt.bw, p.y, RAINBOW[i], 10, 2); }
       await wait(1100);
       if (dead) return;
@@ -1175,11 +1192,14 @@
       if (isBest) save.best[lvl] = score;
       save.unlocked = Math.max(save.unlocked, lvl + 1);
       S();
+      ctx.stat('wins', 1);
+      ctx.stat('levels', lvl, 'max');
+      if (stars === 3) ctx.sticker('stars3');
       var seeds = giveSeeds(stars);
       var seedLine = 'Do Ogródka: ' + seeds.map(function (s) { return (s.n === 1 ? 'nasionko ' : '2 nasionka ') + SEED_GEN[s.kind]; }).join(' i ') + '.';
       var n = lvl;
       panelRef = ctx.panel({
-        big: starStr(stars), title: 'Brawo!',
+        big: starStr(stars), title: 'Brawo!', medals: true,
         lines: ['Poziom ' + n + ' zaliczony! Zostało ruchów: ' + moves + '.', seedLine, { text: score + ' pkt' + (isBest ? ' (rekord!)' : ' (rekord: ' + best + ')'), muted: true }],
         price: PRICE, button: 'Poziom ' + (n + 1), note: 'poziom ' + (n + 1),
         onPlay: function () { closePanel(); startLevel(n + 1); }, secondary: secondary()
@@ -1187,6 +1207,7 @@
     }
     async function fail() {
       phase = 'over';
+      ctx.sfx('lose');
       await wait(700);
       if (dead) return;
       var got = 0, need = 0;
@@ -1261,7 +1282,7 @@
       var p = { r: d.r, c: d.c };
       if (sel && sel.r === p.r && sel.c === p.c) sel = null;
       else if (sel && Math.abs(sel.r - p.r) + Math.abs(sel.c - p.c) === 1) doSwap(sel, p);
-      else { var t = B.at(p); sel = t && t.k !== WEED ? p : null; if (t && t.k === WEED) shake = { t: t, t0: clock }; }
+      else { var t = B.at(p); sel = t && t.k !== WEED ? p : null; if (t && t.k === WEED) { shake = { t: t, t0: clock }; ctx.sfx('error'); } else if (sel) ctx.sfx('tap'); }
     }
     function onCancel() { drag = null; }
     cv.addEventListener('pointerdown', onDown);
@@ -1281,6 +1302,7 @@
     return {
       destroy: function () {
         dead = true;
+        flushVeg();
         cancelAnimationFrame(raf);
         ro.disconnect();
         cv.removeEventListener('pointerdown', onDown);
@@ -1299,6 +1321,23 @@
   }
 
   NG.register('trojki', {
+    meta: { music: 'meadow' },
+    medals: [
+      { id: 'lv5', stat: 'levels', at: 5, tier: 1, text: 'Poziom 5' },
+      { id: 'lv15', stat: 'levels', at: 15, tier: 2, text: 'Poziom 15' },
+      { id: 'lv30', stat: 'levels', at: 30, tier: 3, text: 'Poziom 30' }
+    ],
+    quests: [
+      { id: 'win', stat: 'wins', n: [1, 2], text: 'Wygraj {n} {poziom} w Trójkach', forms: ['poziom', 'poziomy', 'poziomów'] },
+      { id: 'veg', stat: 'veg', n: [40, 70], text: 'Zbierz {n} warzyw w Trójkach' }
+    ],
+    stickers: [
+      { id: 'bee', emoji: '🐝', name: 'Pierwsza pszczoła' },
+      { id: 'mole', emoji: '🐹', name: 'Pierwszy kret' },
+      { id: 'rain', emoji: '🌈', name: 'Tęczowa konewka' },
+      { id: 'chain3', emoji: '🔥', name: 'Seria ×3' },
+      { id: 'stars3', emoji: '⭐', name: 'Trzy gwiazdki' }
+    ],
     mount: mount,
     core: { Board: Board, playMove: playMove, levelDef: levelDef, LEVELS: LEVELS, KINDS: KINDS, mulberry: mulberry }
   });

@@ -49,7 +49,27 @@ NG.register('<id>', {
 | `ctx.panel({...})` | wspólna karta startu/końca; z `price` przycisk najpierw pobiera ★ |
 | `ctx.toast(text)` | krótki komunikat |
 | `ctx.exit()` | powrót do sklepiku |
+| `ctx.sfx(name)` | efekt dźwiękowy (lista: `NG.sound.list` w `ng-core.js`) |
+| `ctx.note(midi, dur)` | jedna nuta (Pianinko) |
+| `ctx.music(theme)` | muzyka w tle: `meadow`, `calm`, `water`, `sky`, `play`, `cozy`; `null` wyłącza |
+| `ctx.stat(key, n, mode)` | statystyka gry: `'add'` dodaje (domyślnie), `'max'` zapamiętuje najlepszy wynik; z niej liczą się medale i zadania dnia |
+| `ctx.sticker(id)` | naklejka do albumu (zadeklarowana w `stickers`) |
+| `ctx.medals()` | stan medali tej gry; `ctx.panel({ medals: true })` pokazuje je na karcie |
 
-Metadane gier (nazwa, poziom odblokowania, cena, obrazek kafelka) są w `GAMES` w `index.html`. Nowa gra: wpis w `GAMES`, `<script src="games/<id>.js">` i ścieżka w `sw.js`.
+Gra może podać w `NG.register` także:
+
+```js
+NG.register('<id>', {
+  meta: { name, price, bg, pic, music },   // kafelek i muzyka (stare gry mają kafelki w GAMES)
+  medals: [{ id: 'b', stat: 'best', at: 300, tier: 1, text: '300 m' }, ...],  // tier 1/2/3 = brąz/srebro/złoto
+  quests: [{ id: 'apples', stat: 'apples', n: [15, 25], text: 'Zbierz {n} jabłek w Jeżyku' }],
+  stickers: [{ id: 'first-rose', emoji: '🌹', name: 'Pierwsza róża' }],
+  mount(el, ctx) { ... }
+});
+```
+
+`ng-core.js` trzyma medale, naklejki i zadania dnia w `localStorage['naukagry.meta']`. Zadania dnia: jedno z nauki (zestawy albo gwiazdki z dowolnego przedmiotu, bo dzieci uczą się różnych) i dwa z gier; +10 ★ za każde, +20 ★ za komplet. Dźwięk i muzykę wyłącza się przyciskami 🔊 🎵.
+
+Nowa gra: `{ id }` w `GAMES` w `index.html` (albo pełny wpis), `<script src="games/<id>.js">` i ścieżka w `sw.js`; nazwę, cenę i obrazek kafelka może podać sama gra w `meta`.
 
 Wersja: znaczek w `index.html` (tytuł + `meta version`) i `CACHE` w `sw.js` podbijane przy każdej zmianie.
