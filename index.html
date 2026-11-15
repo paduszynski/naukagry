@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Gry za gwiazdki</title>
+<meta name="version" content="1.0">
+<meta name="description" content="Gry dla dzieci za gwiazdki zdobyte w Matmie, Angielskim i Polskim.">
+<meta name="theme-color" content="#3f86d8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gry">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+/* Sklepik z grami: niebo i łąka, kafelki gier jak naklejki. Telefon w pionie. */
+:root{
+  --sky1:#bfe3ff; --sky2:#e9f6ff; --grass:#8fd06b; --grass2:#6fb64f;
+  --ink:#1d2f6f; --muted:#5a6690; --card:#ffffff; --line:#d4def0;
+  --star:#e3a008; --lvl:#7a4fc4; --red:#cf412d; --green:#2a8a56;
+  --hand:"Patrick Hand","Comic Sans MS","Segoe Print",cursive;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%}
+body{font-family:var(--hand);font-size:20px;line-height:1.25;color:var(--ink);background:var(--sky2);
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px dashed var(--lvl);outline-offset:3px}
+a{color:var(--ink)}
+.wrap{max-width:1100px;margin:0 auto;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+
+/* ---------- hub ---------- */
+#hub{min-height:100%;background:linear-gradient(var(--sky1),var(--sky2) 55%);position:relative;padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+#hub::after{content:"";position:fixed;left:0;right:0;bottom:0;height:90px;z-index:0;pointer-events:none;
+  background:radial-gradient(120% 90px at 20% 100%,var(--grass) 70%,transparent 71%),radial-gradient(110% 80px at 85% 100%,var(--grass2) 70%,transparent 71%)}
+.hub-top{padding-top:calc(env(safe-area-inset-top,0px) + 14px);display:flex;flex-direction:column;gap:10px;position:relative;z-index:1}
+.title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{margin:0;font-weight:400;font-size:2.1rem;line-height:1}
+.ver{font-size:.75rem;color:var(--red);border:1.5px solid var(--red);border-radius:50%;padding:0 6px;vertical-align:top}
+.wallet{display:flex;align-items:center;gap:14px;background:var(--card);border:3px solid var(--ink);border-radius:20px;padding:10px 16px;box-shadow:0 4px 0 rgba(29,47,111,.18)}
+.wallet .bal{font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums}
+.wallet .bal span{color:var(--star)}
+.wallet .lv{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.wallet .lv b{font-weight:400;color:var(--lvl);font-size:1.3rem}
+.wallet .bar{height:12px;border-radius:9px;background:rgba(122,79,196,.15);overflow:hidden;border:2px solid var(--lvl)}
+.wallet .bar i{display:block;height:100%;background:var(--lvl);width:0;transition:width .5s}
+.wallet .lv small{color:var(--muted);font-size:.95rem;font-variant-numeric:tabular-nums}
+.learn{display:flex;gap:8px;flex-wrap:wrap;font-size:1.05rem;color:var(--muted);align-items:center}
+.learn a{background:var(--card);border:2px solid var(--ink);border-radius:999px;padding:2px 12px;text-decoration:none}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-top:16px;position:relative;z-index:1}
+.tile{background:var(--card);border:3px solid var(--ink);border-radius:18px;padding:0;display:flex;flex-direction:column;text-align:left;overflow:hidden;
+  box-shadow:0 4px 0 rgba(29,47,111,.2);transition:transform .12s}
+.tile:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(29,47,111,.2)}
+.tile .pic{aspect-ratio:5/3;display:block;border-bottom:3px solid var(--ink)}
+.tile .pic svg{width:100%;height:100%;display:block}
+.tile .txt{padding:8px 10px 10px;display:flex;flex-direction:column;gap:2px}
+.tile .nm{font-size:1.3rem;line-height:1.05}
+.tile .pr{font-size:1rem;color:var(--muted)}
+.tile .pr b{color:var(--star);font-weight:400}
+.tile.locked{filter:grayscale(.9);opacity:.75}
+.tile.locked .pr{color:var(--lvl)}
+.tile .lock{position:absolute}
+.hint{margin-top:18px;color:var(--muted);font-size:1.05rem;position:relative;z-index:1}
+
+/* ---------- game view ---------- */
+#game{position:fixed;inset:0;display:flex;flex-direction:column;background:#fff}
+.g-top{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 6px) max(10px,env(safe-area-inset-right,0px)) 6px max(10px,env(safe-area-inset-left,0px));
+  background:var(--card);border-bottom:3px solid var(--ink);min-height:54px;flex:none;z-index:5}
+.g-back{border:2px solid var(--ink);background:#fff;border-radius:12px;padding:3px 12px;font-size:1.15rem}
+.g-name{flex:1;min-width:0;font-size:1.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stage{flex:1;position:relative;overflow:hidden;min-height:0;touch-action:none}
+#stage > *{position:absolute;inset:0}
+#stage > .ng-toast{inset:auto;top:14px;left:50%;white-space:normal;width:max-content;max-width:calc(100% - 32px);text-align:center}
+@media (max-width:440px){#g-wallet .skb-bar{display:none} #g-wallet .skb{gap:6px;padding:3px 9px 3px 7px}}
+#stage canvas{display:block;width:100%;height:100%}
+
+/* shared panel for start / end screens (ctx.panel) */
+.ng-panel{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(29,47,111,.35)}
+.ng-card{background:#fff;border:3px solid var(--ink);border-radius:22px;padding:22px 20px;width:100%;max-width:380px;text-align:center;display:flex;flex-direction:column;gap:10px;
+  box-shadow:0 6px 0 rgba(29,47,111,.25);animation:ngpop .35s cubic-bezier(.2,1.5,.4,1)}
+.ng-card h2{margin:0;font-weight:400;font-size:2.3rem;line-height:1}
+.ng-card p{margin:0;font-size:1.2rem}
+.ng-card .big{font-size:3rem;line-height:1;color:var(--star)}
+.ng-card .muted{color:var(--muted);font-size:1.05rem}
+.ng-btn{font-size:1.5rem;padding:10px 18px;border-radius:16px;border:3px solid var(--ink);background:var(--star);color:#2a1d00;box-shadow:0 4px 0 var(--ink)}
+.ng-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.ng-btn[disabled]{background:#e6e9f2;color:var(--muted);box-shadow:none;cursor:default}
+.ng-btn.sec{background:#fff;font-size:1.2rem;padding:6px 14px;box-shadow:0 3px 0 var(--ink)}
+.ng-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.ng-poor{color:var(--red);font-size:1.15rem}
+.ng-poor a{white-space:nowrap}
+.ng-toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:30;background:var(--ink);color:#fff;border-radius:14px;padding:6px 14px;font-size:1.15rem;
+  white-space:nowrap;pointer-events:none;animation:ngtoast 2s ease forwards}
+@keyframes ngpop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes ngtoast{0%{opacity:0;transform:translate(-50%,-10px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div id="hub">
+  <div class="wrap hub-top">
+    <div class="title-row">
+      <h1>Gry za gwiazdki <span class="ver" title="Wersja 1.0">1.0</span></h1>
+    </div>
+    <div class="wallet" id="wallet" aria-live="polite">
+      <div class="bal"><span>★</span> <b id="w-bal" style="font-weight:400">0</b></div>
+      <div class="lv"><b id="w-lvl">Poziom 1</b><div class="bar"><i id="w-bar"></i></div><small id="w-next"></small></div>
+    </div>
+    <div class="learn">Zbieraj gwiazdki: <a href="/matma/">Matma</a><a href="/angielski/">Angielski</a><a href="/polski/">Polski</a></div>
+  </div>
+  <div class="wrap">
+    <div class="tiles" id="tiles"></div>
+    <p class="hint">Każda dobra odpowiedź to gwiazdki, a seria daje ich więcej. Wydane gwiazdki nie cofają poziomu.</p>
+  </div>
+</div>
+
+<div id="game" hidden>
+  <div class="g-top">
+    <button class="g-back" id="g-back" type="button">← Gry</button>
+    <span class="g-name" id="g-name"></span>
+    <span id="g-wallet"></span>
+  </div>
+  <div id="stage"></div>
+</div>
+
+<script src="skarbonka.js"></script>
+<script>
+/* ---------- game registry ----------
+ * Each games/<id>.js calls NG.register(id, { mount(el, ctx) { ...; return { destroy() {} } } }).
+ * Metadata (name, unlock level, price label, tile picture) lives in GAMES below so tiles render without the game code.
+ */
+window.NG = {
+  impl: {},
+  register: function (id, impl) { this.impl[id] = impl; }
+};
+
+var GAMES = [
+  { id: 'klocki', name: 'Klockownia', unlock: 1, price: '100 ★ za grę', bg: '#fbe9c9',
+    pic: (function () {
+      var s = '', cell = 6.4, ox = 34, oy = 4, f = { '0,6':'#3f86d8','1,6':'#3f86d8','2,6':'#e2533f','3,6':'#e2533f','4,6':'#f2b51d','6,6':'#3fae5f','7,6':'#3fae5f','0,7':'#8a5cd0','1,7':'#8a5cd0','2,7':'#8a5cd0','3,7':'#f2b51d','4,7':'#f2b51d','5,7':'#f2b51d','6,7':'#3fae5f','7,7':'#3f86d8','6,5':'#3fae5f','0,5':'#3f86d8','3,4':'#e2533f','3,5':'#e2533f','7,3':'#8a5cd0','7,4':'#8a5cd0' };
+      for (var r = 0; r < 8; r++) for (var c = 0; c < 8; c++) { var col = f[c + ',' + r]; s += '<rect x="' + (ox + c * cell) + '" y="' + (oy + r * cell) + '" width="' + (cell - .8) + '" height="' + (cell - .8) + '" rx="1" fill="' + (col || '#fff8ea') + '"' + (col ? '' : ' stroke="#e3cfa6" stroke-width=".6"') + '/>'; }
+      [[4,18],[10,18],[10,24]].forEach(function (p) { s += '<rect x="' + p[0] + '" y="' + p[1] + '" width="6" height="6" fill="#f2b51d" stroke="#1d2f6f" stroke-width="1"/>'; });
+      [[92,28],[98,28],[104,28],[98,34]].forEach(function (p) { s += '<rect x="' + p[0] + '" y="' + p[1] + '" width="6" height="6" fill="#3fae5f" stroke="#1d2f6f" stroke-width="1"/>'; });
+      return s;
+    })() },
+  { id: 'ogrodek', name: 'Ogródek', unlock: 1, price: 'nasiona od 50 ★', bg: '#dff3d2',
+    pic: '<rect x="0" y="56" width="120" height="16" fill="#8a5a33"/><path d="M30 56 v-10 M30 50 q-6 -2 -8 -8 M30 48 q6 -2 8 -8" fill="none" stroke="#2a8a56" stroke-width="2.5" stroke-linecap="round"/><path d="M80 56 v-30" stroke="#2a8a56" stroke-width="2.5"/><path d="M80 40 q-10 -2 -12 -10 q10 0 12 10 z" fill="#3fae5f"/><circle cx="80" cy="12" r="5" fill="#e2533f"/><circle cx="88" cy="20" r="5" fill="#e2533f"/><circle cx="72" cy="20" r="5" fill="#e2533f"/><circle cx="80" cy="28" r="5" fill="#e2533f"/><circle cx="80" cy="20" r="5" fill="#f2b51d"/><path d="M98 20 l10 -6 v10 l-4 4 h-6 z M108 14 l6 -2" fill="#9fc3ea" stroke="#1d2f6f" stroke-width="2" stroke-linejoin="round"/><path d="M100 32 v4 M104 32 v6" stroke="#3f86d8" stroke-width="2" stroke-linecap="round"/>' },
+  { id: 'jezyk', name: 'Jeżyk w biegu', unlock: 2, price: '100 ★ za bieg', bg: '#e2f4ff',
+    pic: '<rect x="0" y="62" width="120" height="10" fill="#8fd06b"/><ellipse cx="88" cy="63" rx="16" ry="4" fill="#3f86d8"/><path d="M28 60 a16 14 0 0 1 32 0 z" fill="#8a5a33" stroke="#1d2f6f" stroke-width="2"/><path d="M30 50 l-4 -6 l6 1 l0 -7 l5 4 l2 -7 l4 6 l4 -6 l2 7 l5 -4 l0 7 l6 -1 l-4 6" fill="none" stroke="#1d2f6f" stroke-width="2.5" stroke-linejoin="round"/><circle cx="56" cy="54" r="1.8" fill="#1d2f6f"/><circle cx="102" cy="34" r="6" fill="#e2533f"/>' },
+  { id: 'akwarium', name: 'Akwarium', unlock: 3, price: 'rybki od 50 ★', bg: '#d5ecfb',
+    pic: '<rect x="10" y="10" width="100" height="56" rx="6" fill="#bfe1f7" stroke="#1d2f6f" stroke-width="2.5"/><path d="M44 42 q12 -12 26 0 q-14 12 -26 0 z M44 42 l-10 -7 v14 z" fill="#f2b51d" stroke="#1d2f6f" stroke-width="2"/><circle cx="64" cy="40" r="1.8" fill="#1d2f6f"/><path d="M78 54 q6 -6 12 0 q-6 6 -12 0 z M78 54 l-5 -3 v6 z" fill="#e2533f" stroke="#1d2f6f" stroke-width="2"/><circle cx="84" cy="34" r="3" fill="none" stroke="#1d2f6f" stroke-width="1.5"/><circle cx="90" cy="26" r="2" fill="none" stroke="#1d2f6f" stroke-width="1.5"/><path d="M24 64 q-4 -12 2 -20 M30 64 q4 -10 0 -16" fill="none" stroke="#2a8a56" stroke-width="2.5" stroke-linecap="round"/>' },
+  { id: 'trojki', name: 'Grządkowe trójki', unlock: 4, price: '80 ★ za poziom', bg: '#fdeedd',
+    pic: (function () {
+      var g = ['rcgpb','gpcrc','cgrrb','bgpcp','prcgr'], s = '', ox = 30, oy = 6, cell = 12;
+      var sh = {
+        r: function (x, y) { return '<circle cx="' + x + '" cy="' + (y + 1) + '" r="4.6" fill="#e2533f"/><path d="M' + x + ' ' + (y - 3.6) + ' l1.5 -2.4" stroke="#2a8a56" stroke-width="1.4"/>'; },
+        c: function (x, y) { return '<path d="M' + (x - 1.5) + ' ' + (y - 4) + ' l3 0 l-1.5 9 z" fill="#f08a24"/><path d="M' + x + ' ' + (y - 4) + ' l-2 -2 M' + x + ' ' + (y - 4) + ' l2 -2" stroke="#2a8a56" stroke-width="1.4"/>'; },
+        g: function (x, y) { return '<path d="M' + x + ' ' + (y - 5) + ' q5 5 0 10 q-5 -5 0 -10 z" fill="#3fae5f"/>'; },
+        p: function (x, y) { return '<circle cx="' + (x - 2) + '" cy="' + (y - 1.5) + '" r="2.4" fill="#8a5cd0"/><circle cx="' + (x + 2) + '" cy="' + (y - 1.5) + '" r="2.4" fill="#8a5cd0"/><circle cx="' + x + '" cy="' + (y + 2) + '" r="2.4" fill="#8a5cd0"/>'; },
+        b: function (x, y) { return '<ellipse cx="' + x + '" cy="' + y + '" rx="4.5" ry="3.8" fill="#f2d21d"/>'; }
+      };
+      s += '<rect x="' + (ox + cell) + '" y="' + (oy + cell * 2) + '" width="' + (cell * 2) + '" height="' + cell + '" rx="3" fill="#ffe7a3"/>';
+      for (var r = 0; r < 5; r++) for (var c = 0; c < 5; c++) s += sh[g[r][c]](ox + c * cell + cell / 2, oy + r * cell + cell / 2);
+      return s;
+    })() },
+  { id: 'latawiec', name: 'Latawiec', unlock: 5, price: '100 ★ za lot', bg: '#e6f0ff',
+    pic: '<path d="M50 6 l18 20 l-18 26 l-18 -26 z" fill="#e2533f" stroke="#1d2f6f" stroke-width="2"/><path d="M50 6 v46 M32 26 h36" stroke="#1d2f6f" stroke-width="2"/><path d="M50 52 q-8 6 0 10 q8 4 0 10" fill="none" stroke="#1d2f6f" stroke-width="2"/><path d="M96 14 l3 7 l7 1 l-5 5 l1 7 l-6 -3 l-6 3 l1 -7 l-5 -5 l7 -1 z" fill="#f2b51d"/><path d="M80 50 q4 -4 8 0 q4 -4 8 0" fill="none" stroke="#1d2f6f" stroke-width="2"/>' },
+  { id: 'rury', name: 'Rury do ogródka', unlock: 6, price: '100 ★ za 5 plansz', bg: '#e8f6e4',
+    pic: '<g fill="#fff" stroke="#1d2f6f" stroke-width="2"><rect x="14" y="10" width="28" height="28"/><rect x="42" y="10" width="28" height="28"/><rect x="70" y="10" width="28" height="28"/><rect x="14" y="38" width="28" height="28"/><rect x="42" y="38" width="28" height="28"/><rect x="70" y="38" width="28" height="28"/></g><path d="M14 24 h42 v28 h28" fill="none" stroke="#3f86d8" stroke-width="6" stroke-linecap="round"/><path d="M84 52 v-28" stroke="#c9d6ea" stroke-width="6"/><circle cx="110" cy="48" r="5" fill="#e2533f"/><path d="M110 53 v14" stroke="#2a8a56" stroke-width="2.5"/>' }
+];
+</script>
+<script src="games/klocki.js"></script>
+<script src="games/ogrodek.js"></script>
+<script src="games/jezyk.js"></script>
+<script src="games/akwarium.js"></script>
+<script src="games/trojki.js"></script>
+<script src="games/latawiec.js"></script>
+<script src="games/rury.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var S = window.Skarbonka;
+  var hub = $('hub'), game = $('game'), stage = $('stage');
+  var current = null; // { id, instance }
+
+  // ---------- hub ----------
+  function renderWallet() {
+    var s = S.get(), L = S.levelOf(s.earned);
+    $('w-bal').textContent = s.balance;
+    $('w-lvl').textContent = 'Poziom ' + L.level;
+    $('w-bar').style.width = (L.into / L.need * 100).toFixed(1) + '%';
+    $('w-next').textContent = L.into + ' / ' + L.need + ' ★ do poziomu ' + (L.level + 1);
+  }
+  function renderTiles() {
+    var lvl = S.level().level, box = $('tiles');
+    box.innerHTML = '';
+    GAMES.forEach(function (g) {
+      var locked = lvl < g.unlock;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tile' + (locked ? ' locked' : '');
+      b.innerHTML = '<span class="pic" style="background:' + g.bg + '"><svg viewBox="0 0 120 72" aria-hidden="true">' + g.pic + '</svg></span>' +
+        '<span class="txt"><span class="nm">' + g.name + '</span><span class="pr">' +
+        (locked ? '🔒 od poziomu ' + g.unlock : '<b>' + g.price + '</b>') + '</span></span>';
+      b.onclick = function () {
+        if (locked) { toast(hub, 'Ta gra otworzy się na poziomie ' + g.unlock + '. Zbieraj gwiazdki!'); return; }
+        location.hash = g.id;
+      };
+      box.appendChild(b);
+    });
+  }
+  S.on(function () { renderWallet(); renderTiles(); });
+
+  function toast(where, text) {
+    var t = document.createElement('div');
+    t.className = 'ng-toast'; t.textContent = text;
+    if (where === hub) { t.style.position = 'fixed'; t.style.top = 'calc(env(safe-area-inset-top,0px) + 14px)'; t.style.whiteSpace = 'normal'; t.style.width = 'max-content'; t.style.maxWidth = '90vw'; t.style.textAlign = 'center'; }
+    where.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2100);
+  }
+
+  // ---------- ctx for games ----------
+  function makeCtx(g) {
+    var lsKey = 'naukagry.' + g.id;
+    var ctx = {
+      id: g.id,
+      name: g.name,
+      el: stage,
+      level: function () { return S.level().level; },
+      balance: function () { return S.get().balance; },
+      // returns true when paid; false (and nothing changes) when there are not enough stars
+      spend: function (amount, note) { return S.spend(amount, 'naukagry', g.name + (note ? ': ' + note : '')); },
+      refund: function (amount, note) { S.refund(amount, 'naukagry', g.name + (note ? ': ' + note : '')); },
+      load: function (def) {
+        var v = null;
+        try { v = JSON.parse(localStorage.getItem(lsKey)); } catch (e) {}
+        if (v == null) return def === undefined ? {} : JSON.parse(JSON.stringify(def));
+        if (def && typeof def === 'object' && !Array.isArray(def)) { for (var k in def) if (!(k in v)) v[k] = def[k]; }
+        return v;
+      },
+      save: function (data) { try { localStorage.setItem(lsKey, JSON.stringify(data)); } catch (e) {} },
+      exit: function () { if (location.hash) history.back(); else close(); },
+      toast: function (text) { toast(stage, text); },
+      // panel({ title, big, lines: [..], price, button, onPlay, secondary: [{label, onClick}], closable })
+      // Shows a start/end card over the stage. With `price`, the main button charges that many stars first.
+      // Returns { close() }.
+      panel: function (o) {
+        var p = document.createElement('div');
+        p.className = 'ng-panel';
+        var card = document.createElement('div');
+        card.className = 'ng-card';
+        p.appendChild(card);
+        function build() {
+          var bal = S.get().balance, price = o.price || 0, poor = price > bal;
+          card.innerHTML = '';
+          if (o.big) { var bg = document.createElement('div'); bg.className = 'big'; bg.textContent = o.big; card.appendChild(bg); }
+          if (o.title) { var h = document.createElement('h2'); h.textContent = o.title; card.appendChild(h); }
+          (o.lines || []).forEach(function (l) { var pp = document.createElement('p'); if (typeof l === 'object') { pp.textContent = l.text; if (l.muted) pp.className = 'muted'; } else pp.textContent = l; card.appendChild(pp); });
+          if (o.button !== false) {
+            var b = document.createElement('button');
+            b.type = 'button'; b.className = 'ng-btn';
+            b.textContent = (o.button || 'Zagraj') + (price ? ' za ' + price + '\u00a0★' : '');
+            b.disabled = poor;
+            b.onclick = function () {
+              if (price && !ctx.spend(price, o.note || 'runda')) { build(); return; }
+              closeP();
+              if (o.onPlay) o.onPlay();
+            };
+            card.appendChild(b);
+          }
+          if (poor) {
+            var m = document.createElement('p'); m.className = 'ng-poor';
+            m.innerHTML = 'Brakuje ' + (price - bal) + ' ★. Zdobądź je w <a href="/matma/">Matmie</a>, <a href="/angielski/">Angielskim</a> albo <a href="/polski/">Polskim</a>.';
+            card.appendChild(m);
+          }
+          var row = document.createElement('div'); row.className = 'ng-row';
+          (o.secondary || []).forEach(function (s2) {
+            var sb = document.createElement('button'); sb.type = 'button'; sb.className = 'ng-btn sec'; sb.textContent = s2.label;
+            sb.onclick = function () { if (s2.keepOpen !== true) closeP(); s2.onClick && s2.onClick(); };
+            row.appendChild(sb);
+          });
+          if (o.closable !== false && !(o.secondary || []).length) {
+            var cb = document.createElement('button'); cb.type = 'button'; cb.className = 'ng-btn sec'; cb.textContent = 'Wróć do gier';
+            cb.onclick = function () { ctx.exit(); };
+            row.appendChild(cb);
+          }
+          if (row.children.length) card.appendChild(row);
+        }
+        build();
+        var off = S.on(function () { if (p.isConnected) build(); else off(); });
+        function closeP() { off(); p.remove(); }
+        stage.appendChild(p);
+        return { close: closeP, el: p };
+      }
+    };
+    return ctx;
+  }
+
+  // ---------- routing ----------
+  function open(id) {
+    var g = GAMES.filter(function (x) { return x.id === id; })[0];
+    if (!g) { close(); return; }
+    if (S.level().level < g.unlock) { history.replaceState(null, '', location.pathname); close(); return; }
+    if (current && current.id === id) return;
+    unmount();
+    hub.hidden = true; game.hidden = false;
+    $('g-name').textContent = g.name;
+    var impl = NG.impl[id];
+    if (!impl) { stage.innerHTML = '<p style="padding:20px">Ta gra jeszcze się buduje. Zajrzyj wkrótce!</p>'; current = { id: id, instance: null }; return; }
+    var inst = null;
+    try { inst = impl.mount(stage, makeCtx(g)); } catch (e) { console.error(e); stage.innerHTML = '<p style="padding:20px">Ups, gra się nie uruchomiła.</p>'; }
+    current = { id: id, instance: inst };
+  }
+  function unmount() {
+    if (current && current.instance && current.instance.destroy) { try { current.instance.destroy(); } catch (e) { console.error(e); } }
+    current = null;
+    stage.innerHTML = '';
+  }
+  function close() {
+    unmount();
+    game.hidden = true; hub.hidden = false;
+    renderWallet(); renderTiles();
+  }
+  function route() { var id = location.hash.replace('#', ''); if (id) open(id); else close(); }
+  $('g-back').onclick = function () { if (location.hash) history.back(); else close(); };
+  window.addEventListener('hashchange', route);
+  document.addEventListener('visibilitychange', function () {
+    if (current && current.instance) {
+      if (document.hidden && current.instance.pause) current.instance.pause();
+      if (!document.hidden && current.instance.resume) current.instance.resume();
+    }
+  });
+
+  S.mountBadge($('g-wallet'), { href: null });
+  renderWallet(); renderTiles();
+  // wait for the hand font so canvas text renders in it
+  (document.fonts && document.fonts.load ? document.fonts.load('20px "Patrick Hand"') : Promise.resolve()).catch(function () {}).then(route);
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+})();
+</script>
+</body>
+</html>
