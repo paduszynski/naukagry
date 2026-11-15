@@ -1,5 +1,5 @@
 // Naukagry service worker: works offline, always tries the network first for the app itself.
-const CACHE = 'naukagry-1.0';
+const CACHE = 'naukagry-1.1';
 const ASSETS = ['./', './index.html', './skarbonka.js', './manifest.webmanifest',
   './games/klocki.js', './games/ogrodek.js', './games/jezyk.js', './games/akwarium.js',
   './games/trojki.js', './games/latawiec.js', './games/rury.js',
