@@ -3,7 +3,7 @@
  * Hold anywhere = the kite rises, release = it sinks (smooth, floaty physics, no flapping).
  * Collect gold stars (in-game points), avoid birds, storm clouds and tree tops. Wind gusts push the kite.
  * One rainbow cloud per flight gives a few seconds of invulnerability.
- * Kite designs unlocked by player level and bought once for 150 ★; sky themes free when unlocked.
+ * Kite designs unlocked by player level and bought once for 75 ★; sky themes free when unlocked.
  * Logical coordinates: 1 unit = S css px, so a portrait phone is ~400 units wide whatever its size.
  */
 (function () {
@@ -12,7 +12,7 @@
 
   var INK = '#1d2f6f', PURPLE = '#7a4fc4';
   var FONT = '"Patrick Hand", "Comic Sans MS", cursive';
-  var PRICE = 100, KITE_PRICE = 150;
+  var PRICE = 50, KITE_PRICE = 75;
   var KX = 120;                       // kite x (logical)
   var LIFT = 950, SINK = 520, DRAG = 2.6, RAINBOW_TIME = 5;
 

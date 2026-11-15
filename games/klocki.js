@@ -9,7 +9,7 @@
 
   var INK = '#1d2f6f', STAR = '#e3a008', LVL = '#7a4fc4';
   var FONT = '"Patrick Hand","Comic Sans MS",cursive';
-  var N = 8, PRICE = 100;
+  var N = 8, PRICE = 50;
 
   // ---------- shapes ----------
   function parse(rows) {

@@ -1,7 +1,7 @@
 /* Grządkowe trójki: match-3 on a raised garden bed.
  * Swap neighbouring vegetables to line up 3+. Specials: 4 in a line -> pszczoła (clears its row/column),
  * L/T -> kret (3x3), 5 in a line -> tęczowa konewka (swap with any tile: clears that kind).
- * 30 hand-made levels, then generated ones. 80 ★ per attempt; a fail with more than half the goal refunds 40 ★.
+ * 30 hand-made levels, then generated ones. 40 ★ per attempt; a fail with more than half the goal refunds 20 ★.
  * A won level sends up to 2 seeds to Ogródek (localStorage 'naukagry.ogrodek.inbox').
  * Board logic (Board, playMove, levelDef) has no DOM and is exposed as NG.impl.trojki.core for tests.
  */
@@ -9,7 +9,7 @@
   'use strict';
   var INK = '#1d2f6f', GOLD = '#e3a008', LVL = '#7a4fc4', RED = '#cf412d', GREEN = '#2a8a56', MUTED = '#5a6690';
   var FONT = '"Patrick Hand","Comic Sans MS",cursive';
-  var PRICE = 80, REFUND = 40, INBOX = 'naukagry.ogrodek.inbox';
+  var PRICE = 40, REFUND = 20, INBOX = 'naukagry.ogrodek.inbox';
 
   var KINDS = [
     { id: 'marchewka', seed: 'marchewka', forms: ['marchewka', 'marchewki', 'marchewek'], col: '#f07f22' },

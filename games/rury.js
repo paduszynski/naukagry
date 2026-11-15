@@ -1,7 +1,7 @@
 /* Rury do ogródka: obracaj rury, żeby woda z beczki doszła do kwiatków.
  * Plansze są budowane z rozwiązania (losowe drzewo rozpinające od kranu do kwiatków),
  * reszta pól to rury-zmyłki, potem każda płytka jest losowo obrócona, więc plansza zawsze ma rozwiązanie.
- * 100 ★ = paczka 5 plansz; każda skończona paczka wysyła nasionko kwiatka do Ogródka.
+ * 50 ★ = paczka 5 plansz; każda skończona paczka wysyła nasionko kwiatka do Ogródka.
  */
 (function () {
   'use strict';
@@ -9,7 +9,7 @@
   var FONT = '"Patrick Hand", "Comic Sans MS", cursive';
   var INK = '#1d2f6f', GOLD = '#e3a008', PURPLE = '#7a4fc4', MUTED = '#5a6690';
   var WATER = '#3f86d8', WATER_HI = '#9cc9f5', CHANNEL = '#c9d6ea', PIPE = '#f4f7fb';
-  var PACK = 5, PRICE = 100;
+  var PACK = 5, PRICE = 50;
   var SPEED = 9;            // water speed, cells per second
   var DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];   // N E S W, bit = 1 << d
   var FLOWER_COLORS = ['#e2533f', '#f28ab2', '#f2b51d', '#8a5cd0', '#f08a24', '#e86fae'];
@@ -220,7 +220,7 @@
       var save = ctx.load({ boards: 0, drops: 0, packs: 0, pack: null });
       var canvas = document.createElement('canvas');
       el.appendChild(canvas);
-      // keep "Kolejne 5 plansz za 100 ★" on one line on 360px phones (scoped to this game's lifetime)
+      // keep "Kolejne 5 plansz za 50 ★" on one line on 360px phones (scoped to this game's lifetime)
       var css = document.createElement('style');
       css.textContent = '.ng-panel .ng-btn{white-space:nowrap}@media (max-width:400px){.ng-panel .ng-btn:not(.sec){font-size:1.32rem;padding-left:12px;padding-right:12px}}';
       el.appendChild(css);

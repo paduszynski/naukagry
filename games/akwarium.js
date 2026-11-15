@@ -12,36 +12,36 @@
   var MAX_FISH = 20, MAX_DECO = 14;
 
   var FISH = [
-    { k: 'gupik', pl: 'gupik', en: 'guppy', lv: 1, price: 50, size: 0.6, shape: 'basic', body: '#a8dcf2', fin: '#f47fb0', pat: 'spots', tail: 'fan', speed: 1.2 },
-    { k: 'zlota', pl: 'złota rybka', en: 'goldfish', lv: 1, price: 60, size: 0.85, shape: 'basic', body: '#f6982a', fin: '#fbc75e', tail: 'double', b: 0.66, speed: 0.9 },
-    { k: 'neonek', pl: 'neonek', en: 'neon tetra', lv: 2, price: 70, size: 0.55, shape: 'basic', body: '#d9e2ee', fin: '#e8eef6', pat: 'neon', speed: 1.3, b: 0.48 },
-    { k: 'danio', pl: 'danio', en: 'zebrafish', lv: 3, price: 80, size: 0.6, shape: 'basic', body: '#f4e7b4', fin: '#f4e7b4', pat: 'hstripes', speed: 1.5, b: 0.45 },
-    { k: 'kirysek', pl: 'kirysek', en: 'catfish', lv: 4, price: 90, size: 0.7, shape: 'basic', body: '#cdb48c', fin: '#e2d2b0', pat: 'cat', speed: 0.8, zone: 'bottom', b: 0.55 },
-    { k: 'skalar', pl: 'skalar', en: 'angelfish', lv: 5, price: 110, size: 0.95, shape: 'angel', body: '#f3f1ea', fin: '#e8e2d2', pat: 'vstripes', speed: 0.7 },
-    { k: 'blazenek', pl: 'błazenek', en: 'clownfish', lv: 6, price: 120, size: 0.75, shape: 'basic', body: '#f67c1e', fin: '#f67c1e', pat: 'clown', speed: 1.0, b: 0.58 },
-    { k: 'bojownik', pl: 'bojownik', en: 'betta fish', lv: 7, price: 130, size: 0.8, shape: 'betta', body: '#4466dd', fin: '#c440b4', speed: 0.6, b: 0.45 },
-    { k: 'mieczyk', pl: 'mieczyk', en: 'swordtail', lv: 8, price: 140, size: 0.8, shape: 'sword', body: '#ea4b3a', fin: '#f08a5a', speed: 1.2, b: 0.48 },
-    { k: 'rozdymka', pl: 'rozdymka', en: 'pufferfish', lv: 9, price: 160, size: 0.8, shape: 'puffer', body: '#f3d56c', fin: '#f6e3a0', pat: 'pspots', speed: 0.6 },
-    { k: 'pokolec', pl: 'pokolec', en: 'blue tang', lv: 10, price: 180, size: 0.95, shape: 'basic', body: '#3d7fe2', fin: '#2f5fc0', pat: 'tang', tail: 'yellow', speed: 1.0, b: 0.66 },
-    { k: 'dyskowiec', pl: 'dyskowiec', en: 'discus', lv: 11, price: 200, size: 1.0, shape: 'disc', body: '#ec6b3a', fin: '#e85a3a', pat: 'waves', speed: 0.6 },
-    { k: 'konik', pl: 'konik morski', en: 'seahorse', lv: 12, price: 230, size: 0.95, shape: 'seahorse', body: '#f5b82a', fin: '#fbe08a', speed: 0.35, zone: 'mid' },
-    { k: 'plaszczka', pl: 'płaszczka', en: 'stingray', lv: 13, price: 260, size: 1.15, shape: 'ray', body: '#9d8cc6', fin: '#b8aade', speed: 0.6, zone: 'bottom' },
-    { k: 'teczanka', pl: 'tęczanka', en: 'rainbowfish', lv: 14, price: 300, size: 0.85, shape: 'basic', body: '#5aa0e8', fin: '#f6a23a', pat: 'rainbow', speed: 1.1, b: 0.55 }
+    { k: 'gupik', pl: 'gupik', en: 'guppy', lv: 1, price: 25, size: 0.6, shape: 'basic', body: '#a8dcf2', fin: '#f47fb0', pat: 'spots', tail: 'fan', speed: 1.2 },
+    { k: 'zlota', pl: 'złota rybka', en: 'goldfish', lv: 1, price: 30, size: 0.85, shape: 'basic', body: '#f6982a', fin: '#fbc75e', tail: 'double', b: 0.66, speed: 0.9 },
+    { k: 'neonek', pl: 'neonek', en: 'neon tetra', lv: 2, price: 35, size: 0.55, shape: 'basic', body: '#d9e2ee', fin: '#e8eef6', pat: 'neon', speed: 1.3, b: 0.48 },
+    { k: 'danio', pl: 'danio', en: 'zebrafish', lv: 3, price: 40, size: 0.6, shape: 'basic', body: '#f4e7b4', fin: '#f4e7b4', pat: 'hstripes', speed: 1.5, b: 0.45 },
+    { k: 'kirysek', pl: 'kirysek', en: 'catfish', lv: 4, price: 45, size: 0.7, shape: 'basic', body: '#cdb48c', fin: '#e2d2b0', pat: 'cat', speed: 0.8, zone: 'bottom', b: 0.55 },
+    { k: 'skalar', pl: 'skalar', en: 'angelfish', lv: 5, price: 55, size: 0.95, shape: 'angel', body: '#f3f1ea', fin: '#e8e2d2', pat: 'vstripes', speed: 0.7 },
+    { k: 'blazenek', pl: 'błazenek', en: 'clownfish', lv: 6, price: 60, size: 0.75, shape: 'basic', body: '#f67c1e', fin: '#f67c1e', pat: 'clown', speed: 1.0, b: 0.58 },
+    { k: 'bojownik', pl: 'bojownik', en: 'betta fish', lv: 7, price: 65, size: 0.8, shape: 'betta', body: '#4466dd', fin: '#c440b4', speed: 0.6, b: 0.45 },
+    { k: 'mieczyk', pl: 'mieczyk', en: 'swordtail', lv: 8, price: 70, size: 0.8, shape: 'sword', body: '#ea4b3a', fin: '#f08a5a', speed: 1.2, b: 0.48 },
+    { k: 'rozdymka', pl: 'rozdymka', en: 'pufferfish', lv: 9, price: 80, size: 0.8, shape: 'puffer', body: '#f3d56c', fin: '#f6e3a0', pat: 'pspots', speed: 0.6 },
+    { k: 'pokolec', pl: 'pokolec', en: 'blue tang', lv: 10, price: 90, size: 0.95, shape: 'basic', body: '#3d7fe2', fin: '#2f5fc0', pat: 'tang', tail: 'yellow', speed: 1.0, b: 0.66 },
+    { k: 'dyskowiec', pl: 'dyskowiec', en: 'discus', lv: 11, price: 100, size: 1.0, shape: 'disc', body: '#ec6b3a', fin: '#e85a3a', pat: 'waves', speed: 0.6 },
+    { k: 'konik', pl: 'konik morski', en: 'seahorse', lv: 12, price: 115, size: 0.95, shape: 'seahorse', body: '#f5b82a', fin: '#fbe08a', speed: 0.35, zone: 'mid' },
+    { k: 'plaszczka', pl: 'płaszczka', en: 'stingray', lv: 13, price: 130, size: 1.15, shape: 'ray', body: '#9d8cc6', fin: '#b8aade', speed: 0.6, zone: 'bottom' },
+    { k: 'teczanka', pl: 'tęczanka', en: 'rainbowfish', lv: 14, price: 150, size: 0.85, shape: 'basic', body: '#5aa0e8', fin: '#f6a23a', pat: 'rainbow', speed: 1.1, b: 0.55 }
   ];
   var DECOS = [
-    { k: 'kamyki', n: 'kamyki', lv: 1, price: 50, w: 46, h: 20 },
-    { k: 'roslinka', n: 'roślinka', lv: 1, price: 60, w: 34, h: 74 },
-    { k: 'muszla', n: 'muszla', lv: 2, price: 80, w: 34, h: 26 },
-    { k: 'koral', n: 'koralowiec', lv: 3, price: 100, w: 44, h: 52 },
-    { k: 'zamek', n: 'zamek', lv: 4, price: 200, w: 74, h: 82 },
-    { k: 'amfora', n: 'amfora', lv: 5, price: 120, w: 52, h: 30 },
-    { k: 'skrzynia', n: 'skrzynia skarbów', lv: 7, price: 250, w: 46, h: 36 }
+    { k: 'kamyki', n: 'kamyki', lv: 1, price: 25, w: 46, h: 20 },
+    { k: 'roslinka', n: 'roślinka', lv: 1, price: 30, w: 34, h: 74 },
+    { k: 'muszla', n: 'muszla', lv: 2, price: 40, w: 34, h: 26 },
+    { k: 'koral', n: 'koralowiec', lv: 3, price: 50, w: 44, h: 52 },
+    { k: 'zamek', n: 'zamek', lv: 4, price: 100, w: 74, h: 82 },
+    { k: 'amfora', n: 'amfora', lv: 5, price: 60, w: 52, h: 30 },
+    { k: 'skrzynia', n: 'skrzynia skarbów', lv: 7, price: 125, w: 46, h: 36 }
   ];
   var BGS = [
     { k: 'zwykle', n: 'zwykła woda', lv: 1, price: 0, top: '#86ccf2', bot: '#2c74c2', sand: '#f2dca0' },
-    { k: 'rafa', n: 'rafa koralowa', lv: 5, price: 150, top: '#86dcf0', bot: '#2483b4', sand: '#f6e1b0' },
-    { k: 'jezioro', n: 'jezioro', lv: 10, price: 200, top: '#a6d6b0', bot: '#357a68', sand: '#ccb68a' },
-    { k: 'statek', n: 'zatopiony statek', lv: 15, price: 300, top: '#74b4e2', bot: '#1d4b8a', sand: '#e6cf98' }
+    { k: 'rafa', n: 'rafa koralowa', lv: 5, price: 75, top: '#86dcf0', bot: '#2483b4', sand: '#f6e1b0' },
+    { k: 'jezioro', n: 'jezioro', lv: 10, price: 100, top: '#a6d6b0', bot: '#357a68', sand: '#ccb68a' },
+    { k: 'statek', n: 'zatopiony statek', lv: 15, price: 150, top: '#74b4e2', bot: '#1d4b8a', sand: '#e6cf98' }
   ];
   var FB = {}, DB = {}, BB = {};
   FISH.forEach(function (f) { FB[f.k] = f; });

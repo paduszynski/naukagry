@@ -17,27 +17,27 @@
   // ---------- catalogue ----------
   // h: hours of watered growth needed. type: drawing archetype.
   var PLANTS = [
-    { k: 'rzodkiewka', n: 'rzodkiewka', lv: 1, price: 50, h: 24, type: 'root', shape: 'round', fc: '#e2405a' },
-    { k: 'slonecznik', n: 'słonecznik', lv: 1, price: 60, h: 24, type: 'flower', head: 'sun', tall: 1, pc: '#f7c51e', cc: '#8a5428' },
-    { k: 'marchewka', n: 'marchewka', lv: 2, price: 60, h: 24, type: 'root', shape: 'long', fc: '#f08a24' },
-    { k: 'kwiatek', n: 'kwiatek', lv: 3, price: 70, h: 30, type: 'flower', head: 'round', tall: 0.55, pc: '#f47fb0', cc: '#f7d23a' },
-    { k: 'salata', n: 'sałata', lv: 4, price: 70, h: 30, type: 'leafy' },
-    { k: 'pomidor', n: 'pomidor', lv: 5, price: 90, h: 48, type: 'bush', fruit: 'round', fc: '#e2402f', fl: '#f7d23a' },
-    { k: 'truskawka', n: 'truskawka', lv: 6, price: 90, h: 40, type: 'low', fc: '#e8344a' },
-    { k: 'tulipan', n: 'tulipan', lv: 7, price: 80, h: 36, type: 'flower', head: 'cup', tall: 0.7, pc: '#ec4f7a' },
-    { k: 'kukurydza', n: 'kukurydza', lv: 8, price: 100, h: 54, type: 'corn' },
-    { k: 'groszek', n: 'groszek', lv: 9, price: 90, h: 42, type: 'bush', fruit: 'pod', fc: '#74c94e', fl: '#ffffff' },
-    { k: 'winogrono', n: 'winogrono', lv: 10, price: 110, h: 60, type: 'vine', fruit: 'grapes', fc: '#8657c9', fl: '#c8e07a' },
-    { k: 'dynia', n: 'dynia', lv: 11, price: 120, h: 60, type: 'pumpkin', fc: '#f08a24' },
-    { k: 'papryka', n: 'papryka', lv: 12, price: 110, h: 48, type: 'bush', fruit: 'pepper', fc: '#f6c21b', fl: '#ffffff' },
-    { k: 'lawenda', n: 'lawenda', lv: 13, price: 110, h: 42, type: 'spike', pc: '#9a72d8' },
-    { k: 'ogorek', n: 'ogórek', lv: 14, price: 100, h: 44, type: 'vine', fruit: 'cucumber', fc: '#3f9a45', fl: '#f7d23a' },
-    { k: 'mak', n: 'mak', lv: 15, price: 120, h: 48, type: 'flower', head: 'poppy', tall: 0.8, pc: '#e23a2f', cc: '#2a2333' },
-    { k: 'baklazan', n: 'bakłażan', lv: 16, price: 120, h: 54, type: 'bush', fruit: 'eggplant', fc: '#6a3d9a', fl: '#c9a6f0' },
-    { k: 'roza', n: 'róża', lv: 17, price: 140, h: 60, type: 'flower', head: 'rose', tall: 0.85, pc: '#e0315b', rare: 1 },
-    { k: 'lilia', n: 'lilia', lv: 18, price: 140, h: 66, type: 'flower', head: 'lily', tall: 0.9, pc: '#fde3ef', cc: '#f08a24', rare: 1 },
-    { k: 'storczyk', n: 'storczyk', lv: 19, price: 150, h: 72, type: 'orchid', pc: '#d77be0', rare: 1 },
-    { k: 'teczowy', n: 'tęczowy kwiat', lv: 20, price: 150, h: 72, type: 'flower', head: 'rainbow', tall: 0.9, rare: 1 }
+    { k: 'rzodkiewka', n: 'rzodkiewka', lv: 1, price: 25, h: 24, type: 'root', shape: 'round', fc: '#e2405a' },
+    { k: 'slonecznik', n: 'słonecznik', lv: 1, price: 30, h: 24, type: 'flower', head: 'sun', tall: 1, pc: '#f7c51e', cc: '#8a5428' },
+    { k: 'marchewka', n: 'marchewka', lv: 2, price: 30, h: 24, type: 'root', shape: 'long', fc: '#f08a24' },
+    { k: 'kwiatek', n: 'kwiatek', lv: 3, price: 35, h: 30, type: 'flower', head: 'round', tall: 0.55, pc: '#f47fb0', cc: '#f7d23a' },
+    { k: 'salata', n: 'sałata', lv: 4, price: 35, h: 30, type: 'leafy' },
+    { k: 'pomidor', n: 'pomidor', lv: 5, price: 45, h: 48, type: 'bush', fruit: 'round', fc: '#e2402f', fl: '#f7d23a' },
+    { k: 'truskawka', n: 'truskawka', lv: 6, price: 45, h: 40, type: 'low', fc: '#e8344a' },
+    { k: 'tulipan', n: 'tulipan', lv: 7, price: 40, h: 36, type: 'flower', head: 'cup', tall: 0.7, pc: '#ec4f7a' },
+    { k: 'kukurydza', n: 'kukurydza', lv: 8, price: 50, h: 54, type: 'corn' },
+    { k: 'groszek', n: 'groszek', lv: 9, price: 45, h: 42, type: 'bush', fruit: 'pod', fc: '#74c94e', fl: '#ffffff' },
+    { k: 'winogrono', n: 'winogrono', lv: 10, price: 55, h: 60, type: 'vine', fruit: 'grapes', fc: '#8657c9', fl: '#c8e07a' },
+    { k: 'dynia', n: 'dynia', lv: 11, price: 60, h: 60, type: 'pumpkin', fc: '#f08a24' },
+    { k: 'papryka', n: 'papryka', lv: 12, price: 55, h: 48, type: 'bush', fruit: 'pepper', fc: '#f6c21b', fl: '#ffffff' },
+    { k: 'lawenda', n: 'lawenda', lv: 13, price: 55, h: 42, type: 'spike', pc: '#9a72d8' },
+    { k: 'ogorek', n: 'ogórek', lv: 14, price: 50, h: 44, type: 'vine', fruit: 'cucumber', fc: '#3f9a45', fl: '#f7d23a' },
+    { k: 'mak', n: 'mak', lv: 15, price: 60, h: 48, type: 'flower', head: 'poppy', tall: 0.8, pc: '#e23a2f', cc: '#2a2333' },
+    { k: 'baklazan', n: 'bakłażan', lv: 16, price: 60, h: 54, type: 'bush', fruit: 'eggplant', fc: '#6a3d9a', fl: '#c9a6f0' },
+    { k: 'roza', n: 'róża', lv: 17, price: 70, h: 60, type: 'flower', head: 'rose', tall: 0.85, pc: '#e0315b', rare: 1 },
+    { k: 'lilia', n: 'lilia', lv: 18, price: 70, h: 66, type: 'flower', head: 'lily', tall: 0.9, pc: '#fde3ef', cc: '#f08a24', rare: 1 },
+    { k: 'storczyk', n: 'storczyk', lv: 19, price: 75, h: 72, type: 'orchid', pc: '#d77be0', rare: 1 },
+    { k: 'teczowy', n: 'tęczowy kwiat', lv: 20, price: 75, h: 72, type: 'flower', head: 'rainbow', tall: 0.9, rare: 1 }
   ];
   var BY = {};
   PLANTS.forEach(function (p) { BY[p.k] = p; });

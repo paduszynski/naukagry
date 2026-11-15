@@ -2,7 +2,7 @@
  * Jeżyk w biegu: a hedgehog runs through a meadow. Tap = jump, tap again in the air = higher jump (roll).
  * Puddles, stones, logs, later low-flying bees (stay on the ground). Apples stick to the spines.
  * One mushroom per run gives a shield for one hit. Every 30 s the season changes.
- * Cosmetics (hats, scarf, glasses) unlocked by player level, bought once for 150 ★, chosen in the wardrobe.
+ * Cosmetics (hats, scarf, glasses) unlocked by player level, bought once for 75 ★, chosen in the wardrobe.
  * Logical coordinates: 1 unit = S css px, so a portrait phone is ~400 units wide whatever its size.
  */
 (function () {
@@ -11,7 +11,7 @@
 
   var INK = '#1d2f6f', GOLD = '#e3a008', PURPLE = '#7a4fc4';
   var FONT = '"Patrick Hand", "Comic Sans MS", cursive';
-  var PRICE = 100, ITEM_PRICE = 150, SEASON_LEN = 30;
+  var PRICE = 50, ITEM_PRICE = 75, SEASON_LEN = 30;
   var HOG_SC = 1.3;                 // hedgehog drawing scale
   var GRAV = 2400, JUMP = 820, JUMP2 = 900;
 

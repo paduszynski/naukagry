@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Gry za gwiazdki</title>
-<meta name="version" content="1.1">
+<meta name="version" content="1.2">
 <meta name="description" content="Gry dla dzieci za gwiazdki zdobyte w Matmie, Angielskim i Polskim.">
 <meta name="theme-color" content="#3f86d8">
 <link rel="manifest" href="manifest.webmanifest">
@@ -106,7 +106,7 @@ h1{margin:0;font-weight:400;font-size:2.1rem;line-height:1}
 <div id="hub">
   <div class="wrap hub-top">
     <div class="title-row">
-      <h1>Gry za gwiazdki <span class="ver" title="Wersja 1.1">1.1</span></h1>
+      <h1>Gry za gwiazdki <span class="ver" title="Wersja 1.2">1.2</span></h1>
     </div>
     <div class="wallet" id="wallet" aria-live="polite">
       <div class="bal"><span>★</span> <b id="w-bal" style="font-weight:400">0</b></div>
@@ -141,7 +141,7 @@ window.NG = {
 };
 
 var GAMES = [
-  { id: 'klocki', name: 'Klockownia', unlock: 1, price: '100 ★ za grę', bg: '#fbe9c9',
+  { id: 'klocki', name: 'Klockownia', unlock: 1, price: '50 ★ za grę', bg: '#fbe9c9',
     pic: (function () {
       var s = '', cell = 6.4, ox = 34, oy = 4, f = { '0,6':'#3f86d8','1,6':'#3f86d8','2,6':'#e2533f','3,6':'#e2533f','4,6':'#f2b51d','6,6':'#3fae5f','7,6':'#3fae5f','0,7':'#8a5cd0','1,7':'#8a5cd0','2,7':'#8a5cd0','3,7':'#f2b51d','4,7':'#f2b51d','5,7':'#f2b51d','6,7':'#3fae5f','7,7':'#3f86d8','6,5':'#3fae5f','0,5':'#3f86d8','3,4':'#e2533f','3,5':'#e2533f','7,3':'#8a5cd0','7,4':'#8a5cd0' };
       for (var r = 0; r < 8; r++) for (var c = 0; c < 8; c++) { var col = f[c + ',' + r]; s += '<rect x="' + (ox + c * cell) + '" y="' + (oy + r * cell) + '" width="' + (cell - .8) + '" height="' + (cell - .8) + '" rx="1" fill="' + (col || '#fff8ea') + '"' + (col ? '' : ' stroke="#e3cfa6" stroke-width=".6"') + '/>'; }
@@ -149,13 +149,13 @@ var GAMES = [
       [[92,28],[98,28],[104,28],[98,34]].forEach(function (p) { s += '<rect x="' + p[0] + '" y="' + p[1] + '" width="6" height="6" fill="#3fae5f" stroke="#1d2f6f" stroke-width="1"/>'; });
       return s;
     })() },
-  { id: 'ogrodek', name: 'Ogródek', unlock: 1, price: 'nasiona od 50 ★', bg: '#dff3d2',
+  { id: 'ogrodek', name: 'Ogródek', unlock: 1, price: 'nasiona od 25 ★', bg: '#dff3d2',
     pic: '<rect x="0" y="56" width="120" height="16" fill="#8a5a33"/><path d="M30 56 v-10 M30 50 q-6 -2 -8 -8 M30 48 q6 -2 8 -8" fill="none" stroke="#2a8a56" stroke-width="2.5" stroke-linecap="round"/><path d="M80 56 v-30" stroke="#2a8a56" stroke-width="2.5"/><path d="M80 40 q-10 -2 -12 -10 q10 0 12 10 z" fill="#3fae5f"/><circle cx="80" cy="12" r="5" fill="#e2533f"/><circle cx="88" cy="20" r="5" fill="#e2533f"/><circle cx="72" cy="20" r="5" fill="#e2533f"/><circle cx="80" cy="28" r="5" fill="#e2533f"/><circle cx="80" cy="20" r="5" fill="#f2b51d"/><path d="M98 20 l10 -6 v10 l-4 4 h-6 z M108 14 l6 -2" fill="#9fc3ea" stroke="#1d2f6f" stroke-width="2" stroke-linejoin="round"/><path d="M100 32 v4 M104 32 v6" stroke="#3f86d8" stroke-width="2" stroke-linecap="round"/>' },
-  { id: 'jezyk', name: 'Jeżyk w biegu', unlock: 1, price: '100 ★ za bieg', bg: '#e2f4ff',
+  { id: 'jezyk', name: 'Jeżyk w biegu', unlock: 1, price: '50 ★ za bieg', bg: '#e2f4ff',
     pic: '<rect x="0" y="62" width="120" height="10" fill="#8fd06b"/><ellipse cx="88" cy="63" rx="16" ry="4" fill="#3f86d8"/><path d="M28 60 a16 14 0 0 1 32 0 z" fill="#8a5a33" stroke="#1d2f6f" stroke-width="2"/><path d="M30 50 l-4 -6 l6 1 l0 -7 l5 4 l2 -7 l4 6 l4 -6 l2 7 l5 -4 l0 7 l6 -1 l-4 6" fill="none" stroke="#1d2f6f" stroke-width="2.5" stroke-linejoin="round"/><circle cx="56" cy="54" r="1.8" fill="#1d2f6f"/><circle cx="102" cy="34" r="6" fill="#e2533f"/>' },
-  { id: 'akwarium', name: 'Akwarium', unlock: 1, price: 'rybki od 50 ★', bg: '#d5ecfb',
+  { id: 'akwarium', name: 'Akwarium', unlock: 1, price: 'rybki od 25 ★', bg: '#d5ecfb',
     pic: '<rect x="10" y="10" width="100" height="56" rx="6" fill="#bfe1f7" stroke="#1d2f6f" stroke-width="2.5"/><path d="M44 42 q12 -12 26 0 q-14 12 -26 0 z M44 42 l-10 -7 v14 z" fill="#f2b51d" stroke="#1d2f6f" stroke-width="2"/><circle cx="64" cy="40" r="1.8" fill="#1d2f6f"/><path d="M78 54 q6 -6 12 0 q-6 6 -12 0 z M78 54 l-5 -3 v6 z" fill="#e2533f" stroke="#1d2f6f" stroke-width="2"/><circle cx="84" cy="34" r="3" fill="none" stroke="#1d2f6f" stroke-width="1.5"/><circle cx="90" cy="26" r="2" fill="none" stroke="#1d2f6f" stroke-width="1.5"/><path d="M24 64 q-4 -12 2 -20 M30 64 q4 -10 0 -16" fill="none" stroke="#2a8a56" stroke-width="2.5" stroke-linecap="round"/>' },
-  { id: 'trojki', name: 'Grządkowe trójki', unlock: 1, price: '80 ★ za poziom', bg: '#fdeedd',
+  { id: 'trojki', name: 'Grządkowe trójki', unlock: 1, price: '40 ★ za poziom', bg: '#fdeedd',
     pic: (function () {
       var g = ['rcgpb','gpcrc','cgrrb','bgpcp','prcgr'], s = '', ox = 30, oy = 6, cell = 12;
       var sh = {
@@ -169,9 +169,9 @@ var GAMES = [
       for (var r = 0; r < 5; r++) for (var c = 0; c < 5; c++) s += sh[g[r][c]](ox + c * cell + cell / 2, oy + r * cell + cell / 2);
       return s;
     })() },
-  { id: 'latawiec', name: 'Latawiec', unlock: 1, price: '100 ★ za lot', bg: '#e6f0ff',
+  { id: 'latawiec', name: 'Latawiec', unlock: 1, price: '50 ★ za lot', bg: '#e6f0ff',
     pic: '<path d="M50 6 l18 20 l-18 26 l-18 -26 z" fill="#e2533f" stroke="#1d2f6f" stroke-width="2"/><path d="M50 6 v46 M32 26 h36" stroke="#1d2f6f" stroke-width="2"/><path d="M50 52 q-8 6 0 10 q8 4 0 10" fill="none" stroke="#1d2f6f" stroke-width="2"/><path d="M96 14 l3 7 l7 1 l-5 5 l1 7 l-6 -3 l-6 3 l1 -7 l-5 -5 l7 -1 z" fill="#f2b51d"/><path d="M80 50 q4 -4 8 0 q4 -4 8 0" fill="none" stroke="#1d2f6f" stroke-width="2"/>' },
-  { id: 'rury', name: 'Rury do ogródka', unlock: 1, price: '100 ★ za 5 plansz', bg: '#e8f6e4',
+  { id: 'rury', name: 'Rury do ogródka', unlock: 1, price: '50 ★ za 5 plansz', bg: '#e8f6e4',
     pic: '<g fill="#fff" stroke="#1d2f6f" stroke-width="2"><rect x="14" y="10" width="28" height="28"/><rect x="42" y="10" width="28" height="28"/><rect x="70" y="10" width="28" height="28"/><rect x="14" y="38" width="28" height="28"/><rect x="42" y="38" width="28" height="28"/><rect x="70" y="38" width="28" height="28"/></g><path d="M14 24 h42 v28 h28" fill="none" stroke="#3f86d8" stroke-width="6" stroke-linecap="round"/><path d="M84 52 v-28" stroke="#c9d6ea" stroke-width="6"/><circle cx="110" cy="48" r="5" fill="#e2533f"/><path d="M110 53 v14" stroke="#2a8a56" stroke-width="2.5"/>' }
 ];
 </script>
@@ -334,6 +334,21 @@ var GAMES = [
     if (current && current.instance) {
       if (document.hidden && current.instance.pause) current.instance.pause();
       if (!document.hidden && current.instance.resume) current.instance.resume();
+    }
+  });
+
+  // Pawel's secret: 20 taps in a row on the grass at the bottom of the hub = +1000 ★ (balance only, not the level)
+  var grassTaps = 0, grassLast = 0;
+  hub.addEventListener('pointerdown', function (e) {
+    var onGrass = e.clientY > window.innerHeight - 90 && !e.target.closest('button, a, .wallet');
+    var now = Date.now();
+    if (!onGrass || now - grassLast > 1500) grassTaps = 0;
+    if (!onGrass) return;
+    grassLast = now;
+    if (++grassTaps >= 20) {
+      grassTaps = 0;
+      S.gift(1000, 'naukagry', 'trawa');
+      toast(hub, '+1000 ★ z trawy!');
     }
   });
 

@@ -6,9 +6,11 @@ Gry za gwiazdki zdobyte w [Matmie](https://paduszynski.github.io/matma/), [Angie
 
 `skarbonka.js` to wspólny portfel. Wszystkie aplikacje są pod `paduszynski.github.io`, więc dzielą `localStorage` (klucz `skarbonka.v1`). Kanoniczna kopia jest tutaj; Matma, Angielski i Polski mają identyczną kopię `skarbonka.js` (po zmianie skopiuj plik do wszystkich trzech repo).
 
-- Dobra odpowiedź za pierwszym razem: 10 ★, seria 3–4: 15 ★, 5–9: 20 ★, 10+: 30 ★. Błąd zeruje serię, nic nie zabiera. Poprawka po błędzie: 3 ★.
-- Koniec zestawu: +20 ★, bez błędu +50 ★. Pierwszy zestaw dnia: +20 ★, każdy kolejny dzień z rzędu +10, max +50.
-- Poziom liczy się od sumy zdobytych gwiazdek (wydawanie nie cofa poziomu). Próg z poziomu 1 na 2 to 300 ★, każdy następny ×1,1 (zaokrąglony do 10). Co 5 poziomów prezent +100 ★ (do salda, nie do poziomu).
+- Dobra odpowiedź za pierwszym razem: 2 ★, seria 3–4: 3 ★, 5–9: 4 ★, 10+: 5 ★ (nigdy więcej niż 5 za odpowiedź). Błąd zeruje serię, nic nie zabiera. Poprawka po błędzie: 1 ★. W fiszkach ocenianych samemu „Umiem!” szybciej niż 0,5 s od pojawienia się karty nie daje gwiazdek.
+- Koniec zestawu: +1 ★ za każde 2 odpowiedzi, podwójnie bez błędu (10 pytań: +5, bez błędu +10). Pierwszy zestaw dnia: +5 ★, każdy kolejny dzień z rzędu +1, max +10.
+- Poziom liczy się od sumy zdobytych gwiazdek (wydawanie nie cofa poziomu). Próg z poziomu 1 na 2 to 60 ★, każdy następny ×1,1 (zaokrąglony do 5). Co 5 poziomów prezent +20 ★ (do salda, nie do poziomu).
+- Ceny: runda gry 50 ★ (Trójki 40 ★ za poziom), nasiona i rybki od 25 ★. Czysty zestaw 10 pytań (ok. 45 ★) to mniej więcej jedna runda.
+- Ekonomia v2 (listopad 2026): stan z v1 jest jednorazowo dzielony przez 5 (`rate: 2` w `skarbonka.v1`), więc poziom zostaje.
 - Bez dziennych limitów.
 
 API dla aplikacji z nauką:
