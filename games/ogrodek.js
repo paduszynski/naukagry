@@ -774,11 +774,17 @@
     [-1, 1].forEach(function (sd) {
       g.save(); g.scale(sd, 1);
       ell(7.5, -4, 8, 6.4, -0.5, B.c);
+      // forewing stripes / band: clipped to the wing, its outline stroked again over their ends, and painted before the hindwing so they stay off it
+      if (B.stripes || B.band) {
+        G.save(); G.beginPath(); G.ellipse(7.5, -4, 8, 6.4, -0.5, 0, 7); G.clip();
+        if (B.stripes) { dline(3, -10, 6, 2, B.c2, 1.6); dline(8, -11, 11, 0, B.c2, 1.6); } else dline(4, -1, 13, -9, B.c2, 2.6);
+        G.restore(); ell(7.5, -4, 8, 6.4, -0.5, null);
+      }
       ell(6, 5.5, 5.4, 4.4, 0.5, B.c);
       if (B.eye) { circ(9, -5, 3, B.c2); circ(9, -5, 1.2, '#f7d23a', true); }
-      else if (B.stripes) { G.save(); G.beginPath(); G.ellipse(7.5, -4, 8, 6.4, -0.5, 0, 7); G.clip(); dline(3, -10, 6, 2, B.c2, 1.6); dline(8, -11, 11, 0, B.c2, 1.6); G.restore(); circ(7, 8, 1.4, '#3f86d8', true); }
-      else if (B.band) { G.save(); G.beginPath(); G.ellipse(7.5, -4, 8, 6.4, -0.5, 0, 7); G.clip(); dline(4, -1, 13, -9, B.c2, 2.6); G.restore(); dots([[12, -8, 1]], '#fff'); }
-      else dots([[12.5, -7.5, 1.8]], B.c2);
+      else if (B.stripes) circ(7, 8, 1.4, '#3f86d8', true);
+      else if (B.band) dots([[11.2, -7, 1]], '#fff');
+      else dots([[11.2, -6.6, 1.7]], B.c2); // tip spot kept inside the wing outline
       g.restore();
     });
     g.restore();
@@ -812,7 +818,10 @@
     G = g; U = 1.8 / s;
     var ph = (t * 0.9) % 3, hop = ph < 0.3 ? Math.sin(ph / 0.3 * Math.PI) * 4 : 0, peck = ph > 1.6 && ph < 2 ? 0.35 : 0;
     g.save(); g.translate(x, y - hop * s); g.scale(s * (flip ? -1 : 1), s); g.lineJoin = 'round';
-    dline(-2, -3, -3, 0, '#c98b4f', 1.6); dline(2, -3, 2, 0, '#c98b4f', 1.6);
+    // outlined legs with little forward-pointing feet; the feet stay on y = 0 and the body sits 3 units higher so the legs show
+    G.beginPath(); [[-2.5, -3.6], [2.4, 2.8]].forEach(function (l) { G.moveTo(l[0], -8); G.lineTo(l[1], -0.3); G.moveTo(l[1] - 0.8, 0.2); G.lineTo(l[1], -0.3); G.lineTo(l[1] + 2.2, 0.2); });
+    G.lineCap = 'round'; G.lineJoin = 'round'; G.strokeStyle = INK; G.lineWidth = 1.3 + U; G.stroke(); G.strokeStyle = '#e9a04a'; G.lineWidth = 1.3; G.stroke();
+    g.translate(0, -3);
     path(function () { G.moveTo(-8, -8); G.lineTo(-18, -13); G.lineTo(-16, -6); G.closePath(); }, '#8a5a33');
     ell(0, -9, 10, 7.5, 0, '#8a5a33');
     ell(4, -8, 6, 5.5, 0, '#f08a24', true);

@@ -180,8 +180,8 @@
       c.fillStyle = '#e8344a'; c.fillRect(-a * 0.9, b * 0.05, a * 0.85, b * 1.2);
     }
     c.restore();
-    shp(c, function () { bodyPath(c, a, b); }, null, false, lw);
-    c.fillStyle = 'rgba(0,0,0,0)';
+    // outline only: a fill here would paint over the patterns, belly and back above
+    c.beginPath(); bodyPath(c, a, b); c.lineWidth = lw; c.strokeStyle = INK; c.stroke();
     // gill line, pectoral fin
     c.strokeStyle = 'rgba(29,47,111,.45)'; c.lineWidth = lw * 0.8;
     c.beginPath(); c.moveTo(a * 0.48, -b * 0.5); c.quadraticCurveTo(a * 0.36, 0, a * 0.48, b * 0.5); c.stroke();
@@ -190,7 +190,7 @@
     if (K.whisk) {
       var wl = K.whisk === 2 ? a * 0.7 : a * 0.3;
       c.strokeStyle = INK; c.lineWidth = lw * 0.8;
-      c.beginPath(); c.moveTo(a * 0.92, b * 0.15); c.quadraticCurveTo(a * 0.95 + wl * 0.4, b * 0.3 + wl * 0.4, a * 0.85 + wl * 0.5, b * 0.2 + wl * 0.9); c.stroke();
+      c.beginPath(); c.moveTo(a * 0.92, b * 0.15); c.quadraticCurveTo(a * 0.95 + wl * 0.55, b * 0.3 + wl * 0.1, a * 0.88 + wl * 0.75, b * 0.2 + wl * 0.8); c.stroke();
       c.beginPath(); c.moveTo(a * 0.9, b * 0.1); c.quadraticCurveTo(a + wl * 0.6, b * 0.1, a + wl * 0.8, b * 0.1 + wl * 0.45); c.stroke();
     }
     // eye

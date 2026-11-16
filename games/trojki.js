@@ -491,6 +491,8 @@
       g.strokeStyle = '#d9f5b0'; g.lineWidth = 0.03; g.lineCap = 'round';
       g.beginPath(); g.moveTo(0, 0.2); g.lineTo(0, 0.27); g.moveTo(-0.12, 0.15); g.lineTo(-0.2, 0.2); g.moveTo(0.12, 0.15); g.lineTo(0.2, 0.2); g.stroke();
       face(g, 0.02);
+      // warmer, lighter cheeks: the shared pink blush turns muddy on green
+      g.fillStyle = 'rgba(255,172,178,.8)'; g.beginPath(); g.arc(-0.14, 0.07, 0.036, 0, 7); g.arc(0.14, 0.07, 0.036, 0, 7); g.fill();
     },
     function grapes(g) {
       shadow(g, 0.39, 0.22);
@@ -571,9 +573,15 @@
     g.fillStyle = INK; g.fillRect(-0.09, -0.2, 0.05, 0.4); g.fillRect(0.01, -0.2, 0.05, 0.4);
     g.restore();
     g.beginPath(); g.moveTo(-0.2, 0); g.lineTo(-0.27, 0.01); g.lineTo(-0.2, 0.04); g.fillStyle = INK; g.fill();
-    g.beginPath(); g.arc(0.17, -0.01, 0.075, 0, 7); outline(g, '#3a3a52', 0.03);
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(0.19, -0.03, 0.025, 0, 7); g.fill();
-    g.strokeStyle = INK; g.lineWidth = 0.025; g.beginPath(); g.moveTo(0.17, -0.07); g.quadraticCurveTo(0.2, -0.15, 0.25, -0.15); g.stroke();
+    // two antennae (the far one behind the head), then a yellow face with a small eye and a smile
+    g.strokeStyle = INK; g.lineWidth = 0.022; g.lineCap = 'round'; g.fillStyle = INK;
+    g.beginPath(); g.moveTo(0.13, -0.06); g.quadraticCurveTo(0.13, -0.15, 0.17, -0.18); g.stroke(); g.beginPath(); g.arc(0.17, -0.18, 0.016, 0, 7); g.fill();
+    g.beginPath(); g.moveTo(0.19, -0.07); g.quadraticCurveTo(0.21, -0.15, 0.26, -0.16); g.stroke(); g.beginPath(); g.arc(0.26, -0.16, 0.016, 0, 7); g.fill();
+    g.beginPath(); g.arc(0.17, -0.01, 0.08, 0, 7); outline(g, '#fbd84a', 0.03);
+    g.fillStyle = INK; g.beginPath(); g.arc(0.198, -0.03, 0.019, 0, 7); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(0.204, -0.037, 0.007, 0, 7); g.fill();
+    g.fillStyle = 'rgba(240,110,130,.45)'; g.beginPath(); g.ellipse(0.21, 0.017, 0.02, 0.012, 0, 0, 7); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 0.014; g.beginPath(); g.arc(0.215, -0.005, 0.03, 0.2 * Math.PI, 0.65 * Math.PI); g.stroke();
     g.restore();
   }
   function drawMole(g, wob) {

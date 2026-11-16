@@ -580,12 +580,24 @@
       ell(-10, -5, 7.5, 5, 0, c); ell(10, -5, 7.5, 5, 0, c); ell(-10, -4, 4, 2, 0, l, true); ell(10, -4, 4, 2, 0, l, true);
       ell(-14, -18, 5, 8, 0.4, c); ell(14, -18, 5, 8, -0.4, c);
       ell(0, -16, 13, 13, 0, c);
-      for (var i = 0; i < 3; i++) circ(-9 + i * 1.5, -44 + i * 5.5, 4.4, mane[i]);
-      poly([-9, -42, -6, -50, -3, -42], c); poly([9, -42, 6, -50, 3, -42], c);
-      circ(0, -33, 11, c);
+      // full mane flowing down one side (behind the head), a couple of locks peeking out on the other
+      [[-3, -46.5, 4], [-8.5, -45, 4.2], [-12.5, -40.5, 4.2], [-14, -34.5, 4.2], [-13.5, -28.5, 4], [-11.5, -23, 3.6], [11.5, -37.5, 3.4], [12, -31.5, 3.2]].forEach(function (m, j) { circ(m[0], m[1], m[2], mane[j % 3]); });
+      // leaf-shaped ears with pink insides
+      [-1, 1].forEach(function (k) {
+        P(function () { G.moveTo(k * 8.5, -40); G.quadraticCurveTo(k * 10.5, -48, k * 7, -51.5); G.quadraticCurveTo(k * 3.2, -46.5, k * 3.6, -42); G.closePath(); }, c);
+        P(function () { G.moveTo(k * 7.6, -42); G.quadraticCurveTo(k * 8.6, -47, k * 6.8, -49); G.quadraticCurveTo(k * 4.8, -46, k * 5, -42.5); G.closePath(); }, l, true);
+      });
+      // long horse head narrowing into a soft muzzle
+      function head() { G.moveTo(0, -44.5); G.bezierCurveTo(7.5, -44.5, 11, -40.5, 11, -34.5); G.bezierCurveTo(11, -29.5, 7.5, -28, 7, -24.5); G.bezierCurveTo(6.6, -19.5, -6.6, -19.5, -7, -24.5); G.bezierCurveTo(-7.5, -28, -11, -29.5, -11, -34.5); G.bezierCurveTo(-11, -40.5, -7.5, -44.5, 0, -44.5); G.closePath(); }
+      P(head, c);
+      G.save(); G.beginPath(); head(); G.clip(); ell(0, -22.5, 8.5, 5.4, 0, l, true); G.restore();
+      P(head, null);
+      // forelock under the horn
+      circ(-3.2, -43, 3, mane[0]); circ(1, -44, 2.8, mane[1]);
       poly([-3, -43, 0, -59, 3, -43], '#f2d23a');
-      ell(0, -28.5, 6, 4.2, 0, l); dot(-2, -29, 0.9, INK); dot(2, -29, 0.9, INK);
-      eyes(-4, 4, -35, 1.6); cheeks(-7, 7, -31, 1.8);
+      G.lineWidth = U * 0.7; G.strokeStyle = INK; G.beginPath();
+      G.moveTo(-3.3, -24.8); G.quadraticCurveTo(-2, -24.4, -2.4, -23); G.moveTo(3.3, -24.8); G.quadraticCurveTo(2, -24.4, 2.4, -23); G.stroke();
+      eyes(-4, 4, -35, 1.6); cheeks(-7, 7, -30.5, 1.8);
       star(0, -14, 3.5, '#f2d23a', true);
     },
     rakieta: function () {
@@ -599,12 +611,21 @@
     kotek: function (t, o) {
       var b = REDUCED ? 1 : 1 + Math.sin(t * 1.8 + (o.id || 0)) * 0.035, c = '#f6b26b';
       G.save(); G.translate(0, -1); G.scale(1, b);
-      P(function () { G.moveTo(-26, -6); G.quadraticCurveTo(-34, -2, -22, 0); G.lineTo(10, 0); }, null);
+      // tail: out from behind the rump and round the front of the body, outlined, striped, rounded tip
+      function tail() {
+        function tp() { G.beginPath(); G.moveTo(-24, -9); G.quadraticCurveTo(-30.5, -4.5, -26.5, 0); G.quadraticCurveTo(-23, 2, -10, 0.8); G.quadraticCurveTo(1, -0.2, 6.5, -3.2); }
+        tp(); G.lineWidth = 5 + U * 2; G.strokeStyle = INK; G.stroke();
+        tp(); G.lineWidth = 5; G.strokeStyle = c; G.stroke();
+        tp(); G.setLineDash([2.6, 5.4]); G.lineDashOffset = -1; G.lineCap = 'butt'; G.strokeStyle = 'rgba(200,120,50,.5)'; G.stroke(); G.setLineDash([]); G.lineCap = 'round';
+      }
+      tail();
       ell(-4, -13, 24, 13, 0, c);
       G.fillStyle = 'rgba(200,120,50,.5)'; [-14, -6, 2].forEach(function (x) { G.fillRect(x, -25, 3, 8); });
+      // the part lying in front of the body again, without the root that hides behind the rump
+      G.save(); G.beginPath(); G.rect(-40, -40, 80, 80);
+      for (var i = 0; i <= 48; i++) { var th = i / 48 * Math.PI * 2, x = Math.min(-12, -4 + Math.cos(th) * (24 + U / 2)), y = Math.min(-4.2, -13 + Math.sin(th) * (13 + U / 2)); if (i) G.lineTo(x, y); else G.moveTo(x, y); }
+      G.clip('evenodd'); tail(); G.restore();
       G.restore();
-      P(function () { G.moveTo(-26, -4); G.quadraticCurveTo(-30, 2, -10, 1); G.quadraticCurveTo(4, 0, 8, -3); }, null);
-      G.lineWidth = 5; G.strokeStyle = c; G.beginPath(); G.moveTo(-25, -4); G.quadraticCurveTo(-29, 1, -10, -0.5); G.quadraticCurveTo(3, -1.5, 7, -3.5); G.stroke();
       poly([10, -21, 12, -30, 17, -23], c); poly([22, -22, 25, -30, 27, -20], c);
       circ(19, -15, 10, c);
       G.lineWidth = U * 0.8; G.strokeStyle = INK;

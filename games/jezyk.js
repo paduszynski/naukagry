@@ -131,7 +131,7 @@
       g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(-8, 1 + w1, -14, -2 + w2, -22, 2 + w2);
       g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 8.5; g.stroke();
       g.strokeStyle = '#3f86d8'; g.lineWidth = 5; g.stroke();
-      g.setLineDash([3, 4]); g.strokeStyle = '#fff'; g.lineWidth = 5; g.stroke(); g.setLineDash([]);
+      g.setLineDash([3, 4]); g.lineCap = 'butt'; g.strokeStyle = '#fff'; g.lineWidth = 5; g.stroke(); g.setLineDash([]); g.lineCap = 'round';
     },
     szalik: function (g) {
       rr(g, -4.5, -11, 9, 22, 4.5); g.fillStyle = '#3f86d8'; g.fill();
@@ -156,13 +156,11 @@
   // st: { t, legs, air, apples, wear, shield, dizzy, roll }
   function drawHog(g, st) {
     var wear = st.wear || {}, t = st.t || 0;
-    // feet
-    var lp = st.air ? 0 : Math.sin(st.legs || 0) * 5;
+    // feet: set wide apart where the belly curves up, so they show below the body; the foot swinging forward lifts a little
+    var lg = st.legs || 0, lp = st.air ? 0 : Math.sin(lg) * 4.5, lf = st.air ? 0 : Math.cos(lg) * 1.4;
     g.fillStyle = '#5a3a22';
-    g.beginPath(); g.ellipse(-8 + lp, -2, 6, 4, 0, 0, Math.PI * 2); g.fill(); outline(g, 1.6);
-    g.beginPath(); g.ellipse(10 - lp, -2, 6, 4, 0, 0, Math.PI * 2); g.fill(); outline(g, 1.6);
-    // scarf tail behind the body
-    if (wear.neck === 'szalik') { g.save(); g.translate(2, -10); WEAR.szalikTail(g, t); g.restore(); }
+    g.beginPath(); g.ellipse(-11 + lp, -1.2 - Math.max(0, lf), 6, 4, 0, 0, Math.PI * 2); g.fill(); outline(g, 1.6);
+    g.beginPath(); g.ellipse(12 - lp, -1.2 - Math.max(0, -lf), 6, 4, 0, 0, Math.PI * 2); g.fill(); outline(g, 1.6);
     // spiny back
     var cx = -2, cy = -17, N = 13, a0 = 160 * Math.PI / 180, a1 = 332 * Math.PI / 180;
     g.beginPath();
@@ -186,6 +184,8 @@
       var aa = APPLE_SPOTS[k] * Math.PI / 180, ar = k % 2 ? 22 : 25;
       drawApple(g, cx + Math.cos(aa) * ar, cy + Math.sin(aa) * ar + 1, 4.6);
     }
+    // scarf tail fluttering back over the side (its root hides behind the head and the knot)
+    if (wear.neck === 'szalik') { g.save(); g.translate(2, -10); WEAR.szalikTail(g, t); g.restore(); }
     // ear + face + snout
     g.beginPath(); g.arc(8, -24, 4, 0, Math.PI * 2); g.fillStyle = '#e4b98a'; g.fill(); outline(g, 1.6);
     g.beginPath();
@@ -958,7 +958,7 @@
             var ic = mini(52, 52, function (cg) {
               cg.fillStyle = worn ? '#fff4d6' : '#f3f6fc'; rr(cg, 1, 1, 50, 50, 12); cg.fill();
               cg.save(); cg.translate(it.slot === 'neck' ? 36 : 26, it.slot === 'head' ? 34 : 26); cg.scale(it.slot === 'head' ? 1.5 : 1.6, it.slot === 'head' ? 1.5 : 1.6);
-              if (it.slot === 'neck') { cg.save(); cg.translate(-1, 0); WEAR.szalikTail(cg, 0); cg.restore(); }
+              if (it.slot === 'neck') { cg.save(); cg.translate(-1, 0); cg.scale(0.72, 0.72); WEAR.szalikTail(cg, 0); cg.restore(); } // shorter tail so its end stays on the icon
               WEAR[it.id](cg); cg.restore();
             });
             if (locked) ic.style.filter = 'grayscale(1) opacity(.5)';
@@ -1234,7 +1234,11 @@
           [[0.3, 0.45], [0.62, 0.3], [0.72, 0.65], [0.42, 0.75]].forEach(function (p) { g.beginPath(); g.arc(x + w * p[0], GY - h * (1 - p[1]) + 4, 2, 0, Math.PI * 2); g.fill(); });
           // a mole peeking out
           g.beginPath(); g.arc(cx, GY - h + 3, 8, Math.PI, 0); g.closePath(); g.fillStyle = '#5b5560'; g.fill(); outline(g, 1.6);
-          g.fillStyle = '#fff'; g.beginPath(); g.arc(cx - 3, GY - h - 1, 1.3, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(cx + 3, GY - h - 1, 1.3, 0, Math.PI * 2); g.fill();
+          // white eyes with dark pupils: plain dark dots vanish on the grey head
+          [-3.3, 3.3].forEach(function (ex) {
+            g.beginPath(); g.arc(cx + ex, GY - h - 1.7, 2, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); outline(g, 0.8);
+            g.beginPath(); g.arc(cx + ex + 0.2, GY - h - 1.5, 1.15, 0, Math.PI * 2); g.fillStyle = INK; g.fill();
+          });
           g.beginPath(); g.arc(cx, GY - h + 2, 2.4, 0, Math.PI * 2); g.fillStyle = '#ff8fb0'; g.fill();
         } else if (o.type === 'stump') {
           rr(g, x, GY - h, w, h + 2, 4); g.fillStyle = '#9b6a3f'; g.fill(); outline(g, 2);

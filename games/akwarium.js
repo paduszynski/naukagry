@@ -125,7 +125,9 @@
       [[-6, -8], [2, -11], [-10, 0], [6, -4], [-3, -2]].forEach(function (p) { dot(p[0], p[1], 1.6, 'rgba(120,80,20,.55)'); });
       G.restore();
       ell(0, 0, r, r * 0.9, 0, null);
-      ell(2, r * 0.25, 4, 2.6, 0.6 + fin, finc);
+      G.save(); G.translate(-r * 0.2, r * 0.22); G.rotate(0.35 + fin);
+      path(function () { G.moveTo(0, 0); G.quadraticCurveTo(-2.4, -2.2, -5, 0); G.quadraticCurveTo(-2.4, 1.8, 0, 0); }, finc);
+      G.restore();
       eye(r * 0.45, -r * 0.2, 5.2, sad, look); mouth(r * 0.92, r * 0.2, 1, sad); blush(r * 0.35, r * 0.25, 3);
       return;
     }
@@ -148,12 +150,14 @@
       ell(-1, 0, a * 1.1, b * 1.1, 0, finc);
       tailFan(a, b * 0.45, wag, finc);
     } else {
-      tailFan(a, b, wag, F.tail === 'yellow' ? (sad ? '#d8cf8a' : '#f7d23a') : finc, F.tail);
       if (F.shape === 'sword') {
+        // forked tail whose lower lobe grows into the long sword
         G.save(); G.translate(-a * 0.85, 0); G.rotate(wag);
-        path(function () { G.moveTo(-a * 0.4, b * 0.55); G.lineTo(-a * 1.55, b * 0.95); G.lineTo(-a * 0.5, b * 0.95); G.closePath(); }, sad ? '#d8cf8a' : '#f7d23a');
+        path(function () { G.moveTo(0, 0); G.quadraticCurveTo(-a * 0.4, -b * 0.3, -a * 0.65, -b * 1.0); G.quadraticCurveTo(-a * 0.45, -b * 0.1, -a * 0.6, b * 0.42); G.quadraticCurveTo(-a * 1.1, b * 0.6, -a * 1.55, b * 0.92); G.quadraticCurveTo(-a * 0.95, b * 1.08, -a * 0.42, b * 0.78); G.quadraticCurveTo(-a * 0.22, b * 0.35, 0, 0); }, finc);
+        G.strokeStyle = 'rgba(29,47,111,.25)'; G.lineWidth = U * 0.7;
+        G.beginPath(); G.moveTo(-a * 0.55, b * 0.62); G.quadraticCurveTo(-a * 1.0, b * 0.78, -a * 1.42, b * 0.92); G.stroke();
         G.restore();
-      }
+      } else tailFan(a, b, wag, F.tail === 'yellow' ? (sad ? '#d8cf8a' : '#f7d23a') : finc, F.tail);
       path(function () { G.moveTo(-a * 0.35, -b * 0.85); G.quadraticCurveTo(-a * 0.1, -b * 1.75, a * 0.25, -b * 0.9); G.closePath(); }, finc);
       if (F.zone === 'bottom') path(function () { G.moveTo(-a * 0.3, b * 0.8); G.quadraticCurveTo(-a * 0.2, b * 1.4, a * 0.1, b * 0.85); G.closePath(); }, finc);
     }
@@ -213,45 +217,106 @@
   function drawSeahorse(F, ph, sad, body, finc) {
     var bob = Math.sin(ph * 0.5) * 1.5;
     G.save(); G.translate(0, bob);
-    var pts = [[-1, -6, 8], [-3, 2, 8.5], [-1, 10, 7], [2, 16, 5.5], [3, 21, 4.2], [0, 24.5, 3.2], [-3, 23.5, 2.6], [-4, 20.5, 2.2]];
-    // dorsal fin flutter
-    G.save(); G.translate(-9, 2); G.rotate(Math.sin(ph * 3) * 0.25);
-    path(function () { G.moveTo(0, -5); G.quadraticCurveTo(-7, 0, 0, 6); G.closePath(); }, finc);
+    // one smooth S-shaped body: spine [x, y, half-width], the tail curls forward round (4.8, 22)
+    var K = [[-1, -13, 5.5], [-2.2, -6, 6.2], [-1, 1, 7.6], [-0.6, 7, 7.4], [-1.6, 12.5, 5.4], [-0.6, 17, 3.8], [1.2, 20.6, 2.8]], q, i;
+    for (q = 0; q <= 6; q++) { var th = Math.PI * (0.92 - q * 0.19), rr = 3.4 - q * 0.27; K.push([4.8 + Math.cos(th) * rr, 22 + Math.sin(th) * rr, 2.4 - q * 0.22]); }
+    var S = [];
+    for (i = 0; i < K.length - 1; i++) {
+      var p0 = K[Math.max(0, i - 1)], p1 = K[i], p2 = K[i + 1], p3 = K[Math.min(K.length - 1, i + 2)];
+      for (q = 0; q < 6; q++) {
+        var t = q / 6, t2 = t * t, t3 = t2 * t, pt = [];
+        for (var k = 0; k < 3; k++) pt.push(0.5 * (2 * p1[k] + (p2[k] - p0[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (3 * p1[k] - p0[k] - 3 * p2[k] + p3[k]) * t3));
+        S.push(pt);
+      }
+    }
+    S.push(K[K.length - 1]);
+    function bodyOut() {
+      var L = [], R = [], n = S.length, nx, ny;
+      for (var j = 0; j < n; j++) {
+        var A = S[Math.max(0, j - 1)], B = S[Math.min(n - 1, j + 1)], tx = B[0] - A[0], ty = B[1] - A[1], d = Math.hypot(tx, ty) || 1;
+        nx = -ty / d; ny = tx / d;
+        L.push([S[j][0] + nx * S[j][2], S[j][1] + ny * S[j][2]]); R.push([S[j][0] - nx * S[j][2], S[j][1] - ny * S[j][2]]);
+      }
+      G.moveTo(L[0][0], L[0][1]);
+      for (j = 1; j < n; j++) G.lineTo(L[j][0], L[j][1]);
+      G.arc(S[n - 1][0], S[n - 1][1], S[n - 1][2], Math.atan2(ny, nx), Math.atan2(ny, nx) - Math.PI, true);
+      for (j = n - 1; j >= 0; j--) G.lineTo(R[j][0], R[j][1]);
+      G.closePath();
+    }
+    function snout() { G.moveTo(2, -18.6); G.quadraticCurveTo(9, -16.6, 13.6, -16.4); G.quadraticCurveTo(16.2, -14.4, 13.6, -12.3); G.quadraticCurveTo(9, -12.2, 2, -9.8); G.closePath(); }
+    // back fin flutter (behind the body)
+    G.save(); G.translate(-7.5, 4); G.rotate(Math.sin(ph * 3) * 0.2);
+    path(function () { G.moveTo(1, -6.5); G.quadraticCurveTo(-6.5, -8, -6.2, -1); G.quadraticCurveTo(-6, 5.5, 1, 6); G.closePath(); }, finc);
+    G.strokeStyle = 'rgba(29,47,111,.25)'; G.lineWidth = U * 0.7;
+    for (i = -1; i <= 1; i++) { G.beginPath(); G.moveTo(0, i * 1.5); G.lineTo(-5, i * 3.6); G.stroke(); }
     G.restore();
-    for (var i = pts.length - 1; i >= 0; i--) circ(pts[i][0], pts[i][1], pts[i][2], body);
-    // head + snout + crest
-    path(function () { G.moveTo(4, -17); G.lineTo(14, -15.5); G.quadraticCurveTo(16, -13.5, 14, -12); G.lineTo(4, -11); G.closePath(); }, body);
-    circ(1, -14, 7.5, body);
-    path(function () { G.moveTo(-3, -20); G.lineTo(-1, -25); G.lineTo(2, -21); G.lineTo(4, -25); G.lineTo(5, -20); }, finc);
-    G.fillStyle = 'rgba(255,255,255,.3)'; G.beginPath(); G.ellipse(-2, -2, 3, 6, 0.2, 0, 7); G.fill();
-    G.strokeStyle = 'rgba(29,47,111,.3)'; G.lineWidth = U * 0.8;
-    for (var j = 0; j < 4; j++) { G.beginPath(); G.moveTo(3 - j * 0.5, -2 + j * 5); G.lineTo(7 - j * 1.2, -2 + j * 5); G.stroke(); }
+    // the coronet: a short stubby knob on top of the head with a knobbly rim, leaning back
+    function crest() {
+      G.save(); G.translate(-1.2, -20.4); G.rotate(-0.4);
+      G.moveTo(-2.3, 1.5); G.lineTo(-2.1, -2.2);
+      G.quadraticCurveTo(-1.6, -3.4, -0.75, -2.4); G.quadraticCurveTo(0, -3.6, 0.75, -2.4); G.quadraticCurveTo(1.6, -3.4, 2.1, -2.2);
+      G.lineTo(2.3, 1.5); G.closePath();
+      G.restore();
+    }
+    // body, head, snout and crest as one silhouette: thick outline first, fills on top
+    var parts = [bodyOut, function () { G.arc(1, -14, 7.2, 0, 7); }, snout, crest];
+    G.lineWidth = U * 2; G.strokeStyle = INK;
+    parts.forEach(function (f) { G.beginPath(); f(); G.stroke(); });
+    G.fillStyle = body;
+    parts.forEach(function (f) { G.beginPath(); f(); G.fill(); });
+    // lighter belly with soft ridges, kept inside the outline
+    G.save(); G.beginPath(); bodyOut(); G.clip();
+    G.fillStyle = hexMix(body, '#ffffff', 0.35); G.beginPath(); G.ellipse(6.5, 4, 5, 13, -0.1, 0, 7); G.fill();
+    G.strokeStyle = 'rgba(29,47,111,.22)'; G.lineWidth = U * 0.7;
+    for (i = 0; i < 6; i++) { var ry = -5 + i * 3.6; G.beginPath(); G.moveTo(0.5, ry - 0.6); G.quadraticCurveTo(4, ry + 0.9, 9, ry + 0.2); G.stroke(); }
+    G.fillStyle = 'rgba(255,255,255,.3)'; G.beginPath(); G.ellipse(-4.2, -1, 2.4, 6, 0.15, 0, 7); G.fill();
+    G.restore();
+    G.fillStyle = 'rgba(255,255,255,.35)'; G.beginPath(); G.ellipse(-1.5, -17.5, 2.6, 1.6, -0.5, 0, 7); G.fill();
     eye(2.5, -15, 3.6, sad, 1);
-    blush(4, -10.5, 2.2);
-    if (sad) { G.beginPath(); G.moveTo(12, -12.5); G.lineTo(14, -13.5); G.strokeStyle = INK; G.lineWidth = U; G.stroke(); }
+    blush(4.5, -10.8, 2.2);
+    if (sad) { G.beginPath(); G.moveTo(12, -12.6); G.lineTo(14, -13.6); G.strokeStyle = INK; G.lineWidth = U; G.stroke(); }
     G.restore();
   }
   function drawRay(F, ph, sad, body, finc) {
     var a = 22, ry = 7;
-    // tail
+    // seen from above and a little from the side: (f, s, u) = forward, sideways (+ toward us), up; wings flap in u
+    var flap = Math.sin(ph * 1.4) * 0.45;
+    function P(f, s, u) { return [a * (f - s * 0.1), ry * (s * 2.2 + f * 0.1) - a * 0.3 * u]; }
+    function mv(p) { G.moveTo(p[0], p[1]); }
+    function qd(c, p) { G.quadraticCurveTo(c[0], c[1], p[0], p[1]); }
+    function bz(c, d, p) { G.bezierCurveTo(c[0], c[1], d[0], d[1], p[0], p[1]); }
+    // thin tail with a little wave
     G.lineCap = 'round';
-    G.beginPath(); G.moveTo(-a * 0.9, 0);
-    for (var t = 0; t <= 1; t += 0.1) G.lineTo(-a * 0.9 - t * a * 1.3, Math.sin(ph * 1.2 - t * 4) * 2.5 * t);
-    G.strokeStyle = INK; G.lineWidth = 3 + U * 2; G.stroke(); G.strokeStyle = body; G.lineWidth = 3; G.stroke();
-    path(function () {
-      for (var i = 0; i <= 40; i++) {
-        var th = i / 40 * Math.PI * 2, c = Math.cos(th), s = Math.sin(th);
-        var flap = Math.sin(ph * 1.4 + c * 1.5) * 3.2 * Math.abs(s) * (s < 0 ? 1 : 0.6);
-        var x = c * a * (1 + 0.12 * Math.abs(s)), y = s * ry * (1.6 - 0.6 * Math.abs(c)) - flap - Math.abs(s) * 2;
-        if (i === 0) G.moveTo(x, y); else G.lineTo(x, y);
-      }
+    var tb = P(-0.7, 0, 0);
+    G.beginPath(); G.moveTo(tb[0], tb[1]);
+    for (var t = 0.1; t <= 1.001; t += 0.1) { var tp = P(-0.7 - t * 1.4, 0, 0); G.lineTo(tp[0], tp[1] + Math.sin(ph * 1.2 - t * 4) * 2.2 * t); }
+    G.strokeStyle = INK; G.lineWidth = 2 + U * 2; G.stroke(); G.strokeStyle = body; G.lineWidth = 2; G.stroke();
+    // the disc: snout, far wing tip, tail root, near wing tip
+    function disc() {
+      mv(P(1, 0, 0));
+      bz(P(1.02, -0.5, 0.1), P(0.5, -0.95, flap * 0.6), P(-0.12, -1, flap));
+      qd(P(-0.4, -0.5, flap * 0.3), P(-0.72, 0, 0));
+      qd(P(-0.4, 0.5, flap * 0.3), P(-0.12, 1, flap));
+      bz(P(0.5, 0.95, flap * 0.6), P(1.02, 0.5, 0.1), P(1, 0, 0));
       G.closePath();
-    }, body);
-    G.fillStyle = 'rgba(255,255,255,.3)'; G.beginPath(); G.ellipse(a * 0.1, -ry * 0.6, a * 0.55, ry * 0.45, 0, 0, 7); G.fill();
-    [[-8, -2], [-2, 2], [-12, 2], [4, -1]].forEach(function (p) { dot(p[0], p[1], 1.6, sad ? 'rgba(80,80,110,.4)' : 'rgba(80,50,140,.45)'); });
-    eye(a * 0.55, -ry * 0.9, 3.4, sad, 1);
-    eye(a * 0.3, -ry * 1.0, 3.0, sad, 1);
-    mouth(a * 0.92, ry * 0.1, 0.8, sad);
+    }
+    // pelvic fins at the tail root, then the pale underside showing below the near edge
+    [-1, 1].forEach(function (k) { path(function () { mv(P(-0.55, 0.12 * k, 0)); qd(P(-0.7, 0.42 * k, 0), P(-0.9, 0.3 * k, 0)); qd(P(-0.88, 0.1 * k, 0), P(-0.72, 0, 0)); }, finc); });
+    G.save(); G.translate(0, 2.4); path(disc, hexMix(body, '#ffffff', 0.55)); G.restore();
+    path(disc, body);
+    G.save(); G.beginPath(); disc(); G.clip();
+    // lighter back ridge, spots on the wings
+    G.fillStyle = 'rgba(255,255,255,.3)'; var c0 = P(0.15, 0, 0.05); G.beginPath(); G.ellipse(c0[0], c0[1], a * 0.62, ry * 0.42, 0.18, 0, 7); G.fill();
+    [[-0.2, -0.55], [0.1, -0.4], [-0.35, -0.2], [-0.25, 0.45], [0.05, 0.62], [-0.45, 0.2], [0.25, 0.4]].forEach(function (p) { var d = P(p[0], p[1], flap * Math.abs(p[1]) * 0.5); dot(d[0], d[1], 1.5, sad ? 'rgba(80,80,110,.4)' : 'rgba(80,50,140,.45)'); });
+    G.restore();
+    // cartoon three-quarter face on the front of the head: eyes side by side (the far one smaller, nearer the snout), smile below
+    var e1 = P(0.76, -0.14, 0.12), e2 = P(0.48, 0.08, 0.12);
+    eye(e2[0], e2[1], 3.2, sad, 1);
+    eye(e1[0], e1[1], 2.7, false, 1);
+    // hungry: the far brow mirrors the near one, so both inner ends lift (worried, not cross)
+    if (sad) { G.beginPath(); G.moveTo(e1[0] + 2.7 * 0.9, e1[1] - 2.7 * 1.15); G.lineTo(e1[0] - 2.7 * 0.7, e1[1] - 2.7 * 1.55); G.lineWidth = U; G.strokeStyle = INK; G.stroke(); }
+    var m = P(0.74, 0.3, 0);
+    mouth(m[0], m[1], 0.75, sad);
   }
 
   // ---------- decorations (units: base centre 0,0, up is -y, ~1 unit = 1px at u=1) ----------

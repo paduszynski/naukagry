@@ -738,7 +738,7 @@
       // smile + cheeks
       g.strokeStyle = INK; g.lineWidth = 2.5;
       g.beginPath(); g.arc(fx, fy - s * 0.05, s * 0.75, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke();
-      g.fillStyle = 'rgba(242,138,178,0.6)';
+      g.fillStyle = 'rgba(255,172,180,0.85)'; // light warm pink: a thin pink turns muddy on the green face
       [-1, 1].forEach(function (k) { g.beginPath(); g.ellipse(fx + k * s * 1.2, fy + s * 0.05, s * 0.25, s * 0.15, 0, 0, Math.PI * 2); g.fill(); });
       // current bubble held up (hidden while it flies)
       var bob = mode === 'play' && !reduced ? Math.sin(tNow * 2.5) * R * 0.05 : 0;

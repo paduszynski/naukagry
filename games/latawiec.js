@@ -1258,9 +1258,21 @@
         var wing = kind === 'gull' ? '#b9c3d6' : body, beak = kind === 'eagle' ? '#f5c330' : '#f5a623';
         g.save(); g.translate(x, y);
         if (kind === 'eagle') g.scale(1.2, 1.2);
-        // back wing
-        g.beginPath(); g.moveTo(2, -2); g.quadraticCurveTo(8, -14 - flap * 8, 16, -16 - flap * 12); g.quadraticCurveTo(12, -4, 6, 2); g.closePath();
-        g.fillStyle = wing; g.fill(); outline(g, 1.6);
+        // short broad wing pivoting at the shoulder: raised on the upstroke, hanging below the belly on the downstroke;
+        // around mid-flap it points at us, so its arm is drawn foreshortened (the feathered tip keeps its shape) and never reaches the tail
+        var af = Math.abs(flap), wa = flap > 0 ? -0.5 - flap * 0.9 : -0.5 + 1.85 * Math.pow(af, 0.35), wl = 0.6 + 0.4 * af, sx = 1 + af * (flap > 0 ? 1.6 : 0.9);
+        function wingAt(px, py, ang, col, lw, kl, k) {
+          var d = 14 * kl - 14;
+          function wp() { g.beginPath(); g.moveTo(-1, -4.5); g.bezierCurveTo(3 * kl, -8, 9 * kl, -8, 14 + d, -4); g.quadraticCurveTo(18.6 + d, -3.8, 17.6 + d, -0.9); g.quadraticCurveTo(20.6 + d, 0.9, 17.4 + d, 2.5); g.quadraticCurveTo(17.4 + d, 5.2, 13.8 + d, 4); g.bezierCurveTo(9 * kl, 8, 3 * kl, 8, -1, 4.5); g.closePath(); }
+          g.save(); g.translate(px, py); g.rotate(ang); g.scale(1.15, k);
+          wp(); g.fillStyle = col; g.fill();
+          if (kind === 'gull') { g.save(); g.clip(); g.fillStyle = '#2a3550'; g.beginPath(); g.ellipse(19.5 + d, 0.5, 4.5, 8, 0, 0, Math.PI * 2); g.fill(); g.restore(); wp(); }
+          outline(g, lw);
+          g.beginPath(); g.moveTo(2 * kl, 0.3); g.quadraticCurveTo(8 * kl, -0.6, 13 + d, 0.2); g.lineWidth = 1.2; g.strokeStyle = 'rgba(29,47,111,.3)'; g.stroke();
+          g.restore();
+        }
+        // far wing (upstroke only): a little behind and ahead of the near one, so just its edge shows
+        if (flap > 0) wingAt(sx, -3.5, wa - 0.35 * Math.min(1, flap / 0.4), kind === 'gull' ? wing : mix(wing, '#1d2f6f', 0.12), 1.6, 0.9 * wl, 0.85);
         g.beginPath(); g.ellipse(0, 0, 15, 11, 0, 0, Math.PI * 2); g.fillStyle = body; g.fill(); outline(g, 2);
         if (kind === 'eagle') { g.beginPath(); g.ellipse(-8, -2, 8, 8, 0, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); outline(g, 1.6); }
         else { g.beginPath(); g.ellipse(2, 4, 9, 5, 0, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,.45)'; g.fill(); }
@@ -1273,9 +1285,7 @@
         g.beginPath(); g.arc(-7, -3, 2.4, 0, Math.PI * 2); g.fillStyle = INK; g.fill();
         g.beginPath(); g.moveTo(-10, -8); g.lineTo(-4, -6); outline(g, 1.6);
         // front wing
-        g.beginPath(); g.moveTo(-2, -1); g.quadraticCurveTo(2, -14 - flap * 10, 12, -18 - flap * 14); g.quadraticCurveTo(10, -2, 4, 4); g.closePath();
-        g.fillStyle = wing; g.fill(); outline(g, 1.8);
-        if (kind === 'gull') { g.beginPath(); g.moveTo(9, -15 - flap * 12); g.lineTo(12, -18 - flap * 14); g.strokeStyle = INK; g.lineWidth = 3; g.stroke(); }
+        wingAt(sx, -3.5, wa, wing, 1.8, wl, 0.9 + 0.1 * af);
         g.restore();
       }
       function drawOwl(o) {
