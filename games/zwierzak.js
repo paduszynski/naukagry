@@ -3,12 +3,16 @@
  * guinea pig). Each pet has its own four needs (brzuszek, humor, czystość, sen) that drop slowly in real
  * time, from timestamps, also while the app is closed. Nothing bad ever happens: at worst a pet looks a bit
  * sad and says it missed you.
+ * Pets level up from care: care actions give growth points (capped per day) and every pet has its own level.
+ * At level 10 a Maluch and at level 20 a Młode can grow: a big "Urośnij!" button appears and the child taps it.
  * Pets grow from care (Maluch -> Młode -> Dorosłe): care actions give growth points, capped per day, so
  * growing takes days and never goes back. Pets that are not at home live on "Leśna Polana" (a happy
  * meadow; they don't grow there) and can come back to a free home slot any time for free.
  * Feed (food 10-25 ★, a free apple basket every day), bath (drag the sponge), sleep, stroke (zones; a good
  * petting session makes the pet roll over and show its belly), tickle (quick taps), dress up with the
  * items the child owns in Jeżyk w biegu (read-only), and seven mini-games for 30 ★ that fill "humor".
+ * Now and then (every 25-60 s, when nothing else happens) two awake pets at home play on their own: toss a ball,
+ * chase each other or hop together. Purely cosmetic (no needs, points or saves); any tap or action ends it.
  * Logical coordinates: 1 unit = S css px, a portrait phone is ~400 units wide.
  */
 (function () {
@@ -27,6 +31,9 @@
   var GP = { feed: 1, bath: 2, sleep: 1, pet: 1, game: 2 };
   var GP_SRC_CAP = { feed: 2, bath: 2, sleep: 1, pet: 1, game: 2 };
   var GP_DAY = 6, GROW_AT = [0, 15, 50];                   // Młode after ~3 days of care, Dorosłe after ~9
+  // levels: growth points needed for each level (1..20); after 20 every level needs 4 more (about 2/3 of a day of care)
+  var LVL_GP = [0, 0, 1, 2, 4, 5, 7, 9, 11, 13, 15, 18, 21, 25, 28, 32, 35, 39, 42, 46, 50];
+  var GROW_LVL = [10, 20];                                 // the level at which a Maluch / a Młode may grow
 
   var STAGES = [
     { n: 'Maluch', kb: 0.58, kh: 0.8, kl: 0.55, ke: 1.45 },
@@ -299,84 +306,84 @@
 
   // =====================================================================
   // Species. All pets are drawn side view facing right, feet at y=0, by one parametric drawer
-  // (body ellipse + neck + head + snout + ears + tail + legs + markings); the hedgehog keeps its own
-  // drawing from Jeżyk w biegu. Sizes are adult units; STAGES scale body/head/legs/eyes for the young.
+  // (body ellipse + neck + head + snout + ears + tail + legs with paws + markings); the hedgehog keeps its own
+  // drawing from Jeżyk w biegu. Lying belly-up, every pet shows a front-view face (frontFace). Sizes are adult units; STAGES scale body/head/legs/eyes for the young.
   // =====================================================================
   var SP = {
     jez: { n: 'Jeż', names: ['Kolec', 'Igiełka', 'Jeżynka', 'Kolczak'], fav: ['jablko', 'gruszka'], game: 'catch', hog: true },
     lis: {
       n: 'Lis rudy', names: ['Ruda', 'Rudek', 'Liska', 'Kita'], fav: ['jagody', 'jajko'], game: 'aport',
-      col: '#ea7a32', head: '#ea7a32', leg: '#33263f', chest: '#fff7ec', bl: 50, bh: 23, legH: 12, legW: 4, bx: -2,
+      col: '#ea7a32', head: '#ea7a32', leg: '#ea7a32', sock: '#33263f', pad: '#8d7f9c', chest: '#fff7ec', bl: 50, bh: 23, legH: 12, legW: 4, bx: -2,
       nk: [0.62, -0.5], hdx: 6, hdy: -9, hr: 11.5, hw: 1, snout: { t: 'point', l: 12, y: 2.5 }, nose: INK, nr: 2.4,
-      ear: { t: 'point', x: -2, y: -8.5, w: 10, h: 13, ang: 0.05, col: '#ea7a32', inner: '#fff1e0', tip: '#33263f' },
-      tail: { c: [[-12, 2], [-26, 7], [-38, -4]], r: 8.5, col: '#ea7a32', tip: '#fff7ec', tipFrom: 0.76 },
+      ear: { t: 'point', x: -3.5, y: -8, w: 10.5, h: 14, ang: -0.14, bulge: 0.3, farX: 6, farA: 0.34, col: '#ea7a32', inner: '#fff1e0', tip: '#33263f' },
+      tail: { c: [[-11, 0], [-25, 4], [-36, -9]], r: 9.5, shape: 'brush', n: 15, flat: 38, col: '#ea7a32', tip: '#fff7ec', tipFrom: 0.78 },
       eye: { x: 0.32, y: -0.18, r: 2.5 }, low: '#fff7ec'
     },
     fenek: {
       n: 'Fenek', names: ['Fenio', 'Uszatek', 'Sara', 'Piasek'], fav: ['winogrona', 'gruszka'], game: 'bubbles',
-      col: '#f2d29b', head: '#f2d29b', leg: '#dcb274', belly: '#fff8ea', bl: 40, bh: 21, legH: 11, legW: 3.8, bx: -2,
+      col: '#f2d29b', head: '#f2d29b', leg: '#dcb274', pad: '#f3c9b4', belly: '#fff8ea', bl: 40, bh: 21, legH: 11, legW: 3.8, bx: -2,
       nk: [0.62, -0.5], hdx: 5, hdy: -8, hr: 10.5, hw: 1, snout: { t: 'point', l: 9, y: 2.5 }, nose: INK, nr: 2.2,
-      ear: { t: 'point', x: -1.5, y: -7, w: 14, h: 25, ang: 0.14, col: '#f2d29b', inner: '#ffc4b0' },
-      tail: { c: [[-10, 3], [-20, 8], [-29, 2]], r: 7, col: '#f2d29b', tip: '#4a3020', tipFrom: 0.8 },
+      ear: { t: 'point', x: -4, y: -6, w: 15.5, h: 23, ang: -0.34, bulge: 0.62, root: 4, farX: 7.5, farA: 0.62, col: '#f2d29b', inner: '#ffc4b0' },
+      tail: { c: [[-9, 1], [-19, 4], [-27, -6]], r: 7, shape: 'brush', n: 13, flat: 29, col: '#f2d29b', tip: '#4a3020', tipFrom: 0.8 },
       eye: { x: 0.3, y: -0.15, r: 2.9 }, low: '#fffaf0'
     },
     wiew: {
       n: 'Wiewiórka', names: ['Kita', 'Orzeszek', 'Basia', 'Ruda'], fav: ['orzechy', 'szyszka'], game: 'dig',
-      col: '#cf5a22', head: '#cf5a22', leg: '#b84a1a', belly: '#fff1d6', bl: 34, bh: 21, legH: 7, legW: 5, bx: 2,
+      col: '#cf5a22', head: '#cf5a22', leg: '#b84a1a', pad: '#ffc9a8', belly: '#fff1d6', bl: 34, bh: 21, legH: 7, legW: 5, bx: 2,
       nk: [0.6, -0.5], hdx: 5, hdy: -7, hr: 10.5, hw: 1, snout: { t: 'round', l: 5.5, h: 6, y: 2.5 }, nose: '#5a2a12', nr: 1.8,
-      ear: { t: 'tuft', x: -1, y: -8, w: 7.5, h: 11, ang: 0.1, col: '#cf5a22', inner: '#ffc9a8' },
-      tail: { c: [[-16, 6], [-34, -22], [-10, -44]], r: 10.5, col: '#dc6a2c', n: 16, up: 52, low: true },
+      ear: { t: 'tuft', x: -2.5, y: -8, w: 8, h: 9.5, ang: -0.1, farX: 5, farA: 0.3, col: '#cf5a22', inner: '#ffc9a8' },
+      tail: { c: [[-13, -4], [-23, -30], [-7, -39]], r: 10.5, shape: 'bushy', col: '#dc6a2c', n: 16, up: 52 },
       eye: { x: 0.32, y: -0.15, r: 2.9 }, low: '#fff1d6', whisk: true
     },
     borsuk: {
       n: 'Borsuk', names: ['Borys', 'Pasiak', 'Bodzio', 'Bunia'], fav: ['miod', 'grzybek'], game: 'hide',
-      col: '#9da3ae', head: '#f6f6f0', leg: '#2d2d39', belly: '#3a3b48', bl: 54, bh: 25, legH: 7, legW: 6.5, bx: -2,
+      col: '#9da3ae', head: '#f6f6f0', leg: '#2d2d39', pad: '#8a8a98', belly: '#3a3b48', bl: 54, bh: 25, legH: 7, legW: 6.5, bx: -2,
       nk: [0.62, -0.35], hdx: 7, hdy: -5, hr: 11.5, hw: 1.05, snout: { t: 'point', l: 12, y: 3 }, nose: INK, nr: 2.6,
-      ear: { t: 'round', x: -5, y: -8, w: 7.5, h: 6.5, ang: 0, col: '#2d2d39', inner: '#f6f6f0' },
+      ear: { t: 'round', x: -6, y: -8, w: 7.5, h: 6.5, ang: 0, farX: 5, farA: 0.1, col: '#2d2d39', inner: '#f6f6f0' },
       tail: { c: [[-4, 1], [-8, 2], [-11, 0]], r: 4.5, col: '#9da3ae', n: 6 },
       eye: { x: 0.3, y: -0.12, r: 2.4 }, ring: true, mark: 'badger'
     },
     chomik: {
       n: 'Chomik', names: ['Pucek', 'Pyzia', 'Ziarenko', 'Bąbel'], fav: ['ziarenka', 'orzechy'], game: 'wheel',
-      col: '#f0b65a', head: '#f0b65a', leg: '#ffb4a8', belly: '#fff7ea', bigBelly: true, bl: 36, bh: 30, legH: 3, legW: 5, bx: -2,
+      col: '#f0b65a', head: '#f0b65a', leg: '#ffb4a8', pad: '#e97f86', belly: '#fff7ea', bigBelly: true, bl: 36, bh: 30, legH: 3, legW: 5, bx: -2,
       nk: [0.55, -0.3], neck: false, hdx: 3, hdy: -4, hr: 13, hw: 1, snout: { t: 'round', l: 5, h: 6.5, y: 2.5 }, nose: '#e57a8a', nr: 1.8,
-      ear: { t: 'round', x: -3, y: -10, w: 8, h: 7, ang: -0.1, col: '#f0b65a', inner: '#ffc0b8' },
+      ear: { t: 'round', x: -4.5, y: -10, w: 8, h: 7, ang: -0.1, farX: 6, farA: 0.15, col: '#f0b65a', inner: '#ffc0b8' },
       chub: { x: 3, y: 6, r: 7.5, col: '#fff4e2' },
       eye: { x: 0.36, y: -0.18, r: 2.8 }, low: '#fff7ea', whisk: true
     },
     swinka: {
       n: 'Świnka morska', names: ['Pepa', 'Łatka', 'Kiki', 'Fasolka'], fav: ['marchewka', 'salata'], game: 'dance',
-      col: '#fffaf2', head: '#fffaf2', leg: '#f2c6b8', belly: null, bl: 48, bh: 26, legH: 3, legW: 5.5, bx: -3,
+      col: '#fffaf2', head: '#fffaf2', leg: '#f2c6b8', pad: '#dc958a', belly: null, bl: 48, bh: 26, legH: 3, legW: 5.5, bx: -3,
       nk: [0.62, -0.2], neck: false, hdx: 5, hdy: -2, hr: 13, hw: 1.15, snout: { t: 'round', l: 6.5, h: 8, y: 3 }, nose: '#e58a95', nr: 1.8,
-      ear: { t: 'petal', x: -5, y: -10, w: 7, h: 8, ang: -0.75, col: '#d99a7a', inner: '#f6c2b0', front: true },
+      ear: { t: 'flap', x: -4.5, y: -10, w: 10, h: 9.5, ang: -2, mir: true, lw: 1.6, farX: -4, farA: 0.3, col: '#e8a88e', inner: '#f6c2b0', front: true },
       eye: { x: 0.36, y: -0.2, r: 2.6 }, mark: 'guinea', p1: '#b9682f', p2: '#3a2a24', whisk: true
     }
   };
   // rabbit: long upright ears (a baby's flop back a bit), white puff tail, big hind feet, hops
   SP.krolik = {
     n: 'Królik', names: ['Kicek', 'Puszek', 'Śnieżka', 'Tuptuś'], fav: ['marchewka', 'salata'], game: 'dance', hops: true, twitch: true,
-    col: '#a8927e', head: '#a8927e', leg: '#a8927e', belly: '#f5eee4', bl: 36, bh: 27, legH: 4, legW: 5, bx: 0, hind: true,
+    col: '#a8927e', head: '#a8927e', leg: '#a8927e', pad: '#f6bcc4', belly: '#f5eee4', bl: 36, bh: 27, legH: 4, legW: 5, bx: 0, hind: true,
     nk: [0.55, -0.45], neck: false, hdx: 3, hdy: -9, hr: 11, hw: 1, snout: { t: 'round', l: 5, h: 5.5, y: 3 }, nose: '#e58a95', nr: 1.7,
-    ear: { t: 'petal', x: -2.5, y: -7, w: 7.5, h: 24, ang: -0.2, col: '#a8927e', inner: '#f6bcc4', flop: -0.75 },
+    ear: { t: 'petal', x: -3.5, y: -7, w: 7.5, h: 24, ang: -0.2, farX: 4.5, farA: 0.32, col: '#a8927e', inner: '#f6bcc4', flop: -0.75 },
     puff: { r: 6.5, col: '#ffffff' },
     eye: { x: 0.28, y: -0.15, r: 2.9 }, low: '#f1e7da', whisk: true
   };
   // long-haired pale grey cat with one dark stripe from the head along the back to the tail tip
   SP.kotsz = {
     n: 'Kot szary', names: ['Szaruś', 'Popiel', 'Mruczek', 'Pręgus'], fav: ['mleko', 'ciastko'], game: 'bubbles', cat: true, fluffy: true,
-    col: '#bcc0c9', head: '#bcc0c9', leg: '#bcc0c9', belly: '#e6e8ee', bl: 44, bh: 24, legH: 9, legW: 5, bx: 0,
+    col: '#bcc0c9', head: '#bcc0c9', leg: '#bcc0c9', pad: '#f6bcc4', belly: '#e6e8ee', bl: 44, bh: 24, legH: 9, legW: 5, bx: 0,
     nk: [0.62, -0.45], hdx: 5, hdy: -8, hr: 11.5, hw: 1, snout: { t: 'round', l: 4, h: 5, y: 3.2 }, nose: '#e58a95', nr: 1.7,
-    ear: { t: 'point', x: -1, y: -7, w: 9.5, h: 11, ang: 0.12, col: '#bcc0c9', inner: '#f6bcc4' },
-    tail: { c: [[-14, 1], [-30, -1], [-38, -16]], r: 7.5, col: '#bcc0c9', n: 13, stripe: '#6b6f7b' },
+    ear: { t: 'point', x: -3, y: -7, w: 9.5, h: 11, ang: -0.12, farX: 6.5, farA: 0.3, col: '#bcc0c9', inner: '#f6bcc4' },
+    tail: { c: [[-9, -5], [-22, -6], [-27, -25]], r: 6.6, shape: 'plume', flat: 34, col: '#bcc0c9', n: 14, stripe: '#6b6f7b' },
     eye: { x: 0.32, y: -0.14, r: 2.8 }, iris: '#e3b23c', low: '#eceef2', whisk: true, mark: 'stripe', dark: '#6b6f7b'
   };
   // sleek flame-ginger tabby: slim, a long thin tail curling up, green eyes
   SP.kotr = {
     n: 'Kot rudy', names: ['Płomyk', 'Iskra', 'Miodek', 'Rudzia'], fav: ['mleko', 'jajko'], game: 'hide', cat: true,
-    col: '#f39a3a', head: '#f39a3a', leg: '#f39a3a', belly: '#ffc98a', bl: 42, bh: 18, legH: 12, legW: 3.6, bx: 0,
+    col: '#f39a3a', head: '#f39a3a', leg: '#f39a3a', pad: '#f6bcc4', belly: '#ffc98a', bl: 42, bh: 18, legH: 12, legW: 4.3, bx: 0,
     nk: [0.64, -0.45], hdx: 5, hdy: -9, hr: 10.5, hw: 1, snout: { t: 'round', l: 3.8, h: 4.6, y: 3 }, nose: '#e58a95', nr: 1.6,
-    ear: { t: 'point', x: -1, y: -6.5, w: 9, h: 11, ang: 0.12, col: '#f39a3a', inner: '#f6bcc4' },
-    tail: { c: [[-10, -1], [-22, -6], [-22, -30]], r: 4.2, col: '#f39a3a', n: 14, rings: '#c25e17' },
+    ear: { t: 'point', x: -3, y: -6.5, w: 9, h: 11, ang: -0.12, farX: 6.5, farA: 0.3, col: '#f39a3a', inner: '#f6bcc4' },
+    tail: { c: [[-9, -2], [-21, -3], [-22, -27]], r: 3.5, shape: 'thin', flat: 34, col: '#f39a3a', n: 14, rings: '#c25e17' },
     eye: { x: 0.32, y: -0.14, r: 2.8 }, iris: '#5cbc4b', low: '#ffd29e', whisk: true, mark: 'tabby', dark: '#c25e17'
   };
   var SP_ORDER = ['jez', 'lis', 'fenek', 'wiew', 'borsuk', 'chomik', 'swinka', 'krolik', 'kotsz', 'kotr'];
@@ -389,6 +396,10 @@
     return sizeKs[sp];
   }
   function stageOf(gp) { return gp >= GROW_AT[2] ? 2 : gp >= GROW_AT[1] ? 1 : 0; }
+  function lvlGp(L) { return L <= 20 ? LVL_GP[Math.max(1, L)] : LVL_GP[20] + (L - 20) * 4; }
+  function levelOf(gp) { var L = 1; while (gp >= lvlGp(L + 1)) L++; return L; }
+  // ready to grow: the child sees the "Urośnij!" button
+  function canGrow(p) { return p.stage < 2 && levelOf(p.gp) >= GROW_LVL[p.stage]; }
 
   // geometry of a pet (units, feet at y=0, facing right) for drawing, hit tests and anchors
   function geo(sp, stage, pose) {
@@ -398,7 +409,12 @@
       o = { kb: kb, kh: kh, cx: -2 * kb, cy: -17 * kb, rx: 25 * kb, ry: 20 * kb, hx: 3 * kb + 15 * kh, hy: -14 * kb - 2 * kh, hr: 12 * kh,
         x0: -30 * kb, x1: 3 * kb + 30 * kh, top: Math.min(-45 * kb, -14 * kb - 14 * kh), back: { x: -4 * kb, y: -44 * kb },
         mouth: { x: 3 * kb + 25 * kh, y: -14 * kb + 6 * kh } };
-      if (pose === 'belly') { o.top = -40 * kb; o.x1 = 14 * kb + 24 * kh; }
+      if (pose === 'belly') {
+        // drawHogBelly: feet up, the front face (with its crown of spines) beside the tummy
+        o.hx = 19 * kb + 5 * kh; o.hy = -11.5 * kh; o.rot = FRONT_ROT; o.hr = 11 * kh;
+        o.top = Math.min(-43 * kb, o.hy - 17 * kh) - 1; o.x1 = o.hx + 18 * kh;
+        o.mouth = { x: o.hx - 7 * kh * Math.sin(FRONT_ROT), y: o.hy + 7 * kh * Math.cos(FRONT_ROT) };
+      }
       return o;
     }
     var kb2 = K.kb, kh2 = K.kh, rx = P.bl / 2 * kb2, ry = P.bh / 2 * kb2, legH = P.legH * K.kl;
@@ -424,7 +440,14 @@
       o.top = Math.min(o.cy - bry - ll - 3, o.hy + kh2 * (Math.sin(rot) * ex + Math.cos(rot) * ey) - 3, o.hy - P.hr * kh2 - 2);
       o.x1 = o.hx + kh2 * (tipX * Math.cos(rot) + 2) + 2;
       o.x0 = -rx - 3;
-      o.mouth = { x: o.hx + kh2 * (mx * Math.cos(rot) - my * Math.sin(rot)), y: o.hy + kh2 * (mx * Math.sin(rot) + my * Math.cos(rot)) };
+      var fr = FRONT_ROT, fc = Math.cos(fr), fs = Math.sin(fr), fe = frontEar(P, stage), er = fe.t === 'round' ? fe.h * 0.95 : fe.t === 'tuft' ? fe.h + 4 : fe.h;
+      o.rot = fr; o.hx = rx * 0.9 + P.hr * kh2 * 0.45; o.hy = -P.hr * 1.0 * kh2;
+      o.top = Math.min(o.cy - bry - ll - (P.legH < 6 ? 3 : P.legW * Math.max(0.75, kb2) * 0.8 + 2.2), o.hy - P.hr * P.hw * 1.1 * kh2 - 2); o.x1 = o.hx + kh2 * P.hr * 1.05 + 3;   // raised legs end in a round paw
+      [-1, 1].forEach(function (sd) {   // both ear tips (mirrored, plus the lean), turned with the head
+        var a = sd * fe.ang + (fe.lean || 0), ex2 = sd * fe.x + er * Math.sin(a), ey2 = fe.y - er * Math.cos(a);
+        o.top = Math.min(o.top, o.hy + kh2 * (ex2 * fs + ey2 * fc) - 3); o.x1 = Math.max(o.x1, o.hx + kh2 * (ex2 * fc - ey2 * fs) + 3);
+      });
+      o.mouth = { x: o.hx - kh2 * P.hr * 0.64 * fs, y: o.hy + kh2 * P.hr * 0.64 * fc };   // frontFace: my + 0.24 r
     }
     if (P.puff) {
       o.puff = pose === 'belly' ? { x: o.cx - rx * 0.92, y: o.cy + o.ry * 0.25 } : { x: cx - rx * 0.98, y: cy - ry * 0.12 };
@@ -433,7 +456,7 @@
     if (P.tail) {
       // the tail's real extent (a bushy squirrel tail curls far up and back)
       o.tailBase = pose === 'belly' ? { x: o.cx - rx * 0.9, y: o.cy + o.ry * 0.35 } : P.tail.low ? { x: cx - rx * 0.8, y: cy + ry * 0.35 } : { x: cx - rx * 0.9, y: cy - ry * 0.1 };
-      tailPts(P, o, {}, o.tailBase, pose === 'belly').forEach(function (q) { o.x0 = Math.min(o.x0, q.x - q.r - 2.5); o.top = Math.min(o.top, q.y - q.r - 2.5); });
+      tailPts(P, o, {}, o.tailBase, pose === 'belly').forEach(function (q) { o.x0 = Math.min(o.x0, q.x - q.r * 1.3 - 2.5); o.top = Math.min(o.top, q.y - q.r * 1.3 - 2.5); });
     }
     return o;
   }
@@ -539,8 +562,14 @@
     g.beginPath(); g.ellipse(cx, cy - 2, 22, 13, 0, 0, Math.PI * 2); g.fillStyle = '#f0cf9f'; g.fill(); outline(g, 2.2);
     g.beginPath(); g.ellipse(cx - 2, cy - 5, 14, 7, 0, 0, Math.PI * 2); g.fillStyle = '#ffe2bd'; g.fill();
     g.restore();
-    g.save(); g.translate(16 * K.kb, -20 * K.kb); g.rotate(-0.7); g.scale(K.kh, K.kh); g.translate(-3, 14);
-    hogFace(g, { t: t, eye: 'happy', mouth: 'open', wear: {}, pose: 'belly' }, K.ke / K.kh);
+    g.save(); g.translate(19 * K.kb + 5 * K.kh, -11.5 * K.kh); g.rotate(FRONT_ROT); g.scale(K.kh, K.kh);
+    // a crown of spines around the top of the face, so the head belongs to the spiny body
+    g.beginPath();
+    for (var j = 0; j <= 14; j++) { var b = Math.PI * (0.9 + 1.2 * j / 14), br = j % 2 ? 16.5 : 10.5; g.lineTo(Math.cos(b) * br, Math.sin(b) * br); }
+    g.closePath(); g.fillStyle = '#8a5a33'; g.fill(); outline(g, 2);
+    frontEars(g, frontEar(HOG_FRONT, 0));
+    g.beginPath(); headShapeFront(g, HOG_FRONT); g.fillStyle = HOG_FRONT.head; g.fill(); outline(g, 2.2);
+    frontFace(g, HOG_FRONT, { t: t, eye: 'happy', mouth: 'open', seed: st.seed }, K.ke / K.kh);
     g.restore();
   }
   // curled up into a spiky ball (tap reaction)
@@ -607,24 +636,190 @@
   function earShape(g, e) {
     if (e.t === 'round') { g.moveTo(e.w / 2, -e.h * 0.45); g.arc(0, -e.h * 0.45, e.w / 2, 0, Math.PI * 2); }
     else if (e.t === 'petal') { g.moveTo(e.w / 2, -e.h * 0.5); g.ellipse(0, -e.h * 0.5, e.w / 2, e.h / 2, 0, 0, Math.PI * 2); }
-    else { g.moveTo(-e.w / 2, 2); g.quadraticCurveTo(-e.w * 0.42, -e.h * 0.55, 0, -e.h); g.quadraticCurveTo(e.w * 0.42, -e.h * 0.55, e.w / 2, 2); g.closePath(); }
+    else if (e.t === 'flap') {
+      // a guinea pig's soft ear: a rounded flap whose tip droops to one side
+      var m = e.mir ? -1 : 1, w = e.w, h = e.h;
+      g.moveTo(m * w * 0.4, 0); g.bezierCurveTo(m * w * 0.62, -h * 0.45, m * w * 0.38, -h, -m * w * 0.08, -h);
+      g.bezierCurveTo(-m * w * 0.62, -h, -m * w * 0.8, -h * 0.42, -m * w * 0.52, -h * 0.08); g.quadraticCurveTo(-m * w * 0.3, h * 0.12, m * w * 0.4, 0); g.closePath();
+    }
+    else {
+      // a leaf: rounded sides, a soft tip, and a base that sinks into the head so no flat edge shows
+      var b = e.bulge == null ? 0.3 : e.bulge, d = e.root == null ? 3 : e.root;
+      g.moveTo(-e.w / 2, d);
+      g.bezierCurveTo(-e.w * (0.5 + b * 0.4), -e.h * 0.35, -e.w * b * 0.55, -e.h * 0.88, 0, -e.h);
+      g.bezierCurveTo(e.w * b * 0.55, -e.h * 0.88, e.w * (0.5 + b * 0.4), -e.h * 0.35, e.w / 2, d);
+      g.closePath();
+    }
   }
+  // the far ear sits a little further forward and leans forward; the near one leans back (a soft V)
   function drawEar(g, e, far, rot) {
-    g.save(); g.translate(e.x - (far ? e.w * 0.7 : 0), e.y + (far ? 1 : 0)); g.rotate(e.ang + rot + (far ? -0.28 : 0));
-    g.beginPath(); earShape(g, e); g.fillStyle = far ? shade(e.col, 0.82) : e.col; g.fill();
+    var fx = e.farX == null ? e.w * 0.5 : e.farX, fa = e.farA == null ? 0.3 : e.farA;
+    g.save(); g.translate(e.x + (far ? fx : 0), e.y + (far ? 0.8 : 0)); g.rotate(e.ang + rot + (far ? fa : 0));
+    if (far) g.scale(0.94, 0.94);
+    g.beginPath(); earShape(g, e); g.fillStyle = far ? shade(e.col, 0.86) : e.col; g.fill();
     g.save(); g.clip();
     if (e.tip) { g.fillStyle = far ? shade(e.tip, 0.9) : e.tip; g.fillRect(-e.w, -e.h * 1.2, e.w * 2, e.h * 0.55); }
-    if (!far || e.t === 'point') {
-      g.save(); g.translate(0, e.t === 'round' ? -e.h * 0.4 : -e.h * 0.25); g.scale(0.55, 0.62);
-      g.beginPath(); earShape(g, e); g.fillStyle = far ? shade(e.inner, 0.85) : e.inner; g.fill(); g.restore();
+    if (!e.noIn && (!far || e.t === 'point')) {
+      g.save(); g.translate(0, e.t === 'round' ? -e.h * 0.4 : e.t === 'point' ? -e.h * 0.16 : -e.h * 0.25); g.scale(e.t === 'point' ? 0.56 : 0.55, e.t === 'point' ? (e.tip ? 0.56 : 0.66) : 0.62);
+      g.beginPath(); earShape(g, e); g.fillStyle = far ? shade(e.inner, 0.93) : e.inner; g.fill(); g.restore();
     }
     g.restore();
-    g.beginPath(); earShape(g, e); outline(g, 2);
+    g.beginPath(); earShape(g, e); outline(g, e.lw || 2);
+    if (e.t === 'flap' && !far) { var fm = e.mir ? -1 : 1; g.beginPath(); g.moveTo(fm * e.w * 0.3, -e.h * 0.1); g.quadraticCurveTo(-fm * e.w * 0.05, -e.h * 0.45, -fm * e.w * 0.42, -e.h * 0.3); g.strokeStyle = 'rgba(29,47,111,.4)'; g.lineWidth = 1.2; g.stroke(); }
     if (e.t === 'tuft') {
       g.beginPath(); g.moveTo(-1.8, -e.h + 2.5); g.quadraticCurveTo(-2.6, -e.h - 2, -0.6, -e.h - 4.2); g.quadraticCurveTo(0.2, -e.h - 1.5, 1.8, -e.h - 3.2); g.quadraticCurveTo(1.6, -e.h, 1.6, -e.h + 2.5); g.closePath();
       g.fillStyle = shade(e.col, 0.82); g.fill(); outline(g, 1.4);
     }
     g.restore();
+  }
+  // tail thickness along its length (0 = at the body, 1 = the tip), per kind of tail
+  function tailR(shape, t) {
+    if (shape === 'brush') return t < 0.62 ? 0.34 + 0.66 * Math.sin(t / 0.62 * Math.PI / 2) : 0.3 + 0.7 * Math.cos((t - 0.62) / 0.38 * Math.PI / 2);
+    if (shape === 'plume') return t < 0.7 ? 0.45 + 0.55 * Math.sin(t / 0.7 * Math.PI / 2) : 0.62 + 0.38 * Math.cos((t - 0.7) / 0.3 * Math.PI / 2);
+    if (shape === 'thin') return 1 - 0.18 * t;
+    if (shape === 'bushy') return t < 0.6 ? 0.42 + 0.58 * Math.sin(t / 0.6 * Math.PI / 2) : 0.7 + 0.3 * Math.cos((t - 0.6) / 0.4 * Math.PI / 2);
+    var r = 0.4 + 0.6 * Math.sin(Math.min(1, t * 1.25) * Math.PI / 2);
+    return t > 0.88 ? r * (1 - (t - 0.88) * 2) : r;
+  }
+  function tailPts(P, G, st, base, flat) {
+    var T = P.tail, n = T.n || 11, k = Math.pow(G.kb, 0.8), out = [];
+    var wag = st.wag || 0, a = Math.sin((st.t || 0) * (2 + 12 * wag) + (st.seed || 0)) * (0.06 + 0.16 * wag), ca = Math.cos(a), sa = Math.sin(a);
+    var C = T.c;
+    if (flat) {
+      // lying on its back: the tail lies flat on the floor, stretched out behind
+      var len = T.up ? 36 : Math.max(Math.abs(C[1][0]), Math.abs(C[2][0]), T.flat || 0);
+      C = [[-len * 0.35, 1.5], [-len * 0.7, 2.5], [-len, 0.5]];
+    }
+    function rp(p) { var x = p[0] * k, y = p[1] * k; return [x * ca - y * sa, x * sa + y * ca]; }
+    var c1 = rp(C[0]), c2 = rp(C[1]), c3 = rp(C[2]);
+    for (var i = 0; i < n; i++) {
+      var t = i / (n - 1), u = 1 - t;
+      var x = 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * c3[0];
+      var y = 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * c3[1];
+      out.push({ x: base.x + x, y: base.y + y, r: T.r * k * tailR(T.shape, t), tip: T.tip && t >= T.tipFrom });
+    }
+    return out;
+  }
+  // one smooth outline around the tail's spine (instead of a chain of circles)
+  function tailPath(g, P, pts) {
+    var n = pts.length, L = [], R = [], i;
+    for (i = 0; i < n; i++) {
+      var a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, p = pts[i];
+      L.push([p.x - dy / d * p.r, p.y + dx / d * p.r]); R.push([p.x + dy / d * p.r, p.y - dx / d * p.r]);
+    }
+    var e = pts[n - 1], q = pts[n - 2], ex = e.x - q.x, ey = e.y - q.y, ed = Math.hypot(ex, ey) || 1, tk = P.tail.shape === 'brush' ? 1.5 : 1.05;
+    var poly = L.concat([[e.x + ex / ed * e.r * tk, e.y + ey / ed * e.r * tk]], R.reverse()), m = poly.length;
+    g.moveTo((poly[0][0] + poly[1][0]) / 2, (poly[0][1] + poly[1][1]) / 2);
+    for (i = 1; i <= m; i++) { var c = poly[i % m], nx = poly[(i + 1) % m]; g.quadraticCurveTo(c[0], c[1], (c[0] + nx[0]) / 2, (c[1] + nx[1]) / 2); }
+    g.closePath();
+  }
+  function drawTail(g, P, pts) {
+    var T = P.tail;
+    g.beginPath(); tailPath(g, P, pts);
+    g.lineWidth = 4.2; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke(); g.fillStyle = T.col; g.fill();
+    g.save(); g.clip();
+    if (T.tip) { g.beginPath(); pts.forEach(function (p) { if (p.tip) { g.moveTo(p.x + p.r * 1.3, p.y); g.arc(p.x, p.y, p.r * 1.3, 0, Math.PI * 2); } }); g.fillStyle = T.tip; g.fill(); }
+    if (T.stripe || T.rings) {
+      g.beginPath();
+      if (T.stripe) { pts.forEach(function (p, j) { if (j) g.lineTo(p.x, p.y); else g.moveTo(p.x, p.y); }); g.lineWidth = T.r * 0.5 * Math.max(0.6, pts[Math.floor(pts.length / 2)].r / T.r); g.strokeStyle = T.stripe; }
+      else {
+        for (var q = 2; q < pts.length - 1; q += 2) { var a = pts[q - 1], b = pts[q + 1], nx = -(b.y - a.y), ny = b.x - a.x, nl = Math.hypot(nx, ny) || 1; g.moveTo(pts[q].x + nx / nl * pts[q].r * 1.2, pts[q].y + ny / nl * pts[q].r * 1.2); g.lineTo(pts[q].x - nx / nl * pts[q].r * 1.2, pts[q].y - ny / nl * pts[q].r * 1.2); }
+        g.lineWidth = T.r * 0.5; g.strokeStyle = T.rings;
+      }
+      g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke();
+    }
+    g.restore();
+    if (T.shape !== 'thin') {
+      // a few fur strokes that follow the tail
+      g.beginPath();
+      for (var i = 2; i < pts.length - 2; i += 3) { var p = pts[i], n2 = pts[i + 1], ux = n2.x - p.x, uy = n2.y - p.y, ul = Math.hypot(ux, uy) || 1; g.moveTo(p.x - ux / ul * p.r * 0.3, p.y - uy / ul * p.r * 0.3); g.lineTo(p.x + ux / ul * p.r * 0.3, p.y + uy / ul * p.r * 0.3); }
+      g.strokeStyle = 'rgba(29,47,111,.22)'; g.lineWidth = 1.2; g.lineCap = 'round'; g.stroke();
+    }
+  }
+  // a limb with a paw: o.paw 1 = a foot on the floor pointing forward, 2 = a round paw in the air;
+  // o.bend bows the limb backwards (a hind leg), o.sock paints the lower half and the paw
+  function leg(g, x0, y0, x1, y1, w, col, o) {
+    o = o || {};
+    var mx = (x0 + x1) / 2 - (o.bend || 0), my = (y0 + y1) / 2, pw = o.paw || 0;
+    function limb(half) {
+      g.beginPath();
+      if (!half) { g.moveTo(x0, y0); g.quadraticCurveTo(mx, my, x1, y1); }
+      else { g.moveTo(0.25 * x0 + 0.5 * mx + 0.25 * x1, 0.25 * y0 + 0.5 * my + 0.25 * y1); g.quadraticCurveTo((mx + x1) / 2, (my + y1) / 2, x1, y1); }
+    }
+    function paw() {
+      g.beginPath();
+      if (pw === 1) g.ellipse(x1 + w * 0.42, y1 + w * 0.02, w * 0.86, w * 0.52, 0, 0, Math.PI * 2);
+      else g.ellipse(x1, y1, w * 0.7, w * 0.78, Math.atan2(y1 - y0, x1 - x0) + Math.PI / 2, 0, Math.PI * 2);
+    }
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    limb(); g.lineWidth = w + 3.6; g.strokeStyle = INK; g.stroke();
+    if (pw) { paw(); g.lineWidth = 3.6; g.strokeStyle = INK; g.stroke(); }
+    limb(); g.lineWidth = w; g.strokeStyle = col; g.stroke();
+    if (o.sock) { limb(1); g.strokeStyle = o.sock; g.stroke(); }
+    if (pw) { paw(); g.fillStyle = o.sock || col; g.fill(); }
+    if (pw === 2 && o.pad) { g.beginPath(); g.arc(x1, y1, w * 0.36, 0, Math.PI * 2); g.fillStyle = o.pad; g.fill(); }
+  }
+  // a soft rounded lobe of fur between two points on an outline (k: how far it bulges, along the normal)
+  function tuft(g, ax, ay, bx, by, k) {
+    var dx = bx - ax, dy = by - ay, nx = -dy * k, ny = dx * k;
+    g.moveTo(ax, ay); g.bezierCurveTo(ax + nx * 1.2 + dx * 0.1, ay + ny * 1.2 + dy * 0.1, bx + nx * 1.1 + dx * 0.1, by + ny * 1.1 + dy * 0.1, bx, by);
+  }
+  // ---------- belly-up: the pet rolls its head to look at you, so the face is drawn from the front ----------
+  var FRONT_ROT = 0.3;   // the head is lifted towards you, tilted a little away from the paws
+  var HOG_FRONT = { hr: 11, hw: 1, head: '#f0cf9f', low: '#f8e2bf', nose: INK, nr: 2.6, snout: { t: 'point' }, eye: { r: 2.6 },
+    ear: { t: 'round', x: 0, y: -8, w: 7.5, h: 6.5, ang: 0, col: '#e4b98a', inner: '#f6dcb8' } };
+  function frontEar(P, stage) {
+    var e = P.ear, r = P.hr, o = {}; for (var k in e) o[k] = e[k];
+    if (e.t === 'round') { o.x = r * 0.66; o.y = -r * 0.6; o.ang = 0.5; }
+    else if (e.t === 'flap') { o.x = r * P.hw * 0.65; o.y = -r * 0.7; o.ang = 1.1; o.h = e.h * 1.15; o.mir = true; }
+    else if (e.t === 'petal') { o.x = r * 0.3; o.y = -r * 0.72; o.ang = 0.22 + Math.abs(earFlop(P, stage)) * 0.6; o.lean = -FRONT_ROT * 0.8; }   // long ears hang with gravity, not with the tilted head
+    else { o.x = r * 0.5; o.y = -r * 0.6; o.ang = e.w > 13 ? 0.55 : 0.32; }
+    return o;
+  }
+  function frontEars(g, fe) { [-1, 1].forEach(function (s) { g.save(); g.scale(s, 1); drawEar(g, fe, false, s * (fe.lean || 0)); g.restore(); }); }
+  function headShapeFront(g, P) {
+    var rx = P.hr * P.hw * 1.06, ry = P.hr * 0.96;
+    g.moveTo(rx, 0); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    if (P.chub) [-1, 1].forEach(function (s) { g.moveTo(s * rx * 0.58 + P.chub.r * 0.85, ry * 0.42); g.arc(s * rx * 0.58, ry * 0.42, P.chub.r * 0.85, 0, Math.PI * 2); });
+    // long-haired: soft fluffy cheeks, part of the outline
+    if (P.fluffy) [-1, 1].forEach(function (s) { for (var i = 0; i < 2; i++) { var a = 0.15 + i * 0.5, b = a + 0.5; tuft(g, s * Math.cos(a) * rx * 0.97, Math.sin(a) * ry * 0.97, s * Math.cos(b) * rx * 0.97, Math.sin(b) * ry * 0.97, -0.24 * s); } });
+  }
+  function frontFace(g, P, st, eyeK) {
+    var r = P.hr, rx = r * P.hw * 1.06, ry = r * 0.96, eye = st.eye || 'open', pt = P.snout.t === 'point', my = r * 0.4;
+    eyeK = Math.min(eyeK, 1.3);   // two big baby eyes side by side would collide
+    g.save(); g.beginPath(); headShapeFront(g, P); g.clip();
+    if (P.low) { g.beginPath(); g.ellipse(0, r * 0.66, rx * 0.98, r * 0.56, 0, 0, Math.PI * 2); g.fillStyle = P.low; g.fill(); }
+    if (P.mark === 'badger') {
+      g.beginPath();
+      [-1, 1].forEach(function (s) { g.moveTo(s * r * 0.14, r * 0.3); g.quadraticCurveTo(s * r * 0.2, -r * 0.5, s * r * 0.32, -r * 1.1); g.lineTo(s * r * 0.92, -r * 1.1); g.quadraticCurveTo(s * r * 0.85, -r * 0.1, s * r * 0.4, r * 0.38); g.closePath(); });
+      g.fillStyle = '#2d2d39'; g.fill();
+    }
+    if (P.mark === 'guinea') { g.beginPath(); g.arc(-r * 0.55, -r * 0.3, r * 0.82, 0, Math.PI * 2); g.fillStyle = P.p1; g.fill(); }
+    if (P.mark === 'stripe') { g.beginPath(); g.ellipse(0, -r * 0.88, r * 0.5, r * 0.34, 0, 0, Math.PI * 2); g.fillStyle = P.dark; g.fill(); }
+    if (P.mark === 'tabby') {
+      g.beginPath();
+      [-0.24, 0, 0.24].forEach(function (f) { g.moveTo(f * r, -r * 0.96); g.lineTo(f * r * 0.7, -r * 0.6); });
+      [-1, 1].forEach(function (s) { g.moveTo(s * r * 1.05, r * 0.02); g.lineTo(s * r * 0.7, r * 0.1); g.moveTo(s * r * 1.0, r * 0.3); g.lineTo(s * r * 0.72, r * 0.3); });
+      g.strokeStyle = P.dark; g.lineWidth = r * 0.13; g.lineCap = 'round'; g.stroke();
+    }
+    g.restore();
+    if (P.chub) [-1, 1].forEach(function (s) { g.beginPath(); g.arc(s * rx * 0.58, ry * 0.42, P.chub.r * 0.85, 0, Math.PI * 2); g.fillStyle = P.chub.col; g.fill(); });
+    // blush, eyes, then a small muzzle low on the face: nose on top, mouth under it, whiskers to the sides (kept apart so a baby's face stays clear)
+    var blush = eye === 'happy' || eye === 'purr';
+    [-1, 1].forEach(function (s) {
+      g.beginPath(); g.arc(s * r * 0.7, r * 0.3, r * 0.17, 0, Math.PI * 2); g.fillStyle = 'rgba(255,120,140,' + (blush ? 0.6 : 0.38) + ')'; g.fill();
+      drawEye(g, s * r * 0.42, -r * 0.12, P.eye.r * eyeK, eye, isBlink(st), P.ring, P.iris);
+    });
+    g.beginPath(); g.ellipse(0, my + r * 0.08, r * (pt ? 0.42 : 0.38), r * (pt ? 0.34 : 0.3), 0, 0, Math.PI * 2); g.fillStyle = P.low || shade(P.head, 1.12); g.fill();
+    var ny = my - r * 0.12, nr = P.nr * 0.85;
+    if (pt) { g.beginPath(); g.ellipse(0, ny, nr * 1.25, nr * 0.95, 0, 0, Math.PI * 2); g.fillStyle = P.nose; g.fill(); }
+    else { g.beginPath(); g.moveTo(-nr, ny - nr * 0.6); g.lineTo(nr, ny - nr * 0.6); g.lineTo(0, ny + nr * 0.8); g.closePath(); g.fillStyle = P.nose; g.fill(); outline(g, 1); }
+    drawMouth(g, 0, my + r * 0.24, st.mouth, r / 14);
+    if (P.whisk) {
+      g.beginPath();
+      [-1, 1].forEach(function (s) { var wx = s * r * 0.42, wy = my + r * 0.12; g.moveTo(wx, wy); g.lineTo(wx + s * r * 0.55, wy - r * 0.08); g.moveTo(wx, wy + r * 0.1); g.lineTo(wx + s * r * 0.55, wy + r * 0.2); });
+      g.strokeStyle = 'rgba(29,47,111,.45)'; g.lineWidth = 0.9; g.stroke();
+    }
   }
   function headShape(g, P) {
     var r = P.hr, s = P.snout;
@@ -635,55 +830,11 @@
     } else { g.moveTo(r * 0.55 + s.l, s.y); g.ellipse(r * 0.55, s.y, s.l, s.h, 0, 0, Math.PI * 2); }
     if (P.chub) { g.moveTo(P.chub.x + P.chub.r, P.chub.y); g.arc(P.chub.x, P.chub.y, P.chub.r, 0, Math.PI * 2); }
   }
-  function tailPts(P, G, st, base, flat) {
-    var T = P.tail, n = T.n || 11, k = Math.pow(G.kb, 0.8), out = [];
-    var wag = st.wag || 0, a = Math.sin((st.t || 0) * (2 + 12 * wag) + (st.seed || 0)) * (0.06 + 0.16 * wag), ca = Math.cos(a), sa = Math.sin(a);
-    var C = T.c;
-    if (flat) {
-      // lying on its back: the tail lies flat on the floor, stretched out behind
-      var len = T.up ? 36 : Math.max(Math.abs(C[1][0]), Math.abs(C[2][0]));
-      C = [[-len * 0.35, 1.5], [-len * 0.7, 2.5], [-len, 0.5]];
-    }
-    function rp(p) { var x = p[0] * k, y = p[1] * k; return [x * ca - y * sa, x * sa + y * ca]; }
-    var c1 = rp(C[0]), c2 = rp(C[1]), c3 = rp(C[2]);
-    for (var i = 0; i < n; i++) {
-      var t = i / (n - 1), u = 1 - t;
-      var x = 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * c3[0];
-      var y = 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * c3[1];
-      var r = T.r * k * (0.4 + 0.6 * Math.sin(Math.min(1, t * 1.25) * Math.PI / 2));
-      if (t > 0.88) r *= 1 - (t - 0.88) * 2;
-      out.push({ x: base.x + x, y: base.y + y, r: r, tip: T.tip && t >= T.tipFrom });
-    }
-    return out;
-  }
-  function drawTail(g, P, pts) {
-    g.beginPath(); pts.forEach(function (p) { g.moveTo(p.x + p.r, p.y); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); });
-    g.lineWidth = 4.2; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke(); g.fillStyle = P.tail.col; g.fill();
-    if (P.tail.tip) { g.beginPath(); pts.forEach(function (p) { if (p.tip) { g.moveTo(p.x + p.r, p.y); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); } }); g.fillStyle = P.tail.tip; g.fill(); }
-    if (P.tail.stripe || P.tail.rings) {
-      g.save(); g.beginPath(); pts.forEach(function (p) { g.moveTo(p.x + p.r, p.y); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); }); g.clip();
-      g.beginPath();
-      if (P.tail.stripe) { pts.forEach(function (p, j) { if (j) g.lineTo(p.x, p.y); else g.moveTo(p.x, p.y); }); g.lineWidth = P.tail.r * 0.5 * Math.max(0.6, pts[Math.floor(pts.length / 2)].r / P.tail.r); g.strokeStyle = P.tail.stripe; }
-      else {
-        for (var q = 2; q < pts.length - 1; q += 2) { var a = pts[q - 1], b = pts[q + 1], nx = -(b.y - a.y), ny = b.x - a.x, nl = Math.hypot(nx, ny) || 1; g.moveTo(pts[q].x + nx / nl * pts[q].r * 1.2, pts[q].y + ny / nl * pts[q].r * 1.2); g.lineTo(pts[q].x - nx / nl * pts[q].r * 1.2, pts[q].y - ny / nl * pts[q].r * 1.2); }
-        g.lineWidth = P.tail.r * 0.42; g.strokeStyle = P.tail.rings;
-      }
-      g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke(); g.restore();
-    }
-    // a few fur strokes
-    g.beginPath();
-    for (var i = 2; i < pts.length - 1; i += 3) { var p = pts[i]; g.moveTo(p.x - p.r * 0.3, p.y - p.r * 0.2); g.lineTo(p.x + p.r * 0.2, p.y + p.r * 0.1); }
-    g.strokeStyle = 'rgba(29,47,111,.25)'; g.lineWidth = 1.2; g.stroke();
-  }
   function drawPuff(g, P, G) {
     var c = G.puff, r = P.puff.r * Math.max(0.75, G.kb);
     g.beginPath();
     for (var i = 0; i <= 18; i++) { var a = i / 18 * Math.PI * 2, rr2 = r * (i % 2 ? 0.88 : 1.08); if (i) g.lineTo(c.x + Math.cos(a) * rr2, c.y + Math.sin(a) * rr2); else g.moveTo(c.x + rr2, c.y); }
     g.closePath(); g.fillStyle = P.puff.col; g.fill(); outline(g, 2);
-  }
-  function leg(g, x0, y0, x1, y1, w, col) {
-    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineCap = 'round';
-    g.lineWidth = w + 3.6; g.strokeStyle = INK; g.stroke(); g.lineWidth = w; g.strokeStyle = col; g.stroke();
   }
   function headFeatures(g, P, G, st, eyeK) {
     var r = P.hr, s = P.snout, eye = st.eye || 'open';
@@ -706,7 +857,7 @@
     g.restore();
     if (P.fluffy) {
       // long-haired: a fluffy ruff along the back of the cheeks
-      g.beginPath(); for (var fi = 0; fi < 5; fi++) { var fa = 1.75 + fi * 0.32; g.moveTo(Math.cos(fa) * r * 0.95, Math.sin(fa) * r * 0.95); g.lineTo(Math.cos(fa + 0.14) * r * 1.22, Math.sin(fa + 0.14) * r * 1.22); g.lineTo(Math.cos(fa + 0.3) * r * 0.95, Math.sin(fa + 0.3) * r * 0.95); }
+      g.beginPath(); for (var fi = 0; fi < 2; fi++) { var fa = 1.95 + fi * 0.55; tuft(g, Math.cos(fa) * r * 0.95, Math.sin(fa) * r * 0.95, Math.cos(fa + 0.55) * r * 0.95, Math.sin(fa + 0.55) * r * 0.95, -0.26); }
       g.fillStyle = P.head; g.fill(); g.lineWidth = 1.6; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke();
     }
     if (P.chub) {
@@ -742,7 +893,7 @@
     }
     if (w.head) {
       g.save();
-      if (w.head === 'kokardka') { g.translate(-r * 0.3, -r * 0.9); g.rotate(-0.2); g.scale(sc * 0.7, sc * 0.7); }
+      if (w.head === 'kokardka') { g.translate(P.ear.t === 'flap' ? r * 0.3 : -r * 0.3, -r * 0.9); g.rotate(-0.2); g.scale(sc * 0.7, sc * 0.7); }   // not on top of a guinea pig's ear
       else { g.translate(r * 0.1, -r * 0.82); g.rotate(0.18); g.scale(sc * 0.78, sc * 0.78); }
       WEAR[w.head](g); g.restore();
     }
@@ -756,11 +907,11 @@
     var hrot = (sleep ? 0.12 : 0) + (st.headRot || 0);
     function HT() { g.translate(G.hx, G.hy); g.rotate(hrot); g.scale(G.kh, G.kh); }
     var legTop = G.cy + G.ry * 0.25, lw = P.legW * Math.max(0.75, G.kb), lx0 = G.cx - G.rx * 0.55, lx1 = G.cx + G.rx * 0.5;
-    var fy = -lw / 2 + 0.5, farCol = shade(P.leg, 0.78);
+    var fy = -lw / 2 + 0.5, farCol = shade(P.leg, 0.78), farSock = P.sock ? shade(P.sock, 0.78) : null, bend = G.legH > 6 ? lw * 0.75 : 0;
     // far legs + tail (behind)
     var fo = lw * 1.25;
     if (!sleep) {
-      leg(g, lx0 + fo, legTop, lx0 + fo + sw, fy - 1, lw, farCol); leg(g, lx1 + fo, legTop, lx1 + fo - sw, fy - 1, lw, farCol);
+      leg(g, lx0 + fo, legTop, lx0 + fo + sw, fy - 1, lw, farCol, { paw: P.hind ? 0 : 1, bend: bend, sock: farSock }); leg(g, lx1 + fo, legTop, lx1 + fo - sw, fy - 1, lw, farCol, { paw: 1, sock: farSock });
       if (P.hind) { g.beginPath(); g.ellipse(lx0 + fo + 2 * G.kb + sw, -3.4 * G.kb, 7.5 * G.kb, 2.8 * G.kb, 0, 0, Math.PI * 2); g.fillStyle = farCol; g.fill(); outline(g, 1.8); }
     }
     var tp = null;
@@ -775,10 +926,10 @@
     if (st.wear && st.wear.neck === 'szalik') { g.save(); var sa = scarfAt(P, G); g.translate(sa.x, sa.y); g.rotate(sa.a); g.scale(G.kh * 0.72, G.kh * 0.72); g.translate(-2, 2); WEAR.szalikTail(g, t); g.restore(); }
     // near legs
     if (!sleep) {
-      leg(g, lx0, legTop, lx0 - sw, fy, lw, P.leg);
+      leg(g, lx0, legTop, lx0 - sw, fy, lw, P.leg, { paw: P.hind ? 0 : 1, bend: bend, sock: P.sock });
       if (P.hind) { g.beginPath(); g.ellipse(lx0 + 2 * G.kb - sw, -2.6 * G.kb, 8 * G.kb, 3 * G.kb, 0, 0, Math.PI * 2); g.fillStyle = P.leg; g.fill(); outline(g, 1.8); }
-      leg(g, lx1, legTop, lx1 + sw, fy, lw, P.leg);
-      if (st.wave != null) { var wa = -1.2 + Math.sin(st.wave) * 0.5; leg(g, G.nx, G.ny + G.ry * 0.3, G.nx + Math.cos(wa) * 14 * G.kb, G.ny + G.ry * 0.3 + Math.sin(wa) * 14 * G.kb, lw, P.leg); }
+      leg(g, lx1, legTop, lx1 + sw, fy, lw, P.leg, { paw: 1, sock: P.sock });
+      if (st.wave != null) { var wa = -1.2 + Math.sin(st.wave) * 0.5; leg(g, G.nx, G.ny + G.ry * 0.3, G.nx + Math.cos(wa) * 14 * G.kb, G.ny + G.ry * 0.3 + Math.sin(wa) * 14 * G.kb, lw, P.leg, { paw: 2, sock: P.sock, pad: P.pad }); }
     } else {
       g.beginPath(); g.ellipse(lx1 + 4 * G.kb, -2, 5 * G.kb, 2.6 * G.kb, 0, 0, Math.PI * 2); g.fillStyle = P.leg; g.fill(); outline(g, 1.6);
     }
@@ -790,6 +941,9 @@
     g.moveTo(G.cx + G.rx, G.cy); g.ellipse(G.cx, G.cy, G.rx, G.ry, 0, 0, Math.PI * 2);
     if (neck) neckPath();
     g.save(); HT(); headShape(g, P); g.restore();
+    // long-haired: soft fur hanging under the tummy, one outline with the body (the legs come out from under it)
+    function fluffPath() { for (var fu = 0; fu < 3; fu++) { var a0 = Math.PI * (0.28 + fu * 0.15), a2 = a0 + Math.PI * 0.15; tuft(g, G.cx + Math.cos(a0) * G.rx * 0.97, G.cy + Math.sin(a0) * G.ry * 0.97, G.cx + Math.cos(a2) * G.rx * 0.97, G.cy + Math.sin(a2) * G.ry * 0.97, -0.25); } }
+    if (P.fluffy && !sleep) fluffPath();
     g.lineWidth = 4.4; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke();
     g.beginPath(); g.ellipse(G.cx, G.cy, G.rx, G.ry, 0, 0, Math.PI * 2); g.fillStyle = P.col; g.fill();
     if (neck) { g.beginPath(); neckPath(); g.fill(); }
@@ -813,6 +967,7 @@
       [-0.62, -0.3, 0.02, 0.34].forEach(function (f) { var x = G.cx + G.rx * f; g.moveTo(x - G.rx * 0.08, G.cy - G.ry * 1.05); g.quadraticCurveTo(x + G.rx * 0.07, G.cy - G.ry * 0.5, x - G.rx * 0.02, G.cy + G.ry * 0.05); });
       g.strokeStyle = P.dark; g.lineWidth = Math.max(1.6, G.ry * 0.17); g.lineCap = 'round'; g.stroke();
     }
+    if (P.haunch) { g.beginPath(); g.arc(lx0 + G.rx * 0.06, G.cy + G.ry * 0.3, G.ry * 0.62, Math.PI * 1.12, Math.PI * 1.82); g.strokeStyle = 'rgba(29,47,111,.3)'; g.lineWidth = 1.5; g.lineCap = 'round'; g.stroke(); }
     if (P.hind) { g.beginPath(); g.arc(G.cx - G.rx * 0.42, G.cy + G.ry * 0.28, G.ry * 0.62, Math.PI * 1.05, Math.PI * 1.95); g.strokeStyle = 'rgba(29,47,111,.45)'; g.lineWidth = 1.6; g.stroke(); }
     var nd = Math.round((st.dirt || 0) * 6);
     for (var m = 0; m < nd; m++) {
@@ -820,17 +975,7 @@
       g.beginPath(); g.ellipse(G.cx + dp[0] * G.rx, G.cy + dp[1] * G.ry, dp[2] * 1.3 * G.kb, dp[2] * G.kb, 0.4, 0, Math.PI * 2); g.fillStyle = 'rgba(110,84,52,.7)'; g.fill();
     }
     g.restore();
-    if (P.fluffy && !sleep) {
-      // long fur hanging under the tummy and a ruff on the chest
-      g.beginPath();
-      for (var fu = 0; fu < 6; fu++) {
-        var a0 = Math.PI * (0.18 + fu * 0.11), a1 = a0 + Math.PI * 0.055, a2 = a0 + Math.PI * 0.11;
-        g.moveTo(G.cx + Math.cos(a0) * G.rx * 0.98, G.cy + Math.sin(a0) * G.ry * 0.98);
-        g.lineTo(G.cx + Math.cos(a1) * G.rx * 1.08, G.cy + Math.sin(a1) * G.ry * 1.22);
-        g.lineTo(G.cx + Math.cos(a2) * G.rx * 0.98, G.cy + Math.sin(a2) * G.ry * 0.98);
-      }
-      g.fillStyle = P.col; g.fill(); g.lineWidth = 1.8; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke();
-    }
+    if (P.fluffy && !sleep) { g.beginPath(); fluffPath(); g.fillStyle = P.belly || P.col; g.fill(); }
     if (sleep) drawBlanket(g, G);
     // head
     g.save(); HT();
@@ -868,14 +1013,16 @@
       if (P.legH < 6) {
         // hamster, guinea pig: tiny round paws waving just above the tummy (long sticks would look like ears)
         var top = cy - ry * Math.sqrt(Math.max(0, 1 - L[0] * L[0])), pr = lw * (P.hind ? 0.85 : 0.62);
-        g.beginPath(); g.ellipse(x0 + dx * 0.3, top - pr * 0.95, pr, pr * 1.2, L[1] * 0.35, 0, Math.PI * 2); g.fillStyle = col; g.fill(); outline(g, 1.8);
-      } else leg(g, x0, y0, x0 + dx, cy - ry - ll, lw, col);
+        var px = x0 + dx * 0.3, py = top - pr * 0.95;
+        g.beginPath(); g.ellipse(px, py, pr, pr * 1.2, L[1] * 0.35, 0, Math.PI * 2); g.fillStyle = col; g.fill(); outline(g, 1.8);
+        if (P.pad) { g.beginPath(); g.ellipse(px, py - pr * 0.2, pr * 0.5, pr * 0.58, L[1] * 0.35, 0, Math.PI * 2); g.fillStyle = L[2] < 1 ? shade(P.pad, 0.85) : P.pad; g.fill(); }   // a pad, so it reads as a paw
+      } else leg(g, x0, y0, x0 + dx, cy - ry - ll, lw, col, { paw: 2, sock: P.sock ? (L[2] < 1 ? shade(P.sock, 0.8) : P.sock) : null, pad: P.pad });
     });
-    var ef = earFlop(P, st.stage) + (P.ear.h > 20 && P.ear.t === 'petal' ? 1.25 : 0);   // long rabbit ears flop down onto the floor
-    g.save(); HT(); drawEar(g, P.ear, true, ef); if (!P.ear.front) drawEar(g, P.ear, false, ef + 0.3); g.restore();
+    var fe = frontEar(P, st.stage);
+    g.save(); HT(); frontEars(g, fe); g.restore();
     if (P.puff) drawPuff(g, P, G);
     g.beginPath(); g.moveTo(cx + rx, cy); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-    g.save(); HT(); headShape(g, P); g.restore();
+    g.save(); HT(); headShapeFront(g, P); g.restore();
     g.lineWidth = 4.4; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke();
     g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); g.fillStyle = P.col; g.fill();
     g.save(); g.clip();
@@ -885,8 +1032,8 @@
     g.beginPath(); g.ellipse(cx - rx * 0.1, cy - ry * 0.85, rx * 0.4, ry * 0.25, 0, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,.45)'; g.fill();
     g.restore();
     g.save(); HT();
-    g.beginPath(); headShape(g, P); g.fillStyle = P.head; g.fill();
-    headFeatures(g, P, G, { t: t, eye: st.eye || 'happy', mouth: st.mouth || 'giggle', seed: st.seed }, eyeK);
+    g.beginPath(); headShapeFront(g, P); g.fillStyle = P.head; g.fill();
+    frontFace(g, P, { t: t, eye: st.eye || 'happy', mouth: st.mouth || 'giggle', seed: st.seed }, eyeK);
     g.restore();
   }
 
@@ -969,6 +1116,11 @@
     '.zw-gb{display:block;height:7px;border:1.5px solid #1d2f6f;border-radius:5px;background:#f1ecfb;overflow:hidden}',
     '.zw-gb i{display:block;height:100%;background:#9b74dc;transition:width .6s ease}',
     '@media (max-width:400px){.zw-top{gap:4px;padding:4px 4px 0}.zw-chip{gap:2px;padding:2px 4px 2px 1px}.zw-chip canvas{width:38px!important;height:34px!important}.zw-chip .nm{font-size:1.05rem}.zw-chip .st{font-size:.76rem}.zw-top .zw-fam{width:50px;font-size:.78rem}}',
+    '.zw-chip.ready{border-color:#e3a008}',
+    '.zw-chip.ready::before{content:"\\2605";position:absolute;top:-4px;right:-5px;width:20px;height:20px;border-radius:50%;background:#ffe27a;border:2px solid #1d2f6f;font-size:.8rem;line-height:16px;text-align:center;color:#c47a00;z-index:1}',
+    '.zw-grow{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:4;min-height:62px;min-width:210px;padding:6px 26px;border:3px solid #1d2f6f;border-radius:32px;background:linear-gradient(#ffe98f,#f5b82a);color:#2a1d00;font:inherit;font-size:1.7rem;box-shadow:0 4px 0 #1d2f6f;white-space:nowrap;animation:zwglow 1.3s ease-in-out infinite}',
+    '.zw-grow:active{box-shadow:0 1px 0 #1d2f6f;margin-bottom:-3px}',
+    '@keyframes zwglow{50%{transform:translateX(-50%) scale(1.07)}}',
     '.zw-chip.on{background:#fff4d6;border-color:#e3a008;box-shadow:0 0 0 2px #e3a008 inset}',
     '.zw-chip.zz::after{content:"z";position:absolute;top:-2px;left:34px;font-size:1rem;color:#7a4fc4}',
     '.zw-fam{flex:none;width:58px;min-height:50px;border:2px solid #1d2f6f;border-radius:14px;background:#fff;color:inherit;font:inherit;font-size:.86rem;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;padding:2px}',
@@ -1029,7 +1181,7 @@
     '.zw-sp:active{transform:translateY(2px);box-shadow:0 1px 0 #1d2f6f}',
     '.zw-wide{width:100%;margin-top:8px}',
     '.zw-card canvas{display:block;margin:0 auto}',
-    '@media (prefers-reduced-motion: reduce){.zw-need.low svg{animation:none}.zw-sheet,.zw-sheetw{transition:none}}'
+    '@media (prefers-reduced-motion: reduce){.zw-grow{animation:none}.zw-need.low svg{animation:none}.zw-sheet,.zw-sheetw{transition:none}}'
   ].join('');
 
   var PIC = '<rect x="0" y="60" width="120" height="12" fill="#8fd06b"/>' +
@@ -1127,7 +1279,7 @@
       var raw = ctx.load({}) || {};
       var save = {
         v: 2, pets: [], slots: 1, sel: 0, nextId: 1, basketDay: '', basketLeft: BASKET, careDay: '',
-        diff: 0, best: {}, seenHelp: false, seenV2: true, lastSeen: 0, wearInit: false
+        diff: 0, best: {}, seenHelp: false, seenV2: true, seenLvl: false, lastSeen: 0, wearInit: false
       };
       if (Array.isArray(raw.pets)) { for (var rk in raw) save[rk] = raw[rk]; }
       else if (raw.needs && typeof raw.needs === 'object') {
@@ -1154,7 +1306,8 @@
         NEEDS.forEach(function (k) { var v = +p.needs[k]; p.needs[k] = isFinite(v) ? clamp(v, MIN_NEED, 100) : 80; });
         if (!isFinite(+p.t) || +p.t <= 0) p.t = NOW;
         if (!p.wear || typeof p.wear !== 'object') p.wear = { head: null, neck: null, eyes: null };
-        p.gp = Math.max(0, +p.gp || 0); p.stage = Math.max(stageOf(p.gp), clamp(p.stage | 0, 0, 2));
+        p.stage = clamp(p.stage | 0, 0, 2);   // never auto-grow from points (the child taps "Urośnij!") and never shrink
+        p.gp = Math.max(0, +p.gp || 0, p.stage ? lvlGp(GROW_LVL[p.stage - 1]) : 0);
         if (!p.gSrc || typeof p.gSrc !== 'object') p.gSrc = {};
         p.home = p.home !== false; p.asleep = !!p.asleep;
       });
@@ -1212,6 +1365,9 @@
       });
       var cvWrap = document.createElement('div'); cvWrap.className = 'zw-cv'; root.appendChild(cvWrap);
       var cv = document.createElement('canvas'); cvWrap.appendChild(cv);
+      var growBtn = document.createElement('button'); growBtn.type = 'button'; growBtn.className = 'zw-grow'; growBtn.hidden = true;
+      growBtn.innerHTML = 'Urośnij! <span aria-hidden="true">✨</span>'; cvWrap.appendChild(growBtn);
+      growBtn.onclick = function () { if (!growBtn.hidden) growUp(sel()); };
       var bar = document.createElement('div'); bar.className = 'zw-bb'; root.appendChild(bar);
       el.appendChild(root);
       var g = cv.getContext('2d');
@@ -1219,7 +1375,7 @@
       var W = 1, H = 1, DPR = 1, S = 1, LW = 400, LH = 600, FY = 330, HS = 2.4;
       var mode = 'home';           // home | bath | polana | catch | hide | aport | dig | bubbles | dance | wheel
       var raf = 0, running = true, last = 0, T = 0, timers = [], hudT = 0, saveT = 0, hintT = rnd(16, 24), duoT = rnd(10, 16);
-      var parts = [], speech = null, food = null, bath = null, dark = 0, duo = null, curMusic = null;
+      var parts = [], speech = null, food = null, bath = null, dark = 0, duo = null, curMusic = null, play = null, playT = rnd(8, 25);
       var GS = null, sheet = null, overlay = null, panel = null, growQ = [];
       var taps = [], drag = null, plate = { x: 0, y: 0, w: 0, h: 0 }, win = { x: 0, y: 0, w: 0, h: 0 };
 
@@ -1260,18 +1416,38 @@
         var d = today();
         if (p.gDay !== d) { p.gDay = d; p.gSrc = {}; p.gToday = 0; }
         var have = p.gSrc[src] || 0, amt = Math.min(GP[src] || 1, GP_SRC_CAP[src] - have, GP_DAY - p.gToday);
-        if (amt <= 0 || p.stage >= 2) { if (amt > 0) { p.gSrc[src] = have + amt; p.gToday += amt; p.gp += amt; } return 0; }
+        if (amt <= 0) return 0;
+        var L0 = levelOf(p.gp), ready0 = canGrow(p);
         p.gSrc[src] = have + amt; p.gToday += amt; p.gp += amt;
-        var r = R(p);
+        var r = R(p), L1 = levelOf(p.gp);
         burst('grow', r.x, r.y - 30 * petScale(p), 3);
-        var st = stageOf(p.gp);
-        if (st > p.stage) { p.stage = st; growQ.push(p.id); statsPets(); }
-        renderChips();
+        if (L1 > L0) levelUp(p, L1, !ready0 && canGrow(p));
+        renderChips(); syncGrow();
         return amt;
       }
+      function levelUp(p, L, ready) {
+        var r = R(p), s = petScale(p);
+        ctx.toast(p.name + ' ma poziom ' + L + '!');
+        later(function () { ctx.sfx('star'); }, 120);
+        popText('poz. ' + L + '!', r.x, r.y - 52 * s, PURPLE);
+        burst('spark', r.x, r.y - 40 * s, 4);
+        if (ready && mode === 'home') later(function () { if (p.home && canGrow(p) && !p.asleep) say(p, 'Hura! Mogę urosnąć!', 2.4); }, 900);
+      }
+      // the stage changes only when the child taps "Urośnij!"
+      function growUp(p) {
+        if (!p || !p.home || !canGrow(p) || overlay || panel || mode !== 'home') return;
+        p.stage++; persist();
+        growBtn.hidden = true;
+        statsPets();
+        growQ.push(p.id); showGrowCard();
+        syncGrow();
+      }
+      function syncGrow() {
+        var p = sel(), show = !!(mode === 'home' && p && !p.asleep && canGrow(p) && !food && !overlay && !panel && !(rt[p.id] && rt[p.id].belly > 0));
+        if (growBtn.hidden === show) growBtn.hidden = !show;
+      }
       function growFrac(p) {
-        if (p.stage >= 2) return 1;
-        var a = GROW_AT[p.stage], b = GROW_AT[p.stage + 1];
+        var L = levelOf(p.gp), a = lvlGp(L), b = lvlGp(L + 1);
         return clamp((p.gp - a) / (b - a), 0, 1);
       }
       function statsPets() {
@@ -1338,12 +1514,12 @@
         top.innerHTML = ''; chipEls = {};
         var cur = sel();
         homePets().forEach(function (p) {
-          var b = document.createElement('button'); b.type = 'button'; b.className = 'zw-chip' + (cur && p.id === cur.id ? ' on' : '') + (p.asleep ? ' zz' : '');
+          var b = document.createElement('button'); b.type = 'button'; b.className = 'zw-chip' + (cur && p.id === cur.id ? ' on' : '') + (p.asleep ? ' zz' : '') + (canGrow(p) ? ' ready' : '');
           b.setAttribute('aria-label', p.name);
           b.innerHTML = '<canvas width="92" height="80"></canvas><span class="tx"><span class="nm"></span><span class="st"></span><span class="zw-gb"><i></i></span></span>';
           b.querySelector('.nm').textContent = p.name;
           if (p.name.length >= 7) b.querySelector('.nm').style.fontSize = p.name.length >= 8 ? '.86rem' : '.96rem';   // long names shrink a little instead of being cut
-          b.querySelector('.st').textContent = STAGES[p.stage].n;
+          b.querySelector('.st').textContent = 'poz. ' + levelOf(p.gp);
           b.querySelector('.zw-gb i').style.width = Math.round(growFrac(p) * 100) + '%';
           var c = b.querySelector('canvas'), cg = c.getContext('2d'); cg.scale(2, 2);
           fitPet(cg, p.sp, p.stage, 46, 40, { wear: wearOf(p), eye: p.asleep ? 'closed' : 'open', pose: p.asleep ? 'sleep' : 'stand' }, 2);
@@ -1356,15 +1532,17 @@
       }
       function tapChip(p) {
         if (mode !== 'home' || food || bellyBusy()) return;
-        ctx.sfx('tap');
+        stopPlay(); ctx.sfx('tap');
         if (save.sel !== p.id) { select(p); return; }
         var r = R(p);
         if (p.asleep) { say(p, 'Chrr...', 1.2); return; }
         r.hop = 0;
-        say(p, p.stage >= 2 ? 'Jestem już ' + vb(p.name, 'duży', 'duża') + '!' : growLeft(p) ? 'Rosnę! Opiekuj się mną, a urosnę.' : vb(p.name, 'Dziś już dużo urosłem!', 'Dziś już dużo urosłam!'), 2.4);
+        var L = levelOf(p.gp);
+        say(p, canGrow(p) ? 'Mogę urosnąć! Dotknij: Urośnij!' : growLeft(p) ? 'Mam poziom ' + L + '. ' + (p.stage < 2 ? 'Na poziomie ' + GROW_LVL[p.stage] + ' urosnę!' : 'Opiekuj się mną!') : 'Poziom ' + L + '. Na dziś mam dość punktów, jutro więcej!', 2.6);
       }
       function select(p) {
         if (!p || !p.home) return;
+        stopPlay();
         save.sel = p.id; persist();
         var r = R(p); if (!p.asleep) { r.hop = 0; r.happy = Math.max(r.happy, 0.8); }
         say(p, p.asleep ? 'Chrr...' : pick(['To ja, ' + p.name + '!', 'Hej!', 'Jestem!']), 1.4);
@@ -1421,7 +1599,8 @@
           var hints = [p.needs.food < 35, p.needs.clean < 35, p.needs.sleep < 35, p.needs.fun < 35];
           actBtns.forEach(function (b, i) { if (i < 4) b.classList.toggle('zw-hint', hints[i]); });
         }
-        homePets().forEach(function (q) { var c = chipEls[q.id]; if (c) { c.querySelector('.zw-gb i').style.width = Math.round(growFrac(q) * 100) + '%'; c.classList.toggle('zz', !!q.asleep); } });
+        homePets().forEach(function (q) { var c = chipEls[q.id]; if (c) { c.querySelector('.zw-gb i').style.width = Math.round(growFrac(q) * 100) + '%'; c.classList.toggle('zz', !!q.asleep); c.classList.toggle('ready', canGrow(q)); } });
+        syncGrow();
       }
       function syncMusic() {
         var p = sel(), want = isMini() ? 'play' : (mode === 'home' && p && p.asleep) ? 'calm' : 'cozy';
@@ -1429,6 +1608,7 @@
         if (want !== curMusic) { curMusic = want; ctx.music(want); }
       }
       function setMode(m) {
+        stopPlay(); if (m === 'home') playT = Math.max(playT, rnd(8, 12));
         mode = m; drag = null;
         var showTop = m === 'home' || m === 'bath';
         top.style.display = m === 'home' && save.pets.length ? '' : 'none';
@@ -1446,6 +1626,7 @@
         later(function () { s.wrap.remove(); }, reduce ? 0 : 260);
       }
       function openSheet(title, render, locked) {
+        stopPlay();
         if (sheet) { sheet.wrap.remove(); sheet = null; }
         var wrap = document.createElement('div'); wrap.className = 'zw-sheetw';
         var sh = document.createElement('div'); sh.className = 'zw-sheet'; wrap.appendChild(sh);
@@ -1499,6 +1680,7 @@
       // ---------- rename ----------
       function openRename(p) {
         if (overlay || !p) return;
+        stopPlay();
         var o = document.createElement('div'); o.className = 'ng-panel';
         o.innerHTML = '<div class="ng-card"><h2>Imię zwierzątka</h2><input class="zw-name" maxlength="14" autocomplete="off" aria-label="Imię"><div class="ng-row"><button type="button" class="ng-btn">Zapisz</button><button type="button" class="ng-btn sec">Anuluj</button></div></div>';
         var inp = o.querySelector('input'); inp.value = p.name;
@@ -1523,6 +1705,7 @@
       function showGrowCard() {
         var p = byId(growQ.shift());
         if (!p) return;
+        stopPlay();
         var o = document.createElement('div'); o.className = 'ng-panel';
         o.innerHTML = '<div class="ng-card zw-card"><h2></h2><canvas></canvas><p></p><p class="muted"></p><button type="button" class="ng-btn">Hura!</button></div>';
         o.querySelector('h2').textContent = p.name + ' ' + vb(p.name, 'urósł', 'urosła') + '!';
@@ -1533,7 +1716,7 @@
         for (var i = 0; i < 9; i++) star(cg, 14 + (i * 53) % 200, 14 + (i * 37) % 60, 5, i % 2 ? '#ffe066' : '#ffb3d1');
         fitPet(cg, p.sp, p.stage, 220, 128, { wear: wearOf(p), eye: 'happy', mouth: 'open' }, 10);
         o.querySelectorAll('p')[0].textContent = p.stage >= 2 ? 'Teraz ' + p.name + ' jest ' + vb(p.name, 'dorosły', 'dorosła') + '!' : 'Teraz to już nie maluch, tylko Młode!';
-        o.querySelectorAll('p')[1].textContent = p.stage >= 2 ? 'Dziękuję za opiekę! Dalej możecie się razem bawić.' : 'Dbaj dalej o zwierzątko, a za kilka dni urośnie jeszcze bardziej.';
+        o.querySelectorAll('p')[1].textContent = p.stage >= 2 ? 'Dziękuję za opiekę! Poziomy dalej rosną.' : 'Na poziomie 20 urośnie jeszcze raz!';
         o.querySelector('.ng-btn').onclick = function () {
           if (!overlay) return;
           o.remove(); overlay = null; ctx.sfx('star');
@@ -1580,7 +1763,7 @@
       }
       function feed(p, f, free) {
         var r = R(p), s = petScale(p), G = geo(p.sp, p.stage);
-        r.walking = false; r.tx = r.x; r.ty = r.y; if (duo && (duo.a === p.id || duo.b === p.id)) duo = null;
+        stopPlay(); r.walking = false; r.tx = r.x; r.ty = r.y; if (duo && (duo.a === p.id || duo.b === p.id)) duo = null;
         var fx = r.x + r.face * (G.x1 + 10) * s;
         if (fx > LW - 24 || fx < 24) { r.face = -r.face; fx = r.x + r.face * (G.x1 + 10) * s; }
         speech = null;
@@ -1669,6 +1852,7 @@
         if (mode !== 'home' || food || !p || p.asleep) return;
         settle(Date.now());
         var friends = homePets().filter(function (q) { return q !== p && !q.asleep && q.needs.sleep < 60 && !(rt[q.id] && rt[q.id].belly > 0); });
+        stopPlay();
         [p].concat(friends).forEach(function (q) { var r = R(q); q.asleep = true; r.wakeT = -1; r.walking = false; r.belly = 0; r.roll = 0; grow(q, 'sleep'); });
         duo = null;
         ctx.sfx('close'); ctx.sticker('sleep'); cared(); persist();
@@ -1745,13 +1929,13 @@
         return best;
       }
       function toMeadow(p) {
-        p.home = false; p.asleep = false;
+        stopPlay(); p.home = false; p.asleep = false;
         delete rt[p.id];
         if (speech && speech.id === p.id) speech = null;
         if (duo && (duo.a === p.id || duo.b === p.id)) duo = null;
       }
       function toHome(p) {
-        p.home = true; p.asleep = false; p.t = Date.now();
+        stopPlay(); p.home = true; p.asleep = false; p.t = Date.now();
         NEEDS.forEach(function (k) { p.needs[k] = Math.max(p.needs[k], 70); });   // rested and happy after the meadow
         delete rt[p.id];
         var r = R(p), fs = freeSpot(p); r.x = fs[0]; r.y = fs[1]; r.tx = r.x; r.ty = r.y; r.placed = true; r.hop = 0; r.happy = 1.6; r.wanderT = rnd(3, 5);
@@ -1767,7 +1951,7 @@
           var hp = homePets(), mp = meadowPets(), bal = ctx.balance();
           note(body, 'W domku: ' + hp.length + ' z ' + save.slots + ' ' + pl(save.slots, 'miejsca', 'miejsc', 'miejsc') + '. Każde ma swoje potrzeby i rośnie od opieki.');
           hp.forEach(function (p) {
-            row(body, petThumb(p.sp, p.stage, 64, 56, wearOf(p)), p.name, SP[p.sp].n + ' · ' + STAGES[p.stage].n,
+            row(body, petThumb(p.sp, p.stage, 64, 56, wearOf(p)), p.name, SP[p.sp].n + ' · ' + STAGES[p.stage].n + ' · poz. ' + levelOf(p.gp),
               btn('Na polanę', function () {
                 if (!live(S2) || homePets().length < 2) return;
                 toMeadow(p); ctx.sfx('whoosh'); ctx.toast(p.name + ' bawi się teraz na Leśnej Polanie.');
@@ -1789,7 +1973,7 @@
             h4(body, 'Na Leśnej Polanie');
             mp.forEach(function (p) {
               var free = freeSlots() > 0;
-              row(body, petThumb(p.sp, p.stage, 64, 56, wearOf(p)), p.name, SP[p.sp].n + ' · ' + STAGES[p.stage].n + ' · za darmo',
+              row(body, petThumb(p.sp, p.stage, 64, 56, wearOf(p)), p.name, SP[p.sp].n + ' · poz. ' + levelOf(p.gp) + ' · za darmo',
                 btn(free ? 'Do domku' : 'Zamień', function () {
                   if (!live(S2) || p.home) return;
                   if (freeSlots() > 0) { toHome(p); ctx.sfx('jump'); familyChanged(); closeSheet(); later(function () { select(p); say(p, 'Hura, jestem w domku!', 2); }, 50); }
@@ -1819,7 +2003,7 @@
         var c = document.createElement('img'); c.className = 'zw-prev'; c.src = petThumb(p.sp, p.stage, 160, 100, wearOf(p)); c.style.width = '160px'; c.style.height = '100px'; c.style.background = '#e8f7d8'; body.appendChild(c);
         note(body, p.name + ' chce wrócić do domku. Kto pójdzie się bawić na Leśną Polanę?');
         homePets().forEach(function (q) {
-          row(body, petThumb(q.sp, q.stage, 64, 56, wearOf(q)), q.name, SP[q.sp].n + ' · ' + STAGES[q.stage].n,
+          row(body, petThumb(q.sp, q.stage, 64, 56, wearOf(q)), q.name, SP[q.sp].n + ' · poz. ' + levelOf(q.gp),
             btn('Na polanę', function () {
               if (!live(S2) || p.home || !q.home) return;
               toMeadow(q); toHome(p); ctx.sfx('jump'); closeSheet(); if (mode === 'polana') setMode('home'); familyChanged();
@@ -1869,7 +2053,7 @@
             bigBtn(body, 'Wróć', function () { if (!live(S2)) return; S2.step = 'name'; S2.render(); }, 'sec');
             return;
           }
-          note(body, first ? 'Kto zamieszka w Twoim domku? Pierwsze zwierzątko jest za darmo. Na początku to maluch: opiekuj się nim, a urośnie!' : 'Nowe zwierzątko: ' + ADOPT_PRICE + ' ★. Na początku to maluch.');
+          note(body, first ? 'Kto zamieszka w Twoim domku? Pierwsze zwierzątko jest za darmo. Na początku to maluch. Opieka daje poziomy, a na poziomie 10 i 20 zwierzątko urośnie!' : 'Nowe zwierzątko: ' + ADOPT_PRICE + ' ★. Na początku to maluch.');
           if (!first && bal < price) note(body, 'Za mało gwiazdek. Zbieraj je w nauce!', 'warn');
           var grid = document.createElement('div'); grid.className = 'zw-grid'; body.appendChild(grid);
           SP_ORDER.forEach(function (sp) {
@@ -1898,7 +2082,7 @@
         familyChanged();
         if (p.home) { say(p, 'Cześć! Jestem ' + p.name + '!', 2.4); burst('heart', R(p).x, R(p).y - 40 * petScale(p), 6); }
         else ctx.toast(p.name + ' ' + vb(p.name, 'zamieszkał', 'zamieszkała') + ' na Leśnej Polanie.');
-        if (first && !save.seenHelp) later(showHelp, 400);
+        if (first && !save.seenHelp) { save.seenLvl = true; later(showHelp, 400); }
       }
 
       // ---------- the meadow ----------
@@ -1923,7 +2107,7 @@
         openSheet(p.name, function (body, S2) {
           if (S2.step === 'swap') { swapStep(body, S2, p); return; }
           var img = document.createElement('img'); img.className = 'zw-prev'; img.src = petThumb(p.sp, p.stage, 160, 100, wearOf(p)); img.style.width = '160px'; img.style.height = '100px'; img.style.background = '#e8f7d8'; body.appendChild(img);
-          note(body, p.name + ' (' + SP[p.sp].n.toLowerCase() + ', ' + STAGES[p.stage].n.toLowerCase() + ') bawi się na Leśnej Polanie. Zwierzątka rosną tylko w domku, od opieki.');
+          note(body, p.name + ' (' + SP[p.sp].n.toLowerCase() + ', ' + STAGES[p.stage].n.toLowerCase() + ', poziom ' + levelOf(p.gp) + ') bawi się na Leśnej Polanie. Poziomy zdobywa tylko w domku, od opieki.');
           bigBtn(body, freeSlots() > 0 ? 'Zabierz do domku (za darmo)' : 'Zamień z kimś z domku', function () {
             if (!live(S2) || p.home) return;
             if (freeSlots() > 0) { toHome(p); ctx.sfx('jump'); closeSheet(); setMode('home'); familyChanged(); later(function () { select(p); say(p, 'Hura, jestem w domku!', 2); }, 50); }
@@ -2019,7 +2203,7 @@
         persist();
         ctx.sfx('win');
         lines.push('Humor: +' + gain + (fav ? ' (ulubiona zabawa ♥)' : ''));
-        if (gp) lines.push({ text: p.name + ' trochę ' + vb(p.name, 'urósł', 'urosła') + '!', muted: true });
+        if (gp) lines.push({ text: p.name + ': poziom ' + levelOf(p.gp) + (canGrow(p) ? '. Może urosnąć!' : ''), muted: true });
         if (fresh && score > 0) lines.push({ text: 'Nowy rekord!', muted: true });
         panel = ctx.panel({
           title: title, lines: lines, price: GAME_PRICE, note: MINI_BY[k].n, button: 'Jeszcze raz',
@@ -2103,6 +2287,7 @@
         var r = R(p);
         r.pm = 0; r.belly = 6; r.rollIn = true; r.roll = reduce ? 0 : 0.4; r.rub = 0; r.rubbed = false; r.walking = false; r.hop = -1; r.ball = 0; r.spin = 0;
         if (duo && (duo.a === p.id || duo.b === p.id)) duo = null;
+        stopPlay();
         ctx.sfx('whoosh');
         grow(p, 'pet'); cared(); persist();
         later(function () { if (p.home && R(p).belly > 0) say(p, 'Pogłaszcz mi brzuszek!', 2.2); }, reduce ? 0 : 420);
@@ -2886,6 +3071,7 @@
         if (e.button > 0 || overlay) return;
         var q = pos(e);
         if (mode === 'home') {
+          stopPlay(); playT = Math.max(playT, 10);
           if (food) return;
           var p0 = sel();
           if (p0 && q.x > plate.x && q.x < plate.x + plate.w && q.y > plate.y - 14 && q.y < plate.y + plate.h + 6) { ctx.sfx('tap'); openRename(p0); return; }
@@ -2979,6 +3165,7 @@
       }
       function busy(p, r) { return (food && food.id === p.id) || r.belly > 0 || r.roll > 0 || (drag && drag.id === p.id) || r.hop >= 0 || r.ball > 0 || r.spin > 0; }
       function updateDuo(dt) {
+        if (play) return;
         if (!duo) {
           duoT -= dt;
           if (duoT > 0) return;
@@ -3014,6 +3201,160 @@
           }
         }
       }
+      // ---------- pets playing together on their own (cosmetic: no needs, points or saves) ----------
+      // play = { k: ball|chase|hug|calm, a, b, c (a third pet watching), ph (phase), t (in phase), T (total), ... }
+      function inPlay(p) { return !!play && (play.a === p.id || play.b === p.id || play.c === p.id); }
+      function playable(p) { var r = p && p.home && !p.asleep && rt[p.id]; return !!r && !(r.belly > 0 || r.roll > 0 || r.ball > 0 || r.spin > 0 || (drag && drag.id === p.id)); }
+      function playQuiet() { return mode === 'home' && running && !overlay && !panel && !sheet && !food && !bath && !drag && !GS && !duo && !growQ.length; }
+      function stopPlay() {
+        if (!play) return;
+        [play.a, play.b, play.c].forEach(function (id) { var r = id && rt[id]; if (r) { r.walking = false; r.tx = r.x; r.ty = r.y; r.wanderT = rnd(1.5, 3); } });
+        play = null; playT = rnd(25, 60); duoT = Math.max(duoT, rnd(8, 14));
+      }
+      function faceUp(a, b) { var ra = R(a), rb = R(b); ra.face = rb.x >= ra.x ? 1 : -1; rb.face = -ra.face; }
+      function gapTo(p, x) { var r = R(p); if (Math.abs(x - r.x) > 8) r.face = x > r.x ? 1 : -1; }
+      // two spots at one depth, facing each other with `gap` units between the noses, inside the walls
+      function pairSpots(A, B, gap) {
+        var L = R(A).x <= R(B).x ? A : B, Rt = L === A ? B : A, rl = R(L), rq = R(Rt);
+        var D = gap + geo(L.sp, L.stage).x1 * petScale(L) + geo(Rt.sp, Rt.stage).x1 * petScale(Rt), lo = edge(L), hi = LW - edge(Rt);
+        D = Math.min(D, hi - lo);
+        var x = clamp((rl.x + rq.x) / 2 - D / 2, lo, hi - D), o = { y: clearY([x, x + D], clamp((rl.y + rq.y) / 2, floorY(0.1), floorY(0.9)), [A.id, B.id]) };
+        o[L.id] = x; o[Rt.id] = x + D;
+        return o;
+      }
+      // a floor depth where no other pet stands at these x (keeps y0 when it is free)
+      function clearY(xs, y0, skip) {
+        var best = y0, bd = -1;
+        [y0, floorY(0.1), floorY(0.4), floorY(0.7), floorY(0.95)].forEach(function (y, i) {
+          var md = 1e9;
+          homePets().forEach(function (o) { if (skip.indexOf(o.id) < 0) xs.forEach(function (x) { md = Math.min(md, Math.hypot(R(o).x - x, (R(o).y - y) * 1.5)); }); });
+          if (i === 0 && md > 110) md = 1e10;
+          if (md > bd) { bd = md; best = y; }
+        });
+        return best;
+      }
+      // the ball in a pet's mouth (the same spot and size as drawCritter's st.carry)
+      function mouthAt(p) {
+        var r = R(p), s = petScale(p), G = geo(p.sp, p.stage), hog = SP[p.sp].hog;
+        var lx = hog ? 3 * G.kb + 28 * G.kh : G.hx + (G.mx + 1) * G.kh, ly = hog ? -14 * G.kb + 8 * G.kh : G.hy + (G.my + 2.5) * G.kh;
+        return { x: r.x + r.face * lx * s, y: petY(p) + ly * s, r: (hog ? 4.2 : 4.6) * G.kh * s, rot: 0, a: 1 };
+      }
+      function startPlay(k) {
+        if (play || !playQuiet()) return false;
+        var free = homePets().filter(function (p) { return playable(p) && !busy(p, R(p)); });
+        if (free.length < 2) return false;
+        free.sort(function () { return Math.random() - 0.5; });
+        var A = free[0], B = free[1], ra = R(A), rb = R(B);
+        k = reduce ? 'calm' : (k === 'ball' || k === 'chase' || k === 'hug') ? k : pick(['ball', 'chase', 'hug']);
+        play = { k: k, a: A.id, b: B.id, c: free[2] ? free[2].id : 0, ph: 'go', t: 0, T: 0, n: 3 + Math.floor(Math.random() * 3), hold: 0, fly: null, beat: -1 };
+        if (k === 'ball' || k === 'hug') play.at = pairSpots(A, B, k === 'ball' ? clamp(LW * 0.3, 80, 190) : 2);
+        else if (k === 'chase') {
+          // round the rug: the runner does a lap, the chaser trots right behind its tail (no walls, no passing)
+          var run = pick([A, B]), chs = run === A ? B : A;
+          var E = play.E = { x: LW / 2, y: floorY(0.5), rx: Math.max(10, Math.min(LW / 2 - Math.max(edge(A), edge(B)) - 4, LW * 0.32, 170)), ry: (floorY(1) - floorY(0)) * 0.45 };
+          var ang = function (r) { return Math.atan2((r.y - E.y) / E.ry, (r.x - E.x) / E.rx); }, d = ang(R(run)) - ang(R(chs));
+          play.run = run.id; play.chs = chs.id; play.dir = Math.sin(d) >= 0 ? 1 : -1; play.th = ang(R(run)); play.go = 0; play.ph = 'lap';
+          play.lag = (-geo(run.sp, run.stage).x0 * petScale(run) + geo(chs.sp, chs.stage).x1 * petScale(chs) + 10) / ((E.rx + E.ry) / 2);
+          if (!speech) say(run, pick(['Goń mnie!', 'Gonisz mnie!']), 1.6);
+        } else { faceUp(A, B); ra.walking = rb.walking = false; play.ph = 'calm'; if (!speech) say(A, pick(['Cześć, ' + B.name + '!', 'Lubię Cię!']), 1.8); }
+        return true;
+      }
+      function headsY(a, b) { return Math.min(petY(a) + geo(a.sp, a.stage).top * petScale(a), petY(b) + geo(b.sp, b.stage).top * petScale(b)) - 6; }
+      function endPlay(a, b, who, line) {
+        var P = play, ra = R(a), rb = R(b);
+        P.ph = 'end'; P.t = 0; faceUp(a, b); ra.walking = rb.walking = false;
+        ra.happy = rb.happy = 1.6;
+        var c = P.c && byId(P.c); if (c) R(c).happy = 1;
+        var hx = (ra.x + rb.x) / 2, hy = headsY(a, b);
+        burst('heart', hx, hy, 3); if (P.k === 'ball') burst('spark', hx, hy, 2);
+        if (line) say(who, line, 1.6);
+        if (P.k !== 'calm') ctx.sfx('swap');
+      }
+      function updatePlay(dt) {
+        if (!play) {
+          if (playQuiet() || (duo && mode === 'home')) playT -= dt;   // the pets' own hop-together does not stop the clock
+          if (playT > 0 || !playQuiet()) return;
+          playT = rnd(4, 8);   // nobody free to play: look again soon
+          startPlay();
+          return;
+        }
+        var P = play, a = byId(P.a), b = byId(P.b), c = P.c ? byId(P.c) : null;
+        if (!playQuiet() || !playable(a) || !playable(b)) { stopPlay(); return; }
+        if (c && !playable(c)) { P.c = 0; c = null; }
+        var ra = R(a), rb = R(b), hop = function (r) { if (r.hop < 0) r.hop = 0; };
+        P.t += dt; P.T += dt;
+        if (P.ph === 'end') { if (P.t > 1.4) stopPlay(); return; }
+        if (P.T > 12) { endPlay(a, b); return; }   // safety net
+        var mid = (ra.x + rb.x) / 2;
+        if (P.k === 'calm') {
+          var bt = Math.floor(P.t / 0.8);
+          if (bt !== P.beat) { P.beat = bt; ra.happy = rb.happy = 1; burst('heart', mid, headsY(a, b), 2); }
+          if (P.t > 3) endPlay(a, b);
+        } else if (P.ph === 'go') {
+          // walk to the spots, then turn to face each other
+          var okA = moveTo(a, ra, P.at[a.id], P.at.y, dt, 1.4), okB = moveTo(b, rb, P.at[b.id], P.at.y, dt, 1.4);
+          if (okA) gapTo(a, rb.x); if (okB) gapTo(b, ra.x);
+          if ((okA && okB) || P.t > 4) {
+            if (P.k === 'chase') { var w = byId(P.who); endPlay(a, b, w, vb(w.name, 'Złapałem Cię!', 'Złapałam Cię!')); return; }
+            ra.walking = rb.walking = false; faceUp(a, b); P.ph = P.k === 'ball' ? 'hold' : 'hop'; P.t = 0; P.fy = (ra.y + rb.y) / 2;
+            if (P.k === 'ball') { var h = Math.random() < 0.5 ? a : b; P.hold = h.id; R(h).happy = 0.8; if (!speech) say(h, 'Łap!', 1.2); }
+          }
+        } else if (P.ph === 'hold') {
+          if (P.t > (P.thrown ? 0.4 : 0.6)) {
+            var from = byId(P.hold), to = from === a ? b : a;
+            if (!P.n) { endPlay(a, b, from, pick(['Jeszcze raz!', 'Ale zabawa!'])); return; }
+            var d = Math.abs(R(to).x - R(from).x);
+            P.fly = { f: from.id, to: to.id, t: 0, dur: 0.6 + d / 500, H: 26 + d * 0.22, bo: Math.random() < 0.35 };
+            if (P.thrown && !speech && Math.random() < 0.3) say(from, 'Łap!', 0.9);
+            P.hold = 0; P.n--; P.ph = 'fly'; P.t = 0; P.thrown = true;
+          }
+        } else if (P.ph === 'fly') {
+          P.fly.t += dt;
+          if (P.fly.t >= P.fly.dur) {
+            var q = byId(P.fly.to), rq = R(q);
+            P.hold = q.id; P.fly = null; P.ph = 'hold'; P.t = 0;
+            hop(rq); rq.happy = Math.max(rq.happy, 0.9);
+            if (P.n && !speech && Math.random() < 0.35) say(q, pick(['Mam!', 'Złapane!']), 1);
+          }
+        } else if (P.ph === 'hop') {
+          // hug: hop together a few times, hearts between them
+          var beat = Math.floor(P.t / 0.6);
+          if (beat !== P.beat && beat < 4) {
+            P.beat = beat; hop(ra); hop(rb); ra.happy = rb.happy = 0.7;
+            burst('heart', mid, headsY(a, b), 1, { r: function () { return rnd(6, 10); } });
+            if (beat === 0 && !speech) say(a, pick(['Hop, hop!', 'Przytulas!', 'Skaczemy!']), 1.4);
+          }
+          if (P.t > 2.5) endPlay(a, b, b, pick(['Lubię Cię!', 'Jeszcze raz!']));
+        } else if (P.ph === 'lap') {
+          // the runner follows a point going round the ellipse (the point waits if the runner lags), the chaser a point behind it
+          var run = byId(P.run), chs = byId(P.chs), rr = R(run), rc = R(chs), E = P.E;
+          var ex = function (th) { return E.x + Math.cos(th) * E.rx; }, ey = function (th) { return E.y + Math.sin(th) * E.ry; };
+          if (Math.hypot(ex(P.th) - rr.x, ey(P.th) - rr.y) < 14) { var st = Math.PI * 2 / 4.2 * dt; P.th += P.dir * st; P.go += st; }
+          moveTo(run, rr, ex(P.th), ey(P.th), dt, 3); moveTo(chs, rc, ex(P.th - P.dir * P.lag), ey(P.th - P.dir * P.lag), dt, 3.3);
+          if (P.go > Math.PI && !P.mid) { P.mid = 1; if (!speech && Math.random() < 0.6) say(chs, 'Zaraz Cię złapię!', 1.4); }
+          if (P.go >= Math.PI * 2) { P.ph = 'go'; P.t = 0; P.at = pairSpots(a, b, 4); P.who = chs.id; }   // caught: come together nose to nose
+        }
+        if (c) {   // the third pet watches the fun
+          var rcw = R(c), fb = playBall();
+          rcw.walking = false; gapTo(c, fb ? fb.x : (ra.x + rb.x) / 2);
+        }
+      }
+      // where the ball is now: in a mouth or flying in an arc (with a bounce on the floor now and then)
+      function playBall() {
+        var P = play; if (!P || P.k !== 'ball' || (!P.hold && !P.fly)) return null;
+        if (!P.fly) { var m = mouthAt(byId(P.hold)); if (P.ph === 'end') m.a = clamp((1.4 - P.t) / 0.4, 0, 1); return m; }
+        var F = P.fly, A = mouthAt(byId(F.f)), B = mouthAt(byId(F.to)), k = clamp(F.t / F.dur, 0, 1), r = A.r + (B.r - A.r) * k, y;
+        if (F.bo) { var fy = P.fy - r, k1 = k < 0.5 ? k * 2 : k * 2 - 1; y = k < 0.5 ? A.y + (fy - A.y) * k1 * k1 - 20 * k1 * (1 - k1) : fy + (B.y - fy) * (2 * k1 - k1 * k1) - 30 * k1 * (1 - k1); }
+        else y = A.y + (B.y - A.y) * k - 4 * F.H * k * (1 - k);
+        return { x: A.x + (B.x - A.x) * k, y: y, r: r, rot: P.T * 9 * (B.x > A.x ? 1 : -1), a: 1 };
+      }
+      function drawPlay(front) {
+        var b = playBall(); if (!b) return;
+        g.save(); g.globalAlpha = b.a;
+        if (!front) { if (play.fly) { var w = b.r * clamp(1.2 - (play.fy - b.y) / 160, 0.5, 1.2); g.beginPath(); g.ellipse(b.x, play.fy + 1, w, w * 0.3, 0, 0, Math.PI * 2); g.fillStyle = 'rgba(60,40,20,.15)'; g.fill(); } }
+        else { g.translate(b.x, b.y); g.rotate(b.rot); THING.pilka(g, b.r); }
+        g.restore();
+      }
       function updateHome(dt) {
         if (food) updateFood(dt);
         homePets().forEach(function (p) {
@@ -3025,10 +3366,11 @@
             if (r.zT <= 0) { r.zT = 1.1 + Math.random() * 0.3; var s = petScale(p); parts.push({ kind: 'z', x: r.x + 14 * s, y: r.y - 28 * s, vx: 14, vy: -26, t: 0, life: 2.4, r: 14 + Math.random() * 8 }); }
             if (p.needs.sleep >= 100 && r.wakeT < 0) r.wakeT = 1.6;
             if (r.wakeT > 0) { r.wakeT -= dt; if (r.wakeT <= 0) wake(p, true); }
-          } else if (busy(p, r) || (duo && (duo.a === p.id || duo.b === p.id))) { if (!(drag && drag.id === p.id)) r.walking = false; }
+          } else if (busy(p, r) || (duo && (duo.a === p.id || duo.b === p.id)) || inPlay(p)) { if (!(drag && drag.id === p.id)) r.walking = false; }
           else wander(p, r, dt);
         });
         updateDuo(dt);
+        updatePlay(dt);
         var cur = sel();
         hintT -= dt;
         if (hintT <= 0 && cur) {
@@ -3154,6 +3496,13 @@
         var hopY = SP[p.sp].hops && r.walking && pose === 'stand' && !reduce ? Math.abs(Math.sin(r.legs * 0.55)) * 7 * s : 0;   // a rabbit hops along
         g.save(); g.translate(x, y - hopY); g.rotate(wg + wob + ra * face); g.scale(s * face * sx, s * br);
         drawCritter(g, p.sp, petState(p, pose)); g.restore();
+        if (mode === 'home' && pose === 'stand' && !p.asleep && canGrow(p)) {
+          var hw = (G.x1 - G.x0) * s * 0.55, cy2 = y + G.top * s * 0.55;
+          for (var i = 0; i < 4; i++) {
+            var a = (reduce ? 0 : T * 1.4) + i * Math.PI / 2;
+            star(g, x + Math.cos(a) * hw, cy2 + Math.sin(a) * hw * 0.55, 4.5 + (reduce ? 0 : Math.sin(T * 5 + i) * 1.5), i % 2 ? '#ffe066' : '#fff4c4');
+          }
+        }
       }
       function drawSpeech() {
         if (!speech) return;
@@ -3244,6 +3593,7 @@
           } else drawSponge();
         } else {
           var list = hp.slice().sort(function (a, b) { return R(a).y - R(b).y; });
+          drawPlay(false);
           list.forEach(function (p) {
             if (food && food.id === p.id) {
               var f = food, fy = f.y - (1 - f.drop) * 140, rad = 13 * HS / 2.2 * (1 - f.bites * 0.25);
@@ -3251,6 +3601,7 @@
             }
             drawPetHome(p);
           });
+          drawPlay(true);
           if (!hp.length) text('Tu zamieszka Twoje zwierzątko!', LW / 2, floorY(0.4), 26, PURPLE);
         }
         drawParts(function (p) { return p.kind !== 'z'; });
@@ -3331,34 +3682,51 @@
         save.seenHelp = true; persist();
         panel = ctx.panel({
           title: 'Zwierzątko', closable: false, button: 'Do domku',
-          lines: ['To jest ' + p.name + ', Twój maluch!', 'Karm, kąp, usypiaj i baw się. Od opieki zwierzątko rośnie.', 'Głaszcz je palcem. Po dobrym głaskaniu wystawi brzuszek!',
+          lines: ['To jest ' + p.name + ', Twój maluch!', 'Karm, kąp, usypiaj i baw się. Za opiekę są poziomy. Na poziomie 10 i 20 dotknij „Urośnij!”.', 'Głaszcz je palcem. Po dobrym głaskaniu wystawi brzuszek!',
             { text: 'Nic złego się nie stanie. Dotknij tabliczki z imieniem, żeby je zmienić. W Rodzinie adoptujesz więcej zwierzątek.', muted: true }],
           onPlay: function () { panel = null; var q = sel(); if (q) { R(q).hop = 0; say(q, 'Cześć! Jestem ' + q.name + '!', 2.4); } }
         });
       }
       function showNews() {
         var p = sel(); if (!p || panel) return;
-        save.seenV2 = true; save.seenHelp = true; persist();
+        save.seenV2 = true; save.seenHelp = true; save.seenLvl = true; persist();
         panel = ctx.panel({
           title: 'Nowości w domku!', closable: false, button: 'Super!',
-          lines: [p.stage >= 2 ? p.name + ' jest już ' + vb(p.name, 'dorosły', 'dorosła') + '!' : p.name + ' to jeszcze ' + (p.stage ? 'Młode' : 'Maluch') + '. Od opieki urośnie!','W Rodzinie adoptujesz lisa, fenka, wiewiórkę, borsuka, chomika, świnkę morską, królika albo kotka. W domku zmieszczą się trzy naraz!',
+          lines: [p.name + ' ma poziom ' + levelOf(p.gp) + '. Za opiekę są poziomy, a na poziomie 10 i 20 dotknij „Urośnij!”.','W Rodzinie adoptujesz lisa, fenka, wiewiórkę, borsuka, chomika, świnkę morską, królika albo kotka. W domku zmieszczą się trzy naraz!',
             'Głaszcz zwierzątko palcem, a wystawi brzuszek. Jest też 5 nowych zabaw.'],
           onPlay: function () { panel = null; var q = sel(); if (q) { R(q).hop = 0; R(q).happy = 1.5; say(q, 'Hura! Będę mieć przyjaciół!', 2.4); } }
+        });
+      }
+
+      function showLevels() {
+        var p = sel(); if (!p || panel) return;
+        save.seenLvl = true; persist();
+        panel = ctx.panel({
+          title: 'Nowość: poziomy!', closable: false, button: 'Super!',
+          lines: ['Każde zwierzątko ma teraz swój poziom. ' + p.name + ' ma poziom ' + levelOf(p.gp) + '.', 'Karmienie, kąpiel, spanie, głaskanie i zabawy dają punkty.',
+            'Na poziomie 10 i 20 pojawi się przycisk „Urośnij!”. Dotknij go, a zwierzątko urośnie!'],
+          onPlay: function () { panel = null; var q = sel(); if (q) { R(q).hop = 0; R(q).happy = 1.5; say(q, canGrow(q) ? 'Hura! Mogę urosnąć!' : 'Zbieramy poziomy!', 2.4); } syncGrow(); }
         });
       }
 
       // test hook (read-only use)
       cv._zw = function () {
         return {
-          mode: mode, S: S, LW: LW, LH: LH, HS: HS, FY: FY, sel: save.sel, slots: save.slots, basketLeft: save.basketLeft, food: !!food, dark: dark, plate: plate, duo: !!duo, growQ: growQ.length, overlay: !!overlay,
+          mode: mode, S: S, LW: LW, LH: LH, HS: HS, FY: FY, sel: save.sel, slots: save.slots, basketLeft: save.basketLeft, food: !!food, dark: dark, plate: plate, duo: !!duo, growQ: growQ.length, overlay: !!overlay, growBtn: !growBtn.hidden,
           pets: save.pets.map(function (p) {
             var r = p.home ? R(p) : MR(p), pose = p.home ? poseOf(p) : 'stand', G = geo(p.sp, p.stage, pose);
-            return { id: p.id, sp: p.sp, name: p.name, stage: p.stage, gp: p.gp, gToday: p.gToday || 0, home: p.home, asleep: p.asleep, needs: p.needs, wear: wearOf(p),
+            return { id: p.id, sp: p.sp, name: p.name, stage: p.stage, gp: p.gp, lvl: levelOf(p.gp), ready: canGrow(p), gToday: p.gToday || 0, home: p.home, asleep: p.asleep, needs: p.needs, wear: wearOf(p),
               x: r.x, y: p.home ? petY(p) : r.y, s: p.home ? petScale(p) : meadowScale(p), face: r.face, belly: r.belly || 0, pm: r.pm || 0, pose: pose,
               box: { x0: G.x0, x1: G.x1, top: G.top, hx: G.hx, hy: G.hy, hr: G.hr, cx: G.cx, cy: G.cy, rx: G.rx } };
           }),
           gs: GS ? JSON.parse(JSON.stringify(GS, function (k, v) { return k === 'btns' ? undefined : v; })) : null
         };
+      };
+
+      // debug hook (tests only): NG_DEBUG.zwierzak.play('ball' | 'chase' | 'hug') starts a scene now if two pets are free
+      if (window.NG_DEBUG) window.NG_DEBUG.zwierzak = {
+        play: function (k) { return startPlay(k); }, stop: stopPlay,
+        scene: function () { return play ? JSON.parse(JSON.stringify(play)) : null; }, ball: function () { return playBall(); }, state: cv._zw
       };
 
       // ---------- boot ----------
@@ -3376,6 +3744,7 @@
       if (!save.pets.length) openAdopt();
       else if (!save.seenV2) showNews();
       else if (!save.seenHelp) showHelp();
+      else if (!save.seenLvl) showLevels();
       else if (first && first.asleep) say(first, 'Chrr...', 1.5);
       else if (first && away > 6 * 3600000) {
         homePets().forEach(function (p) { var r = R(p); r.hop = 0; r.happy = 1.5; });
@@ -3386,10 +3755,10 @@
       persist();
 
       return {
-        pause: function () { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; persist(); },
+        pause: function () { stopPlay(); running = false; if (raf) cancelAnimationFrame(raf); raf = 0; persist(); },
         resume: function () { if (running) return; running = true; settle(Date.now()); updateHud(); start(); },
         destroy: function () {
-          running = false; if (raf) cancelAnimationFrame(raf); raf = 0;
+          stopPlay(); running = false; if (raf) cancelAnimationFrame(raf); raf = 0;
           if (GS && !GS.done && MG[mode]) { try { addNeed(sel(), 'fun', 25 * clamp(MG[mode].frac(), 0, 1)); } catch (e) {} }
           persist();
           timers.forEach(clearTimeout); timers = [];
