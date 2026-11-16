@@ -279,6 +279,16 @@
     rr(g, -r * 0.45, -r * 0.2, r * 0.9, r * 0.6, r * 0.12); g.fillStyle = '#fff4d6'; g.fill(); g.lineWidth = Math.max(0.8, r * 0.07); g.strokeStyle = INK; g.stroke();
     g.font = Math.round(r * 0.5) + 'px ' + FONT; g.fillStyle = '#b5651d'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('MIÓD', 0, r * 0.1);
   };
+  THING.mleko = function (g, r) {
+    g.beginPath(); g.ellipse(0, -r * 0.1, r * 1.05, r * 0.32, 0, 0, Math.PI * 2); g.fillStyle = '#fffdf6'; g.fill();
+    g.beginPath(); g.moveTo(-r * 1.05, -r * 0.1); g.quadraticCurveTo(-r * 0.95, r * 0.75, 0, r * 0.75); g.quadraticCurveTo(r * 0.95, r * 0.75, r * 1.05, -r * 0.1);
+    g.ellipse(0, -r * 0.1, r * 1.05, r * 0.32, 0, 0, Math.PI, false); g.closePath();
+    g.fillStyle = '#7fb6ea'; g.fill(); outline(g, Math.max(1, r * 0.13));
+    g.beginPath(); g.ellipse(0, -r * 0.1, r * 1.05, r * 0.32, 0, 0, Math.PI * 2); outline(g, Math.max(1, r * 0.13));
+    g.beginPath(); g.ellipse(-r * 0.25, -r * 0.14, r * 0.3, r * 0.08, 0, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
+    g.beginPath(); g.moveTo(-r * 0.55, r * 0.3); g.quadraticCurveTo(0, r * 0.45, r * 0.55, r * 0.3); g.strokeStyle = '#fff'; g.lineWidth = Math.max(1, r * 0.1); g.stroke();
+    heart(g, 0, r * 0.33, r * 0.16, '#ff7eb6');
+  };
   THING.pilka = function (g, r) {
     g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.fillStyle = '#f5d84a'; g.fill(); outline(g, Math.max(1, r * 0.16));
     g.save(); g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.clip();
@@ -342,8 +352,35 @@
       eye: { x: 0.36, y: -0.2, r: 2.6 }, mark: 'guinea', p1: '#b9682f', p2: '#3a2a24', whisk: true
     }
   };
-  var SP_ORDER = ['jez', 'lis', 'fenek', 'wiew', 'borsuk', 'chomik', 'swinka'];
-  var SP_STICKER = { jez: '🦔', lis: '🦊', fenek: '🏜️', wiew: '🐿️', borsuk: '🦡', chomik: '🐹', swinka: '🥕' };
+  // rabbit: long upright ears (a baby's flop back a bit), white puff tail, big hind feet, hops
+  SP.krolik = {
+    n: 'Królik', names: ['Kicek', 'Puszek', 'Śnieżka', 'Tuptuś'], fav: ['marchewka', 'salata'], game: 'dance', hops: true, twitch: true,
+    col: '#a8927e', head: '#a8927e', leg: '#a8927e', belly: '#f5eee4', bl: 36, bh: 27, legH: 4, legW: 5, bx: 0, hind: true,
+    nk: [0.55, -0.45], neck: false, hdx: 3, hdy: -9, hr: 11, hw: 1, snout: { t: 'round', l: 5, h: 5.5, y: 3 }, nose: '#e58a95', nr: 1.7,
+    ear: { t: 'petal', x: -2.5, y: -7, w: 7.5, h: 24, ang: -0.2, col: '#a8927e', inner: '#f6bcc4', flop: -0.75 },
+    puff: { r: 6.5, col: '#ffffff' },
+    eye: { x: 0.28, y: -0.15, r: 2.9 }, low: '#f1e7da', whisk: true
+  };
+  // long-haired pale grey cat with one dark stripe from the head along the back to the tail tip
+  SP.kotsz = {
+    n: 'Kot szary', names: ['Szaruś', 'Popiel', 'Mruczek', 'Pręgus'], fav: ['mleko', 'ciastko'], game: 'bubbles', cat: true, fluffy: true,
+    col: '#bcc0c9', head: '#bcc0c9', leg: '#bcc0c9', belly: '#e6e8ee', bl: 44, bh: 24, legH: 9, legW: 5, bx: 0,
+    nk: [0.62, -0.45], hdx: 5, hdy: -8, hr: 11.5, hw: 1, snout: { t: 'round', l: 4, h: 5, y: 3.2 }, nose: '#e58a95', nr: 1.7,
+    ear: { t: 'point', x: -1, y: -7, w: 9.5, h: 11, ang: 0.12, col: '#bcc0c9', inner: '#f6bcc4' },
+    tail: { c: [[-14, 1], [-30, -1], [-38, -16]], r: 7.5, col: '#bcc0c9', n: 13, stripe: '#6b6f7b' },
+    eye: { x: 0.32, y: -0.14, r: 2.8 }, iris: '#e3b23c', low: '#eceef2', whisk: true, mark: 'stripe', dark: '#6b6f7b'
+  };
+  // sleek flame-ginger tabby: slim, a long thin tail curling up, green eyes
+  SP.kotr = {
+    n: 'Kot rudy', names: ['Płomyk', 'Iskra', 'Miodek', 'Rudzia'], fav: ['mleko', 'jajko'], game: 'hide', cat: true,
+    col: '#f39a3a', head: '#f39a3a', leg: '#f39a3a', belly: '#ffc98a', bl: 42, bh: 18, legH: 12, legW: 3.6, bx: 0,
+    nk: [0.64, -0.45], hdx: 5, hdy: -9, hr: 10.5, hw: 1, snout: { t: 'round', l: 3.8, h: 4.6, y: 3 }, nose: '#e58a95', nr: 1.6,
+    ear: { t: 'point', x: -1, y: -6.5, w: 9, h: 11, ang: 0.12, col: '#f39a3a', inner: '#f6bcc4' },
+    tail: { c: [[-10, -1], [-22, -6], [-22, -30]], r: 4.2, col: '#f39a3a', n: 14, rings: '#c25e17' },
+    eye: { x: 0.32, y: -0.14, r: 2.8 }, iris: '#5cbc4b', low: '#ffd29e', whisk: true, mark: 'tabby', dark: '#c25e17'
+  };
+  var SP_ORDER = ['jez', 'lis', 'fenek', 'wiew', 'borsuk', 'chomik', 'swinka', 'krolik', 'kotsz', 'kotr'];
+  var SP_STICKER = { jez: '🦔', lis: '🦊', fenek: '🏜️', wiew: '🐿️', borsuk: '🦡', chomik: '🐹', swinka: '🥕', krolik: '🐰', kotsz: '🐈', kotr: '🐱' };
 
   // big animals (a fox with its tail) are drawn a bit smaller at home and on the meadow, so three fit in the room
   var sizeKs = {};
@@ -376,7 +413,7 @@
       tipX: tipX, mx: mx, my: my, rot: 0,
       x0: cx - rx - 3,
       x1: hx + tipX * kh2 + 2,
-      top: hy - (P.hr + P.ear.h * 0.8 - P.ear.y * 0.15) * kh2,
+      top: Math.min(hy - (P.hr + P.ear.h * 0.8 - P.ear.y * 0.15) * kh2, hy + kh2 * (P.ear.y - P.ear.h * Math.cos(P.ear.ang + earFlop(P, stage))) - 2.5),
       back: { x: cx - rx * 0.05, y: cy - ry * 0.98 },
       mouth: { x: hx + mx * kh2, y: hy + my * kh2 } };
     if (pose === 'belly') {
@@ -389,6 +426,10 @@
       o.x0 = -rx - 3;
       o.mouth = { x: o.hx + kh2 * (mx * Math.cos(rot) - my * Math.sin(rot)), y: o.hy + kh2 * (mx * Math.sin(rot) + my * Math.cos(rot)) };
     }
+    if (P.puff) {
+      o.puff = pose === 'belly' ? { x: o.cx - rx * 0.92, y: o.cy + o.ry * 0.25 } : { x: cx - rx * 0.98, y: cy - ry * 0.12 };
+      o.x0 = Math.min(o.x0, o.puff.x - P.puff.r * kb2 * 1.15 - 3);
+    }
     if (P.tail) {
       // the tail's real extent (a bushy squirrel tail curls far up and back)
       o.tailBase = pose === 'belly' ? { x: o.cx - rx * 0.9, y: o.cy + o.ry * 0.35 } : P.tail.low ? { x: cx - rx * 0.8, y: cy + ry * 0.35 } : { x: cx - rx * 0.9, y: cy - ry * 0.1 };
@@ -397,6 +438,7 @@
     return o;
   }
   var BELLY_ROT = -0.55;
+  function earFlop(P, stage) { return P.ear.flop ? P.ear.flop * [1, 0.35, 0][stage | 0] : 0; }
 
   // ---------- hedgehog (the Jeżyk w biegu drawing, split into body + face so the young get a big face) ----------
   var APPLE_SPOTS = [262, 236, 290, 212, 316, 249, 276, 224, 303, 196, 256, 284];
@@ -517,13 +559,17 @@
 
   // ---------- shared face parts ----------
   function isBlink(st) { var p = (st.t || 0) + (st.seed || 0) * 1.7; return (p % 3.6) > 3.45; }
-  function drawEye(g, x, y, r, mode, blink, ring) {
+  function drawEye(g, x, y, r, mode, blink, ring, iris) {
     var lw = Math.max(1.3, r * 0.68);
     if (mode === 'open' || mode === 'sad' || !mode) {
       if (blink) { g.beginPath(); g.moveTo(x - r * 0.95, y); g.quadraticCurveTo(x, y + r * 0.6, x + r * 0.95, y); outline(g, lw); }
       else {
         if (ring) { g.beginPath(); g.arc(x, y, r * 1.45, 0, Math.PI * 2); g.fillStyle = '#fbfbf6'; g.fill(); }
         g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fillStyle = INK; g.fill();
+        if (iris) {   // cat eyes: coloured iris, tall pupil
+          g.beginPath(); g.arc(x, y, r * 0.78, 0, Math.PI * 2); g.fillStyle = iris; g.fill();
+          g.beginPath(); g.ellipse(x + r * 0.05, y, r * 0.32, r * 0.62, 0, 0, Math.PI * 2); g.fillStyle = INK; g.fill();
+        }
         g.beginPath(); g.arc(x + r * 0.3, y - r * 0.35, r * 0.36, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
         g.beginPath(); g.arc(x - r * 0.32, y + r * 0.35, r * 0.15, 0, Math.PI * 2); g.fill();
       }
@@ -614,10 +660,26 @@
     g.beginPath(); pts.forEach(function (p) { g.moveTo(p.x + p.r, p.y); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); });
     g.lineWidth = 4.2; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke(); g.fillStyle = P.tail.col; g.fill();
     if (P.tail.tip) { g.beginPath(); pts.forEach(function (p) { if (p.tip) { g.moveTo(p.x + p.r, p.y); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); } }); g.fillStyle = P.tail.tip; g.fill(); }
+    if (P.tail.stripe || P.tail.rings) {
+      g.save(); g.beginPath(); pts.forEach(function (p) { g.moveTo(p.x + p.r, p.y); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); }); g.clip();
+      g.beginPath();
+      if (P.tail.stripe) { pts.forEach(function (p, j) { if (j) g.lineTo(p.x, p.y); else g.moveTo(p.x, p.y); }); g.lineWidth = P.tail.r * 0.5 * Math.max(0.6, pts[Math.floor(pts.length / 2)].r / P.tail.r); g.strokeStyle = P.tail.stripe; }
+      else {
+        for (var q = 2; q < pts.length - 1; q += 2) { var a = pts[q - 1], b = pts[q + 1], nx = -(b.y - a.y), ny = b.x - a.x, nl = Math.hypot(nx, ny) || 1; g.moveTo(pts[q].x + nx / nl * pts[q].r * 1.2, pts[q].y + ny / nl * pts[q].r * 1.2); g.lineTo(pts[q].x - nx / nl * pts[q].r * 1.2, pts[q].y - ny / nl * pts[q].r * 1.2); }
+        g.lineWidth = P.tail.r * 0.42; g.strokeStyle = P.tail.rings;
+      }
+      g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke(); g.restore();
+    }
     // a few fur strokes
     g.beginPath();
     for (var i = 2; i < pts.length - 1; i += 3) { var p = pts[i]; g.moveTo(p.x - p.r * 0.3, p.y - p.r * 0.2); g.lineTo(p.x + p.r * 0.2, p.y + p.r * 0.1); }
     g.strokeStyle = 'rgba(29,47,111,.25)'; g.lineWidth = 1.2; g.stroke();
+  }
+  function drawPuff(g, P, G) {
+    var c = G.puff, r = P.puff.r * Math.max(0.75, G.kb);
+    g.beginPath();
+    for (var i = 0; i <= 18; i++) { var a = i / 18 * Math.PI * 2, rr2 = r * (i % 2 ? 0.88 : 1.08); if (i) g.lineTo(c.x + Math.cos(a) * rr2, c.y + Math.sin(a) * rr2); else g.moveTo(c.x + rr2, c.y); }
+    g.closePath(); g.fillStyle = P.puff.col; g.fill(); outline(g, 2);
   }
   function leg(g, x0, y0, x1, y1, w, col) {
     g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineCap = 'round';
@@ -634,7 +696,19 @@
       g.fillStyle = '#2d2d39'; g.fill();
     }
     if (P.mark === 'guinea') { g.beginPath(); g.arc(-r * 0.15, -r * 0.45, r * 0.85, 0, Math.PI * 2); g.fillStyle = P.p1; g.fill(); }
+    if (P.mark === 'stripe') { g.beginPath(); g.ellipse(-r * 0.55, -r * 0.92, r * 0.8, r * 0.3, 0.25, 0, Math.PI * 2); g.fillStyle = P.dark; g.fill(); }
+    if (P.mark === 'tabby') {
+      // the forehead "M" and a cheek stripe
+      g.beginPath(); g.moveTo(-r * 0.05, -r * 0.98); g.lineTo(r * 0.12, -r * 0.62); g.moveTo(r * 0.3, -r * 0.95); g.lineTo(r * 0.36, -r * 0.62); g.moveTo(-r * 0.4, -r * 0.9); g.lineTo(-r * 0.16, -r * 0.58);
+      g.moveTo(-r * 0.75, r * 0.05); g.quadraticCurveTo(-r * 0.4, -r * 0.05, -r * 0.15, r * 0.12);
+      g.strokeStyle = P.dark; g.lineWidth = r * 0.13; g.lineCap = 'round'; g.stroke();
+    }
     g.restore();
+    if (P.fluffy) {
+      // long-haired: a fluffy ruff along the back of the cheeks
+      g.beginPath(); for (var fi = 0; fi < 5; fi++) { var fa = 1.75 + fi * 0.32; g.moveTo(Math.cos(fa) * r * 0.95, Math.sin(fa) * r * 0.95); g.lineTo(Math.cos(fa + 0.14) * r * 1.22, Math.sin(fa + 0.14) * r * 1.22); g.lineTo(Math.cos(fa + 0.3) * r * 0.95, Math.sin(fa + 0.3) * r * 0.95); }
+      g.fillStyle = P.head; g.fill(); g.lineWidth = 1.6; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke();
+    }
     if (P.chub) {
       g.beginPath(); g.arc(P.chub.x, P.chub.y, P.chub.r, 0, Math.PI * 2); g.fillStyle = P.chub.col; g.fill();
       g.beginPath(); g.arc(P.chub.x, P.chub.y, P.chub.r, Math.PI * 1.05, Math.PI * 1.75); g.strokeStyle = 'rgba(29,47,111,.45)'; g.lineWidth = 1.3; g.stroke();
@@ -652,13 +726,13 @@
     // nose
     if (s.t === 'point') { g.beginPath(); g.ellipse(G.tipX - 0.6, s.y - 0.3, P.nr * 1.1, P.nr * 0.9, 0, 0, Math.PI * 2); g.fillStyle = P.nose; g.fill(); }
     else {
-      var nx = r * 0.55 + s.l * 0.85, ny = s.y - s.h * 0.3;
+      var nx = r * 0.55 + s.l * 0.85, ny = s.y - s.h * 0.3 + (P.twitch ? Math.sin((st.t || 0) * 17) * (Math.sin((st.t || 0) * 1.3) > 0.2 ? 0.45 : 0) : 0);
       g.beginPath(); g.moveTo(nx - P.nr, ny - P.nr * 0.6); g.lineTo(nx + P.nr * 0.9, ny - P.nr * 0.6); g.lineTo(nx, ny + P.nr * 0.8); g.closePath();
       g.fillStyle = P.nose; g.fill(); outline(g, 1);
     }
     drawMouth(g, G.mx, G.my, st.mouth, P.hr / 12);
     // eye
-    drawEye(g, P.eye.x * r, P.eye.y * r, P.eye.r * eyeK, eye, isBlink(st), P.ring);
+    drawEye(g, P.eye.x * r, P.eye.y * r, P.eye.r * eyeK, eye, isBlink(st), P.ring, P.iris);
     if (st.carry) { g.save(); g.translate(G.mx + 1, G.my + 2.5); THING.pilka(g, 4.6); g.restore(); }
   }
   function headWear(g, P, st, eyeK) {
@@ -685,18 +759,24 @@
     var fy = -lw / 2 + 0.5, farCol = shade(P.leg, 0.78);
     // far legs + tail (behind)
     var fo = lw * 1.25;
-    if (!sleep) { leg(g, lx0 + fo, legTop, lx0 + fo + sw, fy - 1, lw, farCol); leg(g, lx1 + fo, legTop, lx1 + fo - sw, fy - 1, lw, farCol); }
+    if (!sleep) {
+      leg(g, lx0 + fo, legTop, lx0 + fo + sw, fy - 1, lw, farCol); leg(g, lx1 + fo, legTop, lx1 + fo - sw, fy - 1, lw, farCol);
+      if (P.hind) { g.beginPath(); g.ellipse(lx0 + fo + 2 * G.kb + sw, -3.4 * G.kb, 7.5 * G.kb, 2.8 * G.kb, 0, 0, Math.PI * 2); g.fillStyle = farCol; g.fill(); outline(g, 1.8); }
+    }
     var tp = null;
     if (P.tail) { tp = tailPts(P, G, st, G.tailBase, false); drawTail(g, P, tp); }
+    if (P.puff) drawPuff(g, P, G);
     // ears (behind the head)
+    var ef = earFlop(P, st.stage);
     g.save(); HT();
-    drawEar(g, P.ear, true, 0);
-    if (!P.ear.front) drawEar(g, P.ear, false, st.earRot || 0);
+    drawEar(g, P.ear, true, ef);
+    if (!P.ear.front) drawEar(g, P.ear, false, ef + (st.earRot || 0));
     g.restore();
     if (st.wear && st.wear.neck === 'szalik') { g.save(); var sa = scarfAt(P, G); g.translate(sa.x, sa.y); g.rotate(sa.a); g.scale(G.kh * 0.72, G.kh * 0.72); g.translate(-2, 2); WEAR.szalikTail(g, t); g.restore(); }
     // near legs
     if (!sleep) {
       leg(g, lx0, legTop, lx0 - sw, fy, lw, P.leg);
+      if (P.hind) { g.beginPath(); g.ellipse(lx0 + 2 * G.kb - sw, -2.6 * G.kb, 8 * G.kb, 3 * G.kb, 0, 0, Math.PI * 2); g.fillStyle = P.leg; g.fill(); outline(g, 1.8); }
       leg(g, lx1, legTop, lx1 + sw, fy, lw, P.leg);
       if (st.wave != null) { var wa = -1.2 + Math.sin(st.wave) * 0.5; leg(g, G.nx, G.ny + G.ry * 0.3, G.nx + Math.cos(wa) * 14 * G.kb, G.ny + G.ry * 0.3 + Math.sin(wa) * 14 * G.kb, lw, P.leg); }
     } else {
@@ -722,12 +802,35 @@
       g.beginPath(); g.ellipse(G.cx - G.rx * 0.78, G.cy - G.ry * 0.1, G.rx * 0.45, G.ry * 0.95, 0, 0, Math.PI * 2); g.fillStyle = P.p2; g.fill();
     }
     if (P.mark === 'badger') { g.beginPath(); g.ellipse(G.cx - G.rx * 0.1, G.cy - G.ry * 1.05, G.rx * 0.9, G.ry * 0.45, 0, 0, Math.PI * 2); g.fillStyle = shade(P.col, 0.85); g.fill(); }
+    if (P.mark === 'stripe') {
+      // one dark stripe along the back and up the neck
+      g.beginPath(); g.moveTo(G.cx - G.rx * 1.05, G.cy - G.ry * 0.62); g.quadraticCurveTo(G.cx, G.cy - G.ry * 1.25, G.cx + G.rx * 0.7, G.cy - G.ry * 0.85);
+      if (neck) g.lineTo(G.hx - G.hr * 0.55, G.hy - G.hr * 0.45);
+      g.strokeStyle = P.dark; g.lineWidth = G.ry * 0.42; g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke();
+    }
+    if (P.mark === 'tabby') {
+      g.beginPath();
+      [-0.62, -0.3, 0.02, 0.34].forEach(function (f) { var x = G.cx + G.rx * f; g.moveTo(x - G.rx * 0.08, G.cy - G.ry * 1.05); g.quadraticCurveTo(x + G.rx * 0.07, G.cy - G.ry * 0.5, x - G.rx * 0.02, G.cy + G.ry * 0.05); });
+      g.strokeStyle = P.dark; g.lineWidth = Math.max(1.6, G.ry * 0.17); g.lineCap = 'round'; g.stroke();
+    }
+    if (P.hind) { g.beginPath(); g.arc(G.cx - G.rx * 0.42, G.cy + G.ry * 0.28, G.ry * 0.62, Math.PI * 1.05, Math.PI * 1.95); g.strokeStyle = 'rgba(29,47,111,.45)'; g.lineWidth = 1.6; g.stroke(); }
     var nd = Math.round((st.dirt || 0) * 6);
     for (var m = 0; m < nd; m++) {
       var dp = [[-0.4, -0.3, 3.2], [0.2, -0.55, 2.6], [-0.1, 0.2, 2.4], [0.45, -0.1, 2.2], [-0.7, 0.05, 2.8], [0.05, -0.2, 3]][m];
       g.beginPath(); g.ellipse(G.cx + dp[0] * G.rx, G.cy + dp[1] * G.ry, dp[2] * 1.3 * G.kb, dp[2] * G.kb, 0.4, 0, Math.PI * 2); g.fillStyle = 'rgba(110,84,52,.7)'; g.fill();
     }
     g.restore();
+    if (P.fluffy && !sleep) {
+      // long fur hanging under the tummy and a ruff on the chest
+      g.beginPath();
+      for (var fu = 0; fu < 6; fu++) {
+        var a0 = Math.PI * (0.18 + fu * 0.11), a1 = a0 + Math.PI * 0.055, a2 = a0 + Math.PI * 0.11;
+        g.moveTo(G.cx + Math.cos(a0) * G.rx * 0.98, G.cy + Math.sin(a0) * G.ry * 0.98);
+        g.lineTo(G.cx + Math.cos(a1) * G.rx * 1.08, G.cy + Math.sin(a1) * G.ry * 1.22);
+        g.lineTo(G.cx + Math.cos(a2) * G.rx * 0.98, G.cy + Math.sin(a2) * G.ry * 0.98);
+      }
+      g.fillStyle = P.col; g.fill(); g.lineWidth = 1.8; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke();
+    }
     if (sleep) drawBlanket(g, G);
     // head
     g.save(); HT();
@@ -764,11 +867,13 @@
       var x0 = cx + rx * L[0], y0 = cy - ry * 0.4, dx = L[1] * ll * 0.45 + (i % 2 ? w : -w), col = L[2] < 1 ? shade(P.leg, 0.8) : P.leg;
       if (P.legH < 6) {
         // hamster, guinea pig: tiny round paws waving just above the tummy (long sticks would look like ears)
-        var top = cy - ry * Math.sqrt(Math.max(0, 1 - L[0] * L[0])), pr = lw * 0.62;
+        var top = cy - ry * Math.sqrt(Math.max(0, 1 - L[0] * L[0])), pr = lw * (P.hind ? 0.85 : 0.62);
         g.beginPath(); g.ellipse(x0 + dx * 0.3, top - pr * 0.95, pr, pr * 1.2, L[1] * 0.35, 0, Math.PI * 2); g.fillStyle = col; g.fill(); outline(g, 1.8);
       } else leg(g, x0, y0, x0 + dx, cy - ry - ll, lw, col);
     });
-    g.save(); HT(); drawEar(g, P.ear, true, 0); if (!P.ear.front) drawEar(g, P.ear, false, 0.3); g.restore();
+    var ef = earFlop(P, st.stage) + (P.ear.h > 20 && P.ear.t === 'petal' ? 1.25 : 0);   // long rabbit ears flop down onto the floor
+    g.save(); HT(); drawEar(g, P.ear, true, ef); if (!P.ear.front) drawEar(g, P.ear, false, ef + 0.3); g.restore();
+    if (P.puff) drawPuff(g, P, G);
     g.beginPath(); g.moveTo(cx + rx, cy); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     g.save(); HT(); headShape(g, P); g.restore();
     g.lineWidth = 4.4; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke();
@@ -790,6 +895,7 @@
     { k: 'jablko',    n: 'Jabłko',     price: 10, food: 20 },
     { k: 'marchewka', n: 'Marchewka',  price: 10, food: 20 },
     { k: 'salata',    n: 'Sałata',     price: 12, food: 22 },
+    { k: 'mleko',     n: 'Miseczka mleka', price: 12, food: 24 },
     { k: 'ziarenka',  n: 'Ziarenka',   price: 12, food: 22 },
     { k: 'szyszka',   n: 'Szyszka',    price: 12, food: 22 },
     { k: 'gruszka',   n: 'Gruszka',    price: 12, food: 25 },
@@ -856,9 +962,9 @@
     '.zw{display:flex;flex-direction:column;font-family:' + FONT + ';color:#1d2f6f;background:#fbe6c8}',
     '.zw-top{flex:none;display:flex;gap:5px;padding:5px 6px 0;background:#fff}',
     '.zw-chip{flex:1 1 0;min-width:0;max-width:150px;min-height:50px;border:2px solid #1d2f6f;border-radius:14px;background:#fff;color:inherit;font:inherit;display:flex;align-items:center;gap:3px;padding:2px 5px 2px 2px;position:relative}',
-    '.zw-chip canvas{width:46px!important;height:40px!important;flex:none}',
+    '.zw-chip canvas{width:42px!important;height:37px!important;flex:none}',
     '.zw-chip .tx{flex:1;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:2px;line-height:1}',
-    '.zw-chip .nm{font-size:1.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}',
+    '.zw-chip .nm{font-size:1.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}',
     '.zw-chip .st{font-size:.82rem;color:#7a4fc4;text-align:left;white-space:nowrap;overflow:hidden}',
     '.zw-gb{display:block;height:7px;border:1.5px solid #1d2f6f;border-radius:5px;background:#f1ecfb;overflow:hidden}',
     '.zw-gb i{display:block;height:100%;background:#9b74dc;transition:width .6s ease}',
@@ -1236,6 +1342,7 @@
           b.setAttribute('aria-label', p.name);
           b.innerHTML = '<canvas width="92" height="80"></canvas><span class="tx"><span class="nm"></span><span class="st"></span><span class="zw-gb"><i></i></span></span>';
           b.querySelector('.nm').textContent = p.name;
+          if (p.name.length >= 7) b.querySelector('.nm').style.fontSize = p.name.length >= 8 ? '.86rem' : '.96rem';   // long names shrink a little instead of being cut
           b.querySelector('.st').textContent = STAGES[p.stage].n;
           b.querySelector('.zw-gb i').style.width = Math.round(growFrac(p) * 100) + '%';
           var c = b.querySelector('canvas'), cg = c.getContext('2d'); cg.scale(2, 2);
@@ -1983,7 +2090,8 @@
         if (r.acc > 45) {
           r.acc = 0;
           var z = zoneAt(p, x, y);
-          if (z === 'head') { r.purr = 0.9; if (T - (r.purrS || 0) > 0.55) { r.purrS = T; purr(); } if (Math.random() < 0.08 && !speech) say(p, 'Mrrr...', 1.1); }
+          if (SP[p.sp].cat && z !== 'cheek') { r.purr = 0.9; if (T - (r.purrS || 0) > 0.45) { r.purrS = T; purr(); } if (Math.random() < 0.14 && !speech) say(p, pick(['Mrrr...', 'Mrrau!', 'Mrr, mrr...']), 1.1); if (z === 'tail') r.wagT = 1; }
+          else if (z === 'head') { r.purr = 0.9; if (T - (r.purrS || 0) > 0.55) { r.purrS = T; purr(); } if (Math.random() < 0.08 && !speech) say(p, 'Mrrr...', 1.1); }
           else if (z === 'cheek') { r.happy = Math.max(r.happy, 0.9); if (Math.random() < 0.15) { ctx.sfx('bubble'); if (!speech) say(p, 'Hi hi!', 1); } }
           else if (z === 'tail') { r.wagT = 1.3; if (Math.random() < 0.2) ctx.sfx('swap'); if (Math.random() < 0.1 && !speech) say(p, 'Mój ogonek!', 1.2); }
           else { r.wig = Math.max(r.wig, 0.35); r.happy = Math.max(r.happy, 0.5); if (Math.random() < 0.15) ctx.sfx('pop'); }
@@ -3043,7 +3151,8 @@
         var sx = r.spin > 0 ? Math.cos(r.spin * Math.PI * 2) : 1; if (Math.abs(sx) < 0.06) sx = 0.06 * (sx < 0 ? -1 : 1);
         var ra = r.roll > 0 ? Math.sin((1 - r.roll / 0.4) * Math.PI) * 0.9 * (r.rollIn ? -1 : 1) : 0;
         shadow(x, yo != null ? yo : r.y, (G.x1 - G.x0) * s * 0.42);
-        g.save(); g.translate(x, y); g.rotate(wg + wob + ra * face); g.scale(s * face * sx, s * br);
+        var hopY = SP[p.sp].hops && r.walking && pose === 'stand' && !reduce ? Math.abs(Math.sin(r.legs * 0.55)) * 7 * s : 0;   // a rabbit hops along
+        g.save(); g.translate(x, y - hopY); g.rotate(wg + wob + ra * face); g.scale(s * face * sx, s * br);
         drawCritter(g, p.sp, petState(p, pose)); g.restore();
       }
       function drawSpeech() {
@@ -3184,6 +3293,7 @@
         var mp = meadowPets();
         mp.slice().sort(function (a, b) { return MR(a).y - MR(b).y; }).forEach(function (p) {
           var r = MR(p), s = meadowScale(p), G = geo(p.sp, p.stage), lift = r.hop >= 0 ? Math.sin(Math.PI * r.hop) * 18 : 0;
+          if (SP[p.sp].hops && r.walking && !reduce) lift += Math.abs(Math.sin(r.legs * 0.55)) * 7 * s;
           shadow(r.x, r.y, (G.x1 - G.x0) * s * 0.4);
           g.save(); g.translate(r.x, r.y - lift); g.scale(s * r.face, s);
           drawCritter(g, p.sp, { t: T, stage: p.stage, legs: r.walking ? r.legs : 0, wear: wearOf(p), eye: r.hop >= 0 ? 'happy' : 'open', mouth: r.hop >= 0 ? 'open' : 'smile', seed: r.seed, wag: 0.5 });
@@ -3231,7 +3341,7 @@
         save.seenV2 = true; save.seenHelp = true; persist();
         panel = ctx.panel({
           title: 'Nowości w domku!', closable: false, button: 'Super!',
-          lines: [p.stage >= 2 ? p.name + ' jest już ' + vb(p.name, 'dorosły', 'dorosła') + '!' : p.name + ' to jeszcze ' + (p.stage ? 'Młode' : 'Maluch') + '. Od opieki urośnie!','W Rodzinie adoptujesz lisa, fenka, wiewiórkę, borsuka, chomika i świnkę morską. W domku zmieszczą się trzy naraz!',
+          lines: [p.stage >= 2 ? p.name + ' jest już ' + vb(p.name, 'dorosły', 'dorosła') + '!' : p.name + ' to jeszcze ' + (p.stage ? 'Młode' : 'Maluch') + '. Od opieki urośnie!','W Rodzinie adoptujesz lisa, fenka, wiewiórkę, borsuka, chomika, świnkę morską, królika albo kotka. W domku zmieszczą się trzy naraz!',
             'Głaszcz zwierzątko palcem, a wystawi brzuszek. Jest też 5 nowych zabaw.'],
           onPlay: function () { panel = null; var q = sel(); if (q) { R(q).hop = 0; R(q).happy = 1.5; say(q, 'Hura! Będę mieć przyjaciół!', 2.4); } }
         });
