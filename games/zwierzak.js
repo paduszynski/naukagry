@@ -14,6 +14,12 @@
  * items the child owns in Jeżyk w biegu (read-only), and seven mini-games for 30 ★ that fill "humor".
  * Now and then (every 25-60 s, when nothing else happens) two awake pets at home play on their own: toss a ball,
  * chase each other or hop together. Purely cosmetic (no needs, points or saves); any tap or action ends it.
+ * Urządzanie (the "Urządź" button in the room's corner): buy furniture, decorations and pet things (legowisko,
+ * drapak, domek, miseczki, poduszka, toys) plus wallpapers and floors with stars, drag them around the house, flip,
+ * bring forward / send back, put away into the box (Pudło). Most art comes from Pokoik (NG.roomArt); purchases are
+ * Zwierzątko's own (save.deco). The old window, heart picture, plant and rug are the built-in starting set and stay
+ * on their old spots until moved. Standing things are sorted with the pets by depth; things are only touchable in
+ * the decorating mode. Pets use them a little: they sleep in a pet bed, cats scratch the post, others visit toys.
  * Logical coordinates: 1 unit = S css px, a portrait phone is ~400 units wide.
  */
 (function () {
@@ -1263,6 +1269,9 @@
 
   // ---------- DOM icons ----------
   var ICON = {
+    deco: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="8" width="20" height="11" rx="4" fill="#f7a8c4" stroke="#1d2f6f" stroke-width="2.2"/><rect x="2.5" y="13" width="7" height="12" rx="3" fill="#f47fb0" stroke="#1d2f6f" stroke-width="2.2"/><rect x="22.5" y="13" width="7" height="12" rx="3" fill="#f47fb0" stroke="#1d2f6f" stroke-width="2.2"/><rect x="9" y="17" width="14" height="8" rx="2" fill="#fbc7da" stroke="#1d2f6f" stroke-width="2.2"/><path d="M6 25 v3 M26 25 v3" stroke="#1d2f6f" stroke-width="2.4" stroke-linecap="round"/></svg>',
+    shop: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 11 h22 l-2.5 17 h-17 z" fill="#ffd0e0" stroke="#1d2f6f" stroke-width="2.3" stroke-linejoin="round"/><path d="M11 11 q0 -8 5 -8 q5 0 5 8" fill="none" stroke="#1d2f6f" stroke-width="2.3"/><path d="M16 15 l1.6 3.4 h3.6 l-2.8 2.4 l1 3.6 l-3.4 -2 l-3.4 2 l1 -3.6 l-2.8 -2.4 h3.6 z" fill="#e3a008" stroke="#1d2f6f" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+    box: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 13 h24 v15 h-24 z" fill="#e0b07a" stroke="#1d2f6f" stroke-width="2.3" stroke-linejoin="round"/><path d="M4 13 l-2 -6 h11 l3 6 M28 13 l2 -6 h-11 l-3 6" fill="#ecc89a" stroke="#1d2f6f" stroke-width="2.3" stroke-linejoin="round"/><path d="M12 19 h8" stroke="#1d2f6f" stroke-width="2.3" stroke-linecap="round"/></svg>',
     food: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="18" r="10" fill="#e2533f" stroke="#1d2f6f" stroke-width="2.4"/><circle cx="12.5" cy="15" r="2.6" fill="#fff" opacity=".7"/><path d="M16 8 q6 -6 9 -1 q-5 0 -9 1 z" fill="#3fae5f" stroke="#1d2f6f" stroke-width="1.6" stroke-linejoin="round"/></svg>',
     fun: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11" fill="#fff" stroke="#1d2f6f" stroke-width="2.4"/><path d="M16 5 a11 11 0 0 1 10.4 7.4 L16 16 z" fill="#e2533f"/><path d="M26.4 19.6 a11 11 0 0 1 -10.4 7.4 L16 16 z" fill="#3f86d8"/><path d="M8 24 a11 11 0 0 1 -2.8 -11 L16 16 z" fill="#f5c330"/><circle cx="16" cy="16" r="11" fill="none" stroke="#1d2f6f" stroke-width="2.4"/></svg>',
     clean: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="18" r="8" fill="#d9f0ff" stroke="#1d2f6f" stroke-width="2.2"/><circle cx="23" cy="11" r="5" fill="#d9f0ff" stroke="#1d2f6f" stroke-width="2"/><circle cx="24" cy="24" r="3.5" fill="#d9f0ff" stroke="#1d2f6f" stroke-width="1.8"/><path d="M9 15 a4.5 4.5 0 0 1 4 -3" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -1384,7 +1393,30 @@
     '.zw-sp:active{transform:translateY(2px);box-shadow:0 1px 0 #1d2f6f}',
     '.zw-wide{width:100%;margin-top:8px}',
     '.zw-card canvas{display:block;margin:0 auto}',
-    '@media (prefers-reduced-motion: reduce){.zw-grow{animation:none}.zw-chip .nr.low svg,.zw-chip.need .wb{animation:none}.zw-sheet,.zw-sheetw{transition:none}}'
+    '.zw-deco{position:absolute;right:8px;top:8px;z-index:3;width:62px;min-height:58px;border:3px solid #1d2f6f;border-radius:16px;background:#fff;color:inherit;font:inherit;font-size:.92rem;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:3px 2px;box-shadow:0 3px 0 #1d2f6f}',
+    '.zw-deco svg{width:32px;height:30px}',
+    '.zw-deco:active{transform:translateY(2px);box-shadow:0 1px 0 #1d2f6f}',
+    '.zw-tip{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:2;width:max-content;max-width:calc(100% - 20px);background:rgba(255,255,255,.94);border:2px solid #1d2f6f;border-radius:14px;padding:3px 12px;font-size:1.08rem;line-height:1.15;text-align:center;pointer-events:none;box-shadow:0 3px 0 rgba(29,47,111,.2)}',
+    '.zw-tools{position:absolute;z-index:4;display:flex;gap:6px;background:#fff;border:3px solid #1d2f6f;border-radius:16px;padding:5px;box-shadow:0 4px 0 rgba(29,47,111,.25);animation:zwpop .18s ease-out}',
+    '.zw-tools button{width:58px;min-height:50px;border:2px solid #1d2f6f;border-radius:12px;background:#f5fbff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:inherit;font-size:.85rem;line-height:1;padding:3px 2px;color:#1d2f6f}',
+    '.zw-tools button:active{background:#dceeff}',
+    '.zw-tools svg{width:26px;height:22px}',
+    '@keyframes zwpop{from{transform:scale(.6);opacity:0}}',
+    '.zw-act{position:relative}',
+    '.zw-badge{position:absolute;top:-9px;right:-4px;min-width:24px;height:24px;border-radius:12px;background:#e3a008;color:#2a1d00;border:2px solid #1d2f6f;font-size:.95rem;line-height:20px;padding:0 4px}',
+    '.zw-badge.bump{animation:zwbump .4s ease}',
+    '@keyframes zwbump{40%{transform:scale(1.5)}}',
+    '.zw-tabs{position:sticky;top:0;z-index:1;background:#fffaf2;padding:2px 0 4px;margin-top:0}',
+    '.zw-tabs button{min-width:0;font-size:1.1rem;padding:0 2px}',
+    '.zw-row img.wide{width:84px;height:56px;border:2px solid #1d2f6f;border-radius:8px}',
+    '.zw-lockt{color:#7a4fc4;font-size:1.05rem;white-space:nowrap}',
+    '.zw-cell{position:relative;background:#fff;border:2px solid #e6d6bd;border-radius:14px;padding:6px 4px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-size:1.05rem;line-height:1.05;min-height:110px;color:#1d2f6f}',
+    '.zw-cell:active{background:#fff0f5}',
+    '.zw-cell img{width:64px;height:64px}',
+    '.zw-cell i{position:absolute;top:4px;right:6px;font-style:normal;color:#7a4fc4;font-size:1rem}',
+    '.zw-sh-b.zw-two{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));column-gap:10px;align-content:start}',
+    '.zw-two>.zw-tabs,.zw-two>.zw-note{grid-column:1/-1}',
+    '@media (prefers-reduced-motion: reduce){.zw-grow{animation:none}.zw-tools,.zw-badge.bump{animation:none}.zw-chip .nr.low svg,.zw-chip.need .wb{animation:none}.zw-sheet,.zw-sheetw{transition:none}}'
   ].join('');
 
   var PIC = '<rect x="0" y="60" width="120" height="12" fill="#8fd06b"/>' +
@@ -1447,6 +1479,201 @@
     return thumb('p' + sp + stage + w + 'x' + h + wk, w, h, function (cg) { fitPet(cg, sp, stage, w, h, { wear: wear || {} }); });
   }
 
+  // ---------- home decorating (Urządzanie) ----------
+  // Most furniture, wallpapers and floors come from Pokoik's art (NG.roomArt); Zwierzątko has its own prices and
+  // purchases (save.deco). Below: the pet things drawn here, and the four built-ins every house starts with
+  // (the old fixed window, heart picture, plant and rug). Built-ins are sized from the layout exactly as before
+  // and sit on their old spots until the child moves them (x/y null = automatic spot).
+  // L: 0 flat on the floor, 1 on the wall, 2 standing (sorted with the pets by depth); at: where it may stand.
+  var DECO_MAX = 40, DECO_LW = 2.2;
+  var DECO_REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function decoWin(g, ww, night) {
+    var wh = ww * 1.05, wx = -ww / 2, wy = -(wh + 8);
+    function shape() { g.beginPath(); g.moveTo(wx, wy + wh); g.lineTo(wx, wy + ww / 2); g.arc(wx + ww / 2, wy + ww / 2, ww / 2, Math.PI, 0); g.lineTo(wx + ww, wy + wh); g.closePath(); }
+    shape();
+    var sk = g.createLinearGradient(0, wy, 0, wy + wh);
+    if (night) { sk.addColorStop(0, '#24316e'); sk.addColorStop(1, '#4b5ea8'); } else { sk.addColorStop(0, '#8fcdf8'); sk.addColorStop(1, '#e8f7ff'); }
+    g.fillStyle = sk; g.fill();
+    g.save(); shape(); g.clip();
+    if (night) {
+      g.beginPath(); g.arc(wx + ww * 0.66, wy + ww * 0.36, ww * 0.15, 0, Math.PI * 2); g.fillStyle = '#fff4c4'; g.fill();
+      g.beginPath(); g.arc(wx + ww * 0.72, wy + ww * 0.32, ww * 0.13, 0, Math.PI * 2); g.fillStyle = '#24316e'; g.fill();
+      g.fillStyle = '#fff';
+      [[0.2, 0.3], [0.35, 0.6], [0.8, 0.7], [0.5, 0.2], [0.25, 0.85]].forEach(function (s) { g.beginPath(); g.arc(wx + ww * s[0], wy + wh * s[1], 1.5, 0, Math.PI * 2); g.fill(); });
+    } else {
+      g.beginPath(); g.arc(wx + ww * 0.7, wy + ww * 0.34, ww * 0.13, 0, Math.PI * 2); g.fillStyle = '#ffd84a'; g.fill();
+      g.fillStyle = 'rgba(255,255,255,.95)';
+      g.beginPath(); g.arc(wx + ww * 0.28, wy + wh * 0.6, ww * 0.1, 0, Math.PI * 2); g.arc(wx + ww * 0.4, wy + wh * 0.56, ww * 0.12, 0, Math.PI * 2); g.arc(wx + ww * 0.52, wy + wh * 0.61, ww * 0.09, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(wx + ww * 0.5, wy + wh * 1.02, ww * 0.7, wh * 0.2, 0, 0, Math.PI * 2); g.fillStyle = '#93d273'; g.fill();
+    }
+    g.restore();
+    shape(); outline(g, 3);
+    g.beginPath(); g.moveTo(wx + ww / 2, wy); g.lineTo(wx + ww / 2, wy + wh); g.moveTo(wx, wy + wh * 0.55); g.lineTo(wx + ww, wy + wh * 0.55); outline(g, 2.5);
+    rr(g, wx - 8, wy + wh - 2, ww + 16, 10, 4); g.fillStyle = '#c98f5a'; g.fill(); outline(g, 2);
+  }
+  function decoBed(g, lw, front) {
+    if (!front) {
+      g.beginPath(); g.ellipse(0, -24, 62, 20, 0, 0, Math.PI * 2); g.fillStyle = '#8fb8ef'; g.fill(); outline(g, lw);
+      g.beginPath(); g.ellipse(0, -23, 49, 12, 0, 0, Math.PI * 2); g.fillStyle = '#fde2ea'; g.fill(); outline(g, lw * 0.8);
+      [[-22, -25], [4, -21], [26, -26]].forEach(function (h) { g.beginPath(); g.arc(h[0], h[1], 2.2, 0, Math.PI * 2); g.fillStyle = '#ff9ec7'; g.fill(); });
+    }
+    g.beginPath(); g.moveTo(-63, -25); g.quadraticCurveTo(-64, -1, -32, 0); g.lineTo(32, 0); g.quadraticCurveTo(64, -1, 63, -25); g.quadraticCurveTo(0, -6, -63, -25); g.closePath();
+    g.fillStyle = '#6fa8dc'; g.fill(); outline(g, lw);
+    g.save(); g.setLineDash([4, 4]); g.beginPath(); g.moveTo(-48, -12); g.quadraticCurveTo(0, -2, 48, -12); g.lineWidth = lw * 0.7; g.strokeStyle = 'rgba(255,255,255,.8)'; g.stroke(); g.restore();
+  }
+  var DECO_OWN = [
+    { k: 'legowisko', n: 'legowisko', cat: 'meble', p: 200, lv: 1, w: 130, h: 46, L: 2, at: 'floor', pet: true, draw: function (g, lw) { decoBed(g, lw, false); } },
+    { k: 'poduszka', n: 'poduszka', cat: 'meble', p: 100, lv: 1, w: 74, h: 30, L: 2, at: 'floor', pet: true, draw: function (g, lw) {
+      rr(g, -35, -29, 70, 27, 12); g.fillStyle = '#f7a8c4'; g.fill(); outline(g, lw);
+      g.beginPath(); g.moveTo(-26, -15); g.quadraticCurveTo(0, -11, 26, -15); g.lineWidth = lw * 0.6; g.strokeStyle = 'rgba(29,47,111,.3)'; g.stroke();
+      [-35, 35].forEach(function (x) { g.beginPath(); g.arc(x, -27, 3.2, 0, Math.PI * 2); g.arc(x, -4, 3.2, 0, Math.PI * 2); g.fillStyle = '#ffd36e'; g.fill(); });
+      star(g, 0, -17, 5, '#fff');
+      g.beginPath(); g.ellipse(-18, -23, 7, 2.5, -0.2, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,.5)'; g.fill();
+    } },
+    { k: 'drapak', n: 'drapak dla kotka', cat: 'meble', p: 250, lv: 1, w: 58, h: 124, L: 2, at: 'floor', pet: true, draw: function (g, lw, t) {
+      rr(g, -29, -11, 58, 11, 4); g.fillStyle = '#c98f5a'; g.fill(); outline(g, lw);
+      g.beginPath(); g.rect(-8, -106, 16, 96); g.fillStyle = '#ecd29c'; g.fill(); outline(g, lw);
+      g.save(); g.beginPath(); g.rect(-8, -106, 16, 96); g.clip(); g.beginPath();
+      for (var y = -108; y < -6; y += 6) { g.moveTo(-9, y); g.lineTo(9, y + 5); }
+      g.lineWidth = lw * 0.6; g.strokeStyle = 'rgba(150,100,50,.55)'; g.stroke(); g.restore();
+      var sw = DECO_REDUCED ? 0 : Math.sin(t * 2.2) * 3;
+      g.beginPath(); g.moveTo(19, -108); g.lineTo(19 + sw, -76); g.lineWidth = lw * 0.6; g.strokeStyle = INK; g.stroke();
+      g.beginPath(); g.arc(19 + sw, -71, 6, 0, Math.PI * 2); g.fillStyle = '#f47fb0'; g.fill(); outline(g, lw * 0.8);
+      rr(g, -27, -118, 54, 13, 5); g.fillStyle = '#9fd3f2'; g.fill(); outline(g, lw);
+    } },
+    { k: 'budka', n: 'domek dla zwierzątka', cat: 'meble', p: 450, lv: 3, w: 128, h: 114, L: 2, at: 'floor', pet: true, draw: function (g, lw) {
+      rr(g, -52, -80, 104, 80, 5); g.fillStyle = '#ffd98a'; g.fill(); outline(g, lw);
+      g.beginPath(); for (var x = -40; x < 52; x += 14) { g.moveTo(x, -78); g.lineTo(x, -2); } g.lineWidth = lw * 0.5; g.strokeStyle = 'rgba(180,120,40,.35)'; g.stroke();
+      g.beginPath(); g.moveTo(-23, 0); g.lineTo(-23, -34); g.arc(0, -34, 23, Math.PI, 0); g.lineTo(23, 0); g.closePath(); g.fillStyle = '#6b4b3a'; g.fill(); outline(g, lw);
+      g.beginPath(); g.ellipse(0, -5, 18, 5, 0, 0, Math.PI * 2); g.fillStyle = '#fde2ea'; g.fill();
+      g.beginPath(); g.moveTo(-63, -74); g.lineTo(0, -113); g.lineTo(63, -74); g.lineTo(55, -68); g.lineTo(0, -102); g.lineTo(-55, -68); g.closePath(); g.fillStyle = '#e2533f'; g.fill(); outline(g, lw);
+      heart(g, 0, -80, 7, '#ff7eb6');
+    } },
+    { k: 'miski', n: 'miseczki', cat: 'ozdoby', p: 80, lv: 1, w: 78, h: 22, L: 2, at: 'floor', pet: true, draw: function (g, lw) {
+      [[-20, '#e2533f', '#c9874a'], [20, '#3f86d8', '#9fd4f5']].forEach(function (b, i) {
+        var x = b[0];
+        g.beginPath(); g.moveTo(x - 18, -16); g.lineTo(x + 18, -16); g.lineTo(x + 13, 0); g.lineTo(x - 13, 0); g.closePath(); g.fillStyle = b[1]; g.fill(); outline(g, lw);
+        g.beginPath(); g.ellipse(x, -16, 18, 4.5, 0, 0, Math.PI * 2); g.fillStyle = b[2]; g.fill(); outline(g, lw * 0.8);
+        if (!i) { g.fillStyle = '#9a6338'; [[-8, -17], [-2, -15.5], [5, -17.5], [9, -15.6]].forEach(function (d) { g.beginPath(); g.arc(x + d[0], d[1], 1.6, 0, Math.PI * 2); g.fill(); }); }
+        else { g.beginPath(); g.ellipse(x - 6, -17, 5, 1.3, 0, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,.8)'; g.fill(); }
+      });
+    } },
+    { k: 'mysz', n: 'myszka do zabawy', cat: 'ozdoby', p: 60, lv: 1, w: 40, h: 20, L: 2, at: 'floor', pet: true, draw: function (g, lw) {
+      g.beginPath(); g.moveTo(-12, -4); g.quadraticCurveTo(-22, -2, -19, -12); g.lineWidth = lw; g.strokeStyle = INK; g.stroke();
+      g.beginPath(); g.ellipse(0, -8, 13, 8, 0, 0, Math.PI * 2); g.fillStyle = '#c3cce0'; g.fill(); outline(g, lw);
+      g.beginPath(); g.arc(6, -15, 4.5, 0, Math.PI * 2); g.fillStyle = '#f7a8c4'; g.fill(); outline(g, lw * 0.8);
+      g.beginPath(); g.arc(13, -8, 2, 0, Math.PI * 2); g.fillStyle = '#f47fb0'; g.fill();
+      g.beginPath(); g.arc(7, -10, 1.4, 0, Math.PI * 2); g.fillStyle = INK; g.fill();
+    } },
+    { k: 'kosc', n: 'kostka do gryzienia', cat: 'ozdoby', p: 60, lv: 1, w: 46, h: 16, L: 2, at: 'floor', pet: true, draw: function (g, lw) {
+      [[-15, -12], [-15, -3], [15, -12], [15, -3]].forEach(function (c) { g.beginPath(); g.arc(c[0], c[1], 4.5, 0, Math.PI * 2); g.fillStyle = '#fff6e0'; g.fill(); outline(g, lw); });
+      g.fillStyle = '#fff6e0'; g.fillRect(-15, -12, 30, 9);
+      g.beginPath(); g.moveTo(-12, -11.5); g.lineTo(12, -11.5); g.moveTo(-12, -3.5); g.lineTo(12, -3.5); outline(g, lw);
+    } },
+    // the built-ins (old fixed decorations): sizes and spots from the layout, drawn in room units
+    { k: 'okienko', n: 'okienko', cat: 'ozdoby', p: 200, lv: 1, L: 1, at: 'wall', lay: true, lamp: 'win',
+      size: function (L) { var ww = Math.min(124, L.LW * 0.28); return { w: ww + 16, h: ww * 1.05 + 8, ww: ww }; },
+      auto: function (L, d) { return { x: L.LW * 0.07 + d.ww / 2, y: Math.max(56, L.FY * 0.26) + d.h }; },
+      draw: function (g, d, t, night) { decoWin(g, d.ww, night); } },
+    { k: 'serce', n: 'obrazek z serduszkiem', cat: 'ozdoby', p: 80, lv: 1, L: 1, at: 'wall', lay: true,
+      size: function (L) { var fw = Math.min(70, L.LW * 0.16); return { w: fw, h: fw * 1.15 }; },
+      auto: function (L, d) { return { x: L.LW - d.w - L.LW * 0.08 + d.w / 2, y: Math.max(60, L.FY * 0.3) + d.h }; },
+      draw: function (g, d) {
+        var fw = d.w, fx = -fw / 2, fy = -d.h;
+        rr(g, fx, fy, fw, fw * 1.15, 6); g.fillStyle = '#fffaf0'; g.fill(); outline(g, 3);
+        rr(g, fx + 6, fy + 6, fw - 12, fw * 1.15 - 12, 3); g.strokeStyle = '#e3a008'; g.lineWidth = 2; g.stroke();
+        heart(g, fx + fw / 2, fy + fw * 0.6, fw * 0.2, '#ff9ec7');
+      } },
+    { k: 'roslinka', n: 'roślinka w doniczce', cat: 'ozdoby', p: 100, lv: 1, L: 2, at: 'floor', lay: true,
+      size: function () { return { w: 70, h: 66 }; },
+      auto: function (L) { return { x: L.LW - L.LW * 0.08, y: L.FY + 28 }; },
+      draw: function (g) {
+        g.save(); g.translate(0, -14);
+        [[-0.5, '#3fae5f'], [0, '#58b25c'], [0.5, '#3fae5f'], [-0.9, '#58b25c'], [0.9, '#58b25c']].forEach(function (l) {
+          g.save(); g.rotate(l[0]); g.beginPath(); g.ellipse(0, -30, 8, 22, 0, 0, Math.PI * 2); g.fillStyle = l[1]; g.fill(); outline(g, 1.8); g.restore();
+        });
+        g.beginPath(); g.moveTo(-16, -10); g.lineTo(16, -10); g.lineTo(12, 14); g.lineTo(-12, 14); g.closePath(); g.fillStyle = '#e2714f'; g.fill(); outline(g, 2);
+        g.restore();
+      } },
+    { k: 'dywanik', n: 'różowy dywanik', cat: 'ozdoby', p: 150, lv: 1, L: 0, at: 'rug', lay: true,
+      size: function (L) { var rw = Math.min(L.LW * 0.42, 260), rh = Math.min(40, (L.LH - L.FY) * 0.22); return { w: rw * 2, h: rh * 2 }; },
+      auto: function (L, d) { return { x: L.LW / 2, y: L.FY + (L.LH - L.FY) * (0.3 + 0.48 * 0.5) + d.h / 2 }; },
+      draw: function (g, d) {
+        var rw = d.w / 2, rh = d.h / 2;
+        g.beginPath(); g.ellipse(0, -rh, rw, rh, 0, 0, Math.PI * 2); g.fillStyle = '#f7b7c8'; g.fill(); outline(g, 2.5);
+        g.beginPath(); g.ellipse(0, -rh, rw * 0.78, rh * 0.7, 0, 0, Math.PI * 2);
+        g.setLineDash([8, 7]); g.strokeStyle = '#fff'; g.lineWidth = 3; g.stroke(); g.setLineDash([]);
+      } }
+  ];
+  var DECO_BUILTIN = ['okienko', 'serce', 'roslinka', 'dywanik'];
+  // Pokoik items sold here: [price, level, tab] (Zwierzątko's own economy)
+  var DECO_PK = {
+    komoda: [300, 1, 'meble'], stolik: [150, 1, 'meble'], polka: [150, 1, 'meble'], krzeslo: [150, 2, 'meble'], pufa: [200, 2, 'meble'],
+    regal: [400, 2, 'meble'], lozko: [500, 3, 'meble'], szafa: [450, 3, 'meble'], skrzynia: [250, 3, 'meble'], fotel: [400, 4, 'meble'],
+    biurko: [350, 5, 'meble'], pietrowe: [600, 9, 'meble'],
+    kwiatek: [60, 1, 'ozdoby'], kaktus: [80, 1, 'ozdoby'], pilka: [60, 1, 'ozdoby'], plakat: [80, 1, 'ozdoby'], lampka: [100, 1, 'ozdoby'],
+    zegar: [120, 1, 'ozdoby'], dywan: [150, 1, 'ozdoby'], okno: [200, 2, 'ozdoby'], obrazek: [100, 2, 'ozdoby'], plakatkot: [100, 2, 'ozdoby'],
+    mis: [120, 2, 'ozdoby'], lampki: [180, 2, 'ozdoby'], choragiewki: [120, 3, 'ozdoby'], lustro: [150, 3, 'ozdoby'], lampa: [200, 3, 'ozdoby'],
+    teczowy: [200, 4, 'ozdoby'], kula: [200, 4, 'ozdoby'], wiszaca: [180, 4, 'ozdoby'], roslina: [200, 5, 'ozdoby'], globus: [140, 6, 'ozdoby'],
+    ksiezyc: [160, 7, 'ozdoby'], tecza: [150, 8, 'ozdoby']
+  };
+  var DECO_LAMPS = { lampka: 1, lampa: 1, wiszaca: 1, ksiezyc: 1, lampki: 1, okno: 'win', okienko: 'win' };
+  var DECO_WALLS = { kremowa: [150, 1], paski: [200, 1], kropki: [200, 1], kwiatki: [250, 3], gwiazdki: [250, 4], chmurki: [300, 6], serduszka: [300, 8], kosmos: [400, 10], tecza: [400, 12] };
+  var DECO_FLOORS = { deski: [150, 1, 'brązowe deski'], jasne: [200, 1], kafelki: [200, 2], wykladzina: [250, 3], parkiet: [250, 5], trawka: [300, 7], chmurkip: [400, 10] };
+  // the house's own wall and floor (the look from before decorating)
+  function decoDomWall(g, LW, FY) {
+    g.fillStyle = '#fbe6c8'; g.fillRect(0, 0, LW + 2, FY);
+    g.fillStyle = '#f6d9b3'; for (var x = 8; x < LW; x += 40) g.fillRect(x, 0, 18, FY);
+    g.fillStyle = '#ffffff55';
+    for (var hx = 17; hx < LW; hx += 40) for (var hy = 30; hy < FY - 20; hy += 60) { g.beginPath(); g.arc(hx, hy + ((hx / 40) % 2) * 30, 2.4, 0, Math.PI * 2); g.fill(); }
+  }
+  function decoDomFloor(g, LW, LH, FY) {
+    g.fillStyle = '#e0b07a'; g.fillRect(0, FY, LW + 2, LH - FY + 2);
+    g.beginPath();
+    for (var py = FY + 30, row2 = 0; py < LH; py += 34, row2++) {
+      g.moveTo(0, py); g.lineTo(LW, py);
+      for (var px = (row2 % 2) * 60 + 40; px < LW; px += 120) { g.moveTo(px, py - 34); g.lineTo(px, py); }
+    }
+    g.strokeStyle = 'rgba(138,90,51,.35)'; g.lineWidth = 1.5; g.stroke();
+  }
+  // the catalogue (built on first use, so Pokoik's art is there): { k, n, cat, p, lv, w, h, L, at, own|lay, small }
+  var decoCat = null;
+  function decoCatalog() {
+    if (decoCat) return decoCat;
+    var RA = NG.roomArt, list = [], by = {}, walls = [{ k: 'dom', n: 'domowe paski', p: 0, lv: 1 }], floors = [{ k: 'dom', n: 'domowe deski', p: 0, lv: 1 }];
+    DECO_OWN.forEach(function (I) { var o = {}; for (var k in I) o[k] = I[k]; o.own = true; list.push(o); });
+    if (RA) {
+      RA.items.forEach(function (I) {
+        var d = DECO_PK[I.k]; if (!d) return;
+        list.push({ k: I.k, n: I.n, cat: d[2], p: d[0], lv: d[1], w: I.w, h: I.h, L: I.L, at: I.at });
+      });
+      RA.walls.forEach(function (B) { var d = DECO_WALLS[B.k]; if (d) walls.push({ k: B.k, n: B.n, p: d[0], lv: d[1], pk: true }); });
+      RA.floors.forEach(function (B) { var d = DECO_FLOORS[B.k]; if (d) floors.push({ k: B.k, n: d[2] || B.n, p: d[0], lv: d[1], pk: true }); });
+    }
+    var tabOrder = { meble: 0, ozdoby: 1 };
+    list.sort(function (a, b) { return (tabOrder[a.cat] - tabOrder[b.cat]) || (a.lv - b.lv) || (a.p - b.p); });
+    list.forEach(function (I) { I.small = I.L === 2 && !I.lay && I.at === 'floor' && I.h <= 60; by[I.k] = I; });
+    var wb = {}, fb = {};
+    walls.forEach(function (B) { wb[B.k] = B; }); floors.forEach(function (B) { fb[B.k] = B; });
+    return (decoCat = { list: list, by: by, walls: walls, floors: floors, wb: wb, fb: fb, ok: !!RA });
+  }
+  function decoThumb(I, lock) {
+    if (!I.own) return NG.roomArt ? NG.roomArt.itemThumb(I.k, 120, lock) : '';
+    return thumb('d' + I.k + (lock ? 'l' : ''), 120, 120, function (cg) {
+      var L = { LW: 400, LH: 560, FY: 280 }, d = I.lay ? I.size(L) : { w: I.w, h: I.h }, s = 120 * 0.84 / Math.max(d.w, d.h);
+      cg.translate(60, 60 + d.h * s / 2); cg.scale(s, s);
+      if (I.lay) I.draw(cg, d, 0.6, false); else I.draw(cg, 1.8 / s, 0.6, {});
+      if (lock) { cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'source-in'; cg.fillStyle = '#c3cce0'; cg.fillRect(0, 0, 400, 400); }
+    });
+  }
+  function decoSurfThumb(kind, B) {
+    if (B.pk && NG.roomArt) return NG.roomArt.surfThumb(kind, B.k, 168, 112);
+    return thumb('ds' + kind + B.k, 168, 112, function (cg) {
+      if (kind === 'w') decoDomWall(cg, 168, 112);
+      else { decoDomWall(cg, 168, 30); decoDomFloor(cg, 168, 112, 30); cg.fillStyle = '#c98f5a'; cg.fillRect(0, 24, 170, 8); }
+    });
+  }
+
   // ---------- visiting pets (Pokoik draws one of them walking around the room) ----------
   NG.petArt = {
     // the saved pets: [{ id, sp, stage, name, home, wear }], wear limited to what the child owns in Jeżyk w biegu
@@ -1492,7 +1719,8 @@
       { id: 'dress', emoji: '🎀', name: 'Strojniś' },
       { id: 'belly', emoji: '💗', name: 'Brzuszek do góry' },
       { id: 'grown', emoji: '🌳', name: 'Dorosłe zwierzątko' },
-      { id: 'full', emoji: '🏡', name: 'Pełny domek' }
+      { id: 'full', emoji: '🏡', name: 'Pełny domek' },
+      { id: 'decor', emoji: '🛋️', name: 'Urządzony domek' }
     ].concat(SP_ORDER.map(function (k) { return { id: 'sp-' + k, emoji: SP_STICKER[k], name: SP[k].n }; })),
 
     _drawPet: drawCritter, _geo: geo, _species: SP_ORDER,
@@ -1544,6 +1772,43 @@
       (function () { var n = 0; save.pets.forEach(function (p) { if (p.home) { n++; if (n > save.slots) p.home = false; } }); })();
       if (save.pets.length && !save.pets.some(function (p) { return p.home; })) save.pets[0].home = true;
 
+      // ---------- decorating (save.deco): owned things, wallpapers, floors and what stands where ----------
+      // items: [{ id, k, x, y, f, dz }], x/y fractions of the room (null = a built-in on its old automatic spot),
+      // f flipped, dz a depth nudge (fraction of the room height) from "Do przodu" / "Do tyłu".
+      var DC = decoCatalog();
+      (function () {
+        var d = save.deco;
+        if (!d || typeof d !== 'object' || Array.isArray(d)) {
+          // a house before decorating: the old window, heart picture, plant and rug, all on their old spots
+          d = save.deco = { owned: {}, walls: ['dom'], floors: ['dom'], wall: 'dom', floor: 'dom', items: [], nextId: 1 };
+          DECO_BUILTIN.forEach(function (k) { d.owned[k] = 1; d.items.push({ id: d.nextId++, k: k, x: null, y: null, f: false, dz: 0 }); });
+          return;
+        }
+        function known(k) { return typeof k === 'string' && (!!DC.by[k] || (!DC.ok && /^[a-z]{2,16}$/.test(k))); }   // without Pokoik's art nothing of it is dropped
+        function num(v) { return typeof v === 'number' && isFinite(v); }
+        var own = {}, k;
+        if (d.owned && typeof d.owned === 'object' && !Array.isArray(d.owned)) for (k in d.owned) { var n = Math.floor(+d.owned[k]); if (known(k) && n > 0) own[k] = Math.min(n, 99); }
+        function surfs(a, B) {
+          var out = ['dom'];
+          if (Array.isArray(a)) a.forEach(function (x) { if (typeof x === 'string' && (B[x] || (!DC.ok && /^[a-z]{2,16}$/.test(x))) && out.indexOf(x) < 0) out.push(x); });
+          return out;
+        }
+        var walls = surfs(d.walls, DC.wb), floors = surfs(d.floors, DC.fb);
+        var used = {}, ids = {}, maxId = 0;
+        var items = (Array.isArray(d.items) ? d.items : []).filter(function (it) {
+          if (!it || typeof it !== 'object' || !known(it.k)) return false;
+          used[it.k] = (used[it.k] || 0) + 1;
+          return used[it.k] <= (own[it.k] || 0);
+        }).slice(0, DECO_MAX).map(function (it) {
+          var I = DC.by[it.k], auto = it.x == null && it.y == null && I && I.lay, id = Math.floor(+it.id);
+          if (!(id > 0) || ids[id]) id = 0; else { ids[id] = 1; maxId = Math.max(maxId, id); }
+          return { id: id, k: it.k, x: auto ? null : num(it.x) ? clamp(it.x, 0, 1) : 0.5, y: auto ? null : num(it.y) ? clamp(it.y, 0, 1) : 0.8, f: !!it.f, dz: num(it.dz) ? clamp(it.dz, -0.5, 0.5) : 0 };
+        });
+        var next = Math.max(Math.floor(+d.nextId) || 1, maxId + 1);
+        items.forEach(function (it) { if (!it.id) it.id = next++; });
+        save.deco = { owned: own, walls: walls, floors: floors, wall: walls.indexOf(d.wall) >= 0 ? d.wall : 'dom', floor: floors.indexOf(d.floor) >= 0 ? d.floor : 'dom', items: items, nextId: next };
+      })();
+
       // ---------- Jeżyk w biegu wardrobe (read-only) ----------
       function jezyk() {
         try { var j = JSON.parse(localStorage.getItem('naukagry.jezyk')) || {}; return { owned: (j.owned && typeof j.owned === 'object') ? j.owned : {}, wear: (j.wear && typeof j.wear === 'object') ? j.wear : {} }; }
@@ -1584,6 +1849,19 @@
       var growBtn = document.createElement('button'); growBtn.type = 'button'; growBtn.className = 'zw-grow'; growBtn.hidden = true;
       growBtn.innerHTML = 'Urośnij! <span aria-hidden="true">✨</span>'; cvWrap.appendChild(growBtn);
       growBtn.onclick = function () { if (!growBtn.hidden) growUp(sel()); };
+      // decorating: the "Urządź" button in the room's corner, a tip line and the toolbar for a chosen thing
+      var decoBtn = document.createElement('button'); decoBtn.type = 'button'; decoBtn.className = 'zw-deco'; decoBtn.hidden = true;
+      decoBtn.innerHTML = ICON.deco + '<span>Urządź</span>'; cvWrap.appendChild(decoBtn);
+      decoBtn.onclick = function () { enterDeco(); };
+      var decoTip = document.createElement('div'); decoTip.className = 'zw-tip'; decoTip.hidden = true;
+      decoTip.textContent = 'Przesuwaj rzeczy palcem albo dotknij jednej.'; cvWrap.appendChild(decoTip);
+      var tools = document.createElement('div'); tools.className = 'zw-tools'; tools.hidden = true; cvWrap.appendChild(tools);
+      [['flip', 'Obróć'], ['front', 'Do przodu'], ['back', 'Do tyłu'], ['stow', 'Schowaj']].forEach(function (d) {
+        var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-a', d[0]);
+        b.innerHTML = ((NG.roomArt && NG.roomArt.icons && NG.roomArt.icons[d[0]]) || '') + '<span>' + d[1] + '</span>';
+        tools.appendChild(b);
+      });
+      tools.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b && mode === 'deco') decoTool(b.getAttribute('data-a')); });
       var bar = document.createElement('div'); bar.className = 'zw-bb'; root.appendChild(bar);
       el.appendChild(root);
       var g = cv.getContext('2d');
@@ -1593,7 +1871,8 @@
       var raf = 0, running = true, last = 0, T = 0, timers = [], hudT = 0, saveT = 0, hintT = rnd(16, 24), duoT = rnd(10, 16);
       var parts = [], speech = null, food = null, bath = null, dark = 0, duo = null, curMusic = null, play = null, playT = rnd(8, 25);
       var GS = null, sheet = null, overlay = null, panel = null, growQ = [];
-      var taps = [], drag = null, plate = { x: 0, y: 0, w: 0, h: 0 }, win = { x: 0, y: 0, w: 0, h: 0 };
+      var taps = [], drag = null, plate = { x: 0, y: 0, w: 0, h: 0 };
+      var IS = 1, bgC = null, bgDirty = true, decoSel = null, boxBadge = null;   // decorating: item scale, cached wall+floor, selected item
 
       function later(fn, ms) { var id = setTimeout(function () { var i = timers.indexOf(id); if (i >= 0) timers.splice(i, 1); fn(); }, ms); timers.push(id); return id; }
       function persist() { save.lastSeen = Date.now(); ctx.save(save); }
@@ -1703,6 +1982,8 @@
         LW = W / S; LH = H / S;
         FY = Math.round(LH * 0.5);
         HS = clamp(Math.min(LW * 0.46 / 64, LH * 0.27 / 50), 1.2, 3.4);
+        IS = clamp(HS * 0.5, 0.7, 1.8);   // furniture grows with the pets
+        bgDirty = true;
         var hp = homePets();
         hp.forEach(function (p, i) {
           var r = R(p);
@@ -1711,6 +1992,7 @@
           r.y = clamp(r.y, floorY(0), floorY(1)); r.ty = clamp(r.ty, floorY(0), floorY(1));
         });
         if (GS && MG[mode] && MG[mode].layout) MG[mode].layout();
+        if (decoSel) placeTools();
         if (!raf) draw();
       }
 
@@ -1819,6 +2101,16 @@
           return;
         }
         if (mode === 'dance' && GS) { MG.dance.bar(); return; }
+        boxBadge = null;
+        if (mode === 'deco') {
+          actBtn('shop', 'Sklep', function () { openDecoShop(); });
+          var bx = actBtn('box', 'Pudło', openDecoBox);
+          boxBadge = document.createElement('span'); boxBadge.className = 'zw-badge'; bx.appendChild(boxBadge);
+          var done = document.createElement('button'); done.type = 'button'; done.className = 'zw-big'; done.textContent = 'Gotowe'; done.onclick = leaveDeco;
+          bar.appendChild(done);
+          updateDecoBar();
+          return;
+        }
         barMsg = document.createElement('div'); barMsg.className = 'zw-msg'; bar.appendChild(barMsg);
         var b = document.createElement('button'); b.type = 'button'; b.className = 'zw-big';
         if (mode === 'home') { b.textContent = 'Obudź'; b.onclick = function () { wake(sel(), false); }; }
@@ -1856,8 +2148,10 @@
       function setMode(m) {
         stopPlay(); if (m === 'home') playT = Math.max(playT, rnd(8, 12));
         mode = m; drag = null;
-        var showTop = m === 'home' || m === 'bath';
+        var showTop = m === 'home' || m === 'bath' || m === 'deco';
         top.style.display = showTop && save.pets.length ? '' : 'none';
+        decoBtn.hidden = m !== 'home' || !DC.ok; decoTip.hidden = m !== 'deco';
+        if (m !== 'deco') decoDeselect();
         buildBar(); updateHud(); syncMusic();
         layout();
       }
@@ -2105,6 +2399,9 @@
       // ---------- sleep ----------
       function sleepSpot(p) {
         var zs = homePets().filter(function (q) { return q.asleep; }), i = Math.max(0, zs.indexOf(p)), n = Math.max(1, zs.length);
+        // pet beds first (left to right): the pet lies in it, the front rim drawn over it
+        var beds = bedSpots();
+        if (i < beds.length) { var b = beds[i], mg = edge(p); return { x: clamp(b.p.x, mg, LW - mg), y: b.p.y - 14 * IS, bed: b.it.id }; }
         return { x: LW * (0.5 + (i - (n - 1) / 2) * (n > 3 ? 0.21 : 0.27)), y: floorY(0.42) };
       }
       function startSleep() {
@@ -3360,12 +3657,320 @@
         }
       };
 
+      // ---------- decorating (Urządzanie) ----------
+      // Positions are fractions of the room (LW x LH), sizes follow IS, so a room looks the same on a phone and a
+      // wide screen. Hit-testing of things happens only in this mode; at home every tap goes to the pets.
+      function DI(k) { return DC.by[k] || null; }
+      function decoL() { return { LW: LW, LH: LH, FY: FY }; }
+      function decoItems() { return save.deco.items.filter(function (it) { return !!DC.by[it.k]; }); }
+      function idims(I) { return I.lay ? I.size(decoL()) : { w: I.w * IS, h: I.h * IS }; }
+      function yRange(I, d) {
+        var lo, hi;
+        if (I.at === 'wall') { lo = d.h + 6; hi = FY - 12; }
+        else if (I.at === 'ceil') { lo = d.h + 4; hi = FY * 0.55; }
+        else if (I.at === 'rug') { lo = FY + d.h * 0.8; hi = LH - 2; }
+        else if (I.small) { lo = d.h + 4; hi = LH - 2; }     // small things may stand on furniture or a shelf
+        else { lo = FY + 6; hi = LH - 2; }
+        return [Math.min(lo, hi), hi];
+      }
+      function ipos(it) {
+        var I = DI(it.k), d = idims(I);
+        if (it.x == null) { var a = I.auto(decoL(), d); return { x: a.x, y: a.y, d: d }; }
+        var yr = yRange(I, d), hw = d.w / 2;
+        return { x: clamp(it.x * LW, Math.min(hw, LW / 2), Math.max(LW - hw, LW / 2)), y: clamp(it.y * LH, yr[0], yr[1]), d: d };
+      }
+      function setIPos(it, x, y) { it.x = x / LW; it.y = y / LH; var p = ipos(it); it.x = p.x / LW; it.y = p.y / LH; }
+      function ikey(it, p) { return (p || ipos(it)).y + (it.dz || 0) * LH; }
+      function ibox(it, p) {
+        p = p || ipos(it);
+        var hw = p.d.w / 2 + 6, t = p.y - p.d.h - 6;
+        if (p.y - t < 40) t = p.y - 40;
+        return { l: p.x - hw, r: p.x + hw, t: t, b: p.y + 8 };
+      }
+      function isDragged(it) { return !!(drag && drag.kind === 'item' && drag.moving && drag.it === it); }
+      // standing things (L2) with their depth key, without the one being dragged
+      function standing() {
+        var out = [];
+        decoItems().forEach(function (it) { if (DI(it.k).L === 2 && !isDragged(it)) { var ip = ipos(it); out.push({ k: ikey(it, ip), it: it, ip: ip }); } });
+        return out;
+      }
+      function drawItemAt(it, p, lift, night, noShadow) {
+        var I = DI(it.k), d = p.d, y = p.y - (lift || 0);
+        if (I.L === 2 && !I.lay && !noShadow && p.y > FY + 2) {
+          g.beginPath(); g.ellipse(p.x, p.y + 1, d.w * 0.42, Math.min(d.w * 0.07, 6 * IS), 0, 0, Math.PI * 2);
+          g.fillStyle = lift ? 'rgba(60,40,20,.22)' : 'rgba(60,40,20,.13)'; g.fill();
+        }
+        g.save(); g.translate(p.x, y); if (it.f) g.scale(-1, 1);
+        if (I.lay) I.draw(g, d, T, night);
+        else {
+          g.scale(IS, IS);
+          if (I.own) I.draw(g, DECO_LW / IS, T, it);
+          else NG.roomArt.drawItem(g, it.k, T, { up: y / IS, id: it.id, f: !!it.f }, DECO_LW / IS);
+        }
+        g.restore();
+      }
+      function drawBedFront(it, p) {
+        g.save(); g.translate(p.x, p.y); if (it.f) g.scale(-1, 1); g.scale(IS, IS); decoBed(g, DECO_LW / IS, true); g.restore();
+      }
+      function drawSelBox(it) {
+        var b = ibox(it);
+        g.save(); g.setLineDash([7, 6]); g.lineDashOffset = reduce ? 0 : -T * 20; g.lineWidth = 2.5; g.strokeStyle = '#e8789f';
+        rr(g, b.l, b.t, b.r - b.l, b.b - b.t, 10); g.stroke();
+        g.restore();
+      }
+      function bedSpots() {
+        var beds = [];
+        save.deco.items.forEach(function (it) { if (it.k === 'legowisko') beds.push({ it: it, p: ipos(it) }); });
+        return beds.sort(function (a, b) { return a.p.x - b.p.x; });
+      }
+      // now and then a pet goes to one of its things: a cat scratches the post, others try the cushion, bowls, toys
+      var VISIT = {
+        drapak: ['Drap, drap!', 'Mrrr, drap drap!'], poduszka: ['Mięciutko!', 'Ale wygodnie!'], legowisko: ['Moje łóżeczko!', 'Tu będę spać!'],
+        budka: ['Mój domek!', 'Puk, puk!'], miski: ['Mniam!', 'Coś do picia?'], mysz: ['Myszka! Hop!', 'Złapię cię!'], kosc: ['Moja kostka!', 'Gryz, gryz!'],
+        pilka: ['Piłka! Hop!', 'Pobawię się!'], mis: ['Cześć, misiu!', 'Przytulas!']
+      };
+      function visitSpot(p) {
+        if (mode !== 'home') return null;
+        var cat = /^kot/.test(p.sp), list = save.deco.items.filter(function (it) { return VISIT[it.k] && DC.by[it.k] && (it.k !== 'drapak' || cat); });
+        if (!list.length) return null;
+        var it = pick(list), ip = ipos(it), mg = edge(p), x, beside = it.k === 'drapak' || it.k === 'budka' || it.k === 'miski';
+        if (beside) {
+          var side = Math.random() < 0.5 ? -1 : 1, off = ip.d.w / 2 + 30 * HS * crowd() * 0.6;
+          x = ip.x + side * off;
+          if (x < mg || x > LW - mg) x = ip.x - side * off;
+        } else x = ip.x;
+        x = clamp(x, mg, LW - mg);
+        if (Math.abs(x - ip.x) > ip.d.w / 2 + 60 * HS) return null;   // squeezed against a wall: not worth the walk
+        return { id: it.id, k: it.k, x: x, y: clamp(ip.y + 6, floorY(0), floorY(1)), ix: ip.x };
+      }
+      function visitReact(p, r, v) {
+        if (mode !== 'home' || p.asleep || Math.abs(r.x - v.x) > 8 || Math.abs(r.y - v.y) > 8) return;
+        var it = null; save.deco.items.forEach(function (o) { if (o.id === v.id) it = o; });
+        if (!it) return;
+        if (Math.abs(v.ix - r.x) > 4) r.face = v.ix > r.x ? 1 : -1;
+        if (v.k === 'drapak') { r.wig = 0.7; ctx.sfx('tap'); }
+        else if (v.k === 'poduszka' || v.k === 'legowisko' || v.k === 'mis') r.happy = Math.max(r.happy, 1.4);
+        else r.hop = 0;
+        if (!speech && Math.random() < 0.7) popText(pick(VISIT[v.k]), r.x, r.y - 44 * petScale(p), PURPLE, 1.6);
+        r.wanderT = rnd(2, 4);
+      }
+
+      function placed(k) { var n = 0; save.deco.items.forEach(function (it) { if (it.k === k) n++; }); return n; }
+      function inBox(k) { return Math.max(0, (save.deco.owned[k] || 0) - placed(k)); }
+      function boxTotal() { var n = 0; DC.list.forEach(function (I) { n += inBox(I.k); }); return n; }
+      function updateDecoBar() { if (!boxBadge) return; var n = boxTotal(); boxBadge.hidden = !n; boxBadge.textContent = n; }
+      function defaultSpot(I, d) {
+        var band = LH - FY, x = rnd(0.22, 0.78) * LW, y;
+        if (I.at === 'wall') y = clamp(FY * rnd(0.45, 0.7), d.h + 14, FY - 14);
+        else if (I.at === 'ceil') y = d.h + rnd(18, 44) * IS;
+        else if (I.at === 'rug') y = FY + band * rnd(0.55, 0.75);
+        else y = FY + band * rnd(0.3, 0.8);
+        return { x: x, y: y };
+      }
+      function decoAdd(k) {
+        var dc = save.deco, I = DI(k), it = { id: dc.nextId++, k: k, x: 0.5, y: 0.5, f: false, dz: 0 }, sp = defaultSpot(I, idims(I));
+        setIPos(it, sp.x, sp.y);
+        dc.items.push(it);
+        return it;
+      }
+      function decoHello(it, text) {
+        var p = ipos(it);
+        popText(text, p.x, p.y - p.d.h - 12, PURPLE, 1.6);
+        if (!reduce) burst('spark', p.x, p.y - p.d.h / 2, 4);
+      }
+      // a thing dropped onto a bigger one (a teddy on the bed, a flower on the chest) is drawn in front of it
+      function settleOnTop(it) {
+        if (DI(it.k).L !== 2) return;
+        it.dz = 0;
+        var p = ipos(it), best = null;
+        save.deco.items.forEach(function (o) {
+          if (o === it || !DC.by[o.k] || DI(o.k).L !== 2) return;
+          var op = ipos(o);
+          if (Math.abs(p.x - op.x) < op.d.w / 2 && p.y < op.y && p.y > op.y - op.d.h) { var k = ikey(o, op); if (best == null || k > best) best = k; }
+        });
+        if (best != null && best >= p.y) it.dz = clamp((best + 0.5 - p.y) / LH, -0.5, 0.5);
+      }
+      function overlapping(it) {
+        var b = ibox(it), out = [];
+        save.deco.items.forEach(function (o) {
+          if (o === it || !DC.by[o.k] || DI(o.k).L !== DI(it.k).L) return;
+          var c = ibox(o); if (c.l < b.r && c.r > b.l && c.t < b.b && c.b > b.t) out.push(o);
+        });
+        return out;
+      }
+      function decoSelect(it) {
+        decoSel = it; decoTip.hidden = true; tools.hidden = false; placeTools();
+        tools.style.animation = 'none'; void tools.offsetWidth; tools.style.animation = '';
+      }
+      function decoDeselect() { decoSel = null; tools.hidden = true; }
+      function placeTools() {
+        if (!decoSel) return;
+        var b = ibox(decoSel), tw = tools.offsetWidth || 260, th = tools.offsetHeight || 64;
+        var top = b.t * S - th - 8;
+        if (top < 6) top = Math.min(b.b * S + 8, H - th - 6);
+        if (top < 6) top = 6;
+        tools.style.left = clamp((b.l + b.r) / 2 * S - tw / 2, 6, Math.max(6, W - tw - 6)) + 'px';
+        tools.style.top = top + 'px';
+      }
+      function decoTool(a) {
+        var it = decoSel, items = save.deco.items, i = items.indexOf(it);
+        if (!it || i < 0) { decoDeselect(); return; }
+        if (a === 'stow') {
+          items.splice(i, 1); decoDeselect(); persist(); ctx.sfx('pop'); updateDecoBar();
+          if (boxBadge && !reduce) { boxBadge.classList.remove('bump'); void boxBadge.offsetWidth; boxBadge.classList.add('bump'); }
+          return;
+        }
+        if (a === 'flip') { it.f = !it.f; ctx.sfx('swap'); }
+        else if (DI(it.k).L === 2) {
+          // standing things: change the depth only against the things it touches
+          var p = ipos(it), mine = ikey(it, p), ks = overlapping(it).map(function (o) { return ikey(o); });
+          // (its own spot is enough when that already does it, so pets still pass it the natural way)
+          if (a === 'front') { var mx = Math.max.apply(null, ks.concat([-1e9])); if (mx >= mine) it.dz = p.y > mx ? 0 : clamp((mx + 0.5 - p.y) / LH, -0.5, 0.5); }
+          else { var mn = Math.min.apply(null, ks.concat([1e9])); if (mn <= mine) it.dz = p.y < mn ? 0 : clamp((mn - 0.5 - p.y) / LH, -0.5, 0.5); }
+          ctx.sfx('tap');
+        } else {
+          items.splice(i, 1);
+          if (a === 'front') items.push(it); else items.unshift(it);
+          ctx.sfx('tap');
+        }
+        persist(); placeTools();
+      }
+      function decoDown(e, q) {
+        var list = [];
+        decoItems().forEach(function (it, i) { var ip = ipos(it), L = DI(it.k).L; list.push({ it: it, ip: ip, o: L === 2 ? 1e7 + ikey(it, ip) : L * 1e6 + i }); });
+        list.sort(function (a, b) { return a.o - b.o; });
+        for (var i = list.length - 1; i >= 0; i--) {
+          var b = ibox(list[i].it, list[i].ip);
+          if (q.x >= b.l && q.x <= b.r && q.y >= b.t && q.y <= b.b) {
+            capture(e);
+            drag = { kind: 'item', it: list[i].it, ox: q.x - list[i].ip.x, oy: q.y - list[i].ip.y, sx: q.x, sy: q.y, moving: false };
+            return;
+          }
+        }
+        if (decoSel) decoDeselect();
+      }
+      function decoMove(q) {
+        var dd = drag;
+        if (!dd.moving && Math.hypot(q.x - dd.sx, q.y - dd.sy) * S > 8) {
+          dd.moving = true; decoDeselect(); decoTip.hidden = true; ctx.sfx('tap');
+          var a = save.deco.items, i = a.indexOf(dd.it);
+          if (i >= 0) { a.splice(i, 1); a.push(dd.it); }     // on top of its layer
+        }
+        if (dd.moving) { dd.it.dz = 0; setIPos(dd.it, q.x - dd.ox, q.y - dd.oy); }
+      }
+      function decoUp() {
+        var dd = drag; drag = null;
+        if (!dd || save.deco.items.indexOf(dd.it) < 0) return;
+        if (dd.moving) { settleOnTop(dd.it); persist(); ctx.sfx('place'); return; }
+        if (decoSel === dd.it) { decoDeselect(); return; }
+        decoSelect(dd.it); ctx.sfx('tap');
+      }
+      function enterDeco() {
+        if (mode !== 'home' || food || overlay || panel || sheet || bellyBusy() || !DC.ok) return;
+        stopPlay(); duo = null;
+        homePets().forEach(function (p) { var r = R(p); r.walking = false; r.tx = r.x; r.ty = r.y; r.visit = null; });
+        ctx.sfx('open');
+        setMode('deco');
+        if (!save.deco.items.length && !boxTotal()) later(function () { if (mode === 'deco' && !sheet) openDecoShop(); }, 300);
+      }
+      function leaveDeco() {
+        if (mode !== 'deco') return;
+        if (sheet) closeSheet();
+        drag = null; persist();
+        setMode('home');
+        var p = sel();
+        if (p && !p.asleep) { R(p).hop = 0; R(p).happy = 1.2; say(p, pick(['Ale ładnie!', 'Pięknie tu!', 'Jak przytulnie!']), 1.8); }
+      }
+      function setSurf(kind, k) { if (kind === 'w') save.deco.wall = k; else save.deco.floor = k; bgDirty = true; persist(); }
+      function buySurf(kind, B, S2) {
+        var list = kind === 'w' ? save.deco.walls : save.deco.floors;
+        if (list.indexOf(B.k) >= 0 || B.lv > ctx.level()) return;
+        if (!ctx.spend(B.p, (kind === 'w' ? 'tapeta: ' : 'podłoga: ') + B.n)) { poor(S2); return; }
+        list.push(B.k); setSurf(kind, B.k);
+        ctx.sfx('buy'); later(function () { ctx.sfx('paint'); }, 160); ctx.sticker('decor');
+        ctx.toast(kind === 'w' ? 'Nowa tapeta: ' + B.n + '!' : 'Nowa podłoga: ' + B.n + '!');
+        S2.keepScroll = true; S2.render();
+      }
+      function buyDeco(I, S2) {
+        if (I.lv > ctx.level()) return;
+        if (!ctx.spend(I.p, I.n)) { poor(S2); return; }
+        var dc = save.deco;
+        dc.owned[I.k] = Math.min(99, (dc.owned[I.k] || 0) + 1);
+        ctx.sfx('buy'); ctx.sticker('decor');
+        var it = dc.items.length < DECO_MAX ? decoAdd(I.k) : null;
+        persist(); closeSheet(); updateDecoBar();
+        if (it) { decoSelect(it); decoHello(it, I.n); later(function () { ctx.sfx('place'); }, 140); }
+        else ctx.toast('W domku jest pełno. ' + I.n + ' czeka w pudle.');
+      }
+      function lockTag(lv) { var s2 = document.createElement('span'); s2.className = 'zw-lockt'; s2.textContent = 'od poziomu ' + lv; return s2; }
+      function openDecoShop(tab) {
+        decoDeselect();
+        openSheet('Sklep do domku', function (body, S2) {
+          var t = S2.data.tab || tab || 'meble', lvl = ctx.level(), bal = ctx.balance(), dc = save.deco;
+          S2.data.tab = t; body.classList.add('zw-two');
+          var seg = document.createElement('div'); seg.className = 'zw-seg zw-tabs';
+          [['meble', 'Meble'], ['ozdoby', 'Ozdoby'], ['w', 'Tapety'], ['f', 'Podłogi']].forEach(function (d) {
+            var b = document.createElement('button'); b.type = 'button'; b.textContent = d[1]; if (d[0] === t) b.className = 'on';
+            b.onclick = function () { if (S2.data.tab === d[0] || sheet !== S2) return; S2.data.tab = d[0]; ctx.sfx('tap'); S2.render(); };
+            seg.appendChild(b);
+          });
+          body.appendChild(seg);
+          if (t === 'w' || t === 'f') {
+            var list = t === 'w' ? DC.walls : DC.floors, own = t === 'w' ? dc.walls : dc.floors, cur = t === 'w' ? dc.wall : dc.floor;
+            note(body, t === 'w' ? 'Tapeta na ściany domku. Kupujesz raz, zmieniasz kiedy chcesz.' : 'Podłoga w domku. Kupujesz raz, zmieniasz kiedy chcesz.');
+            list.forEach(function (B) {
+              var have = own.indexOf(B.k) >= 0, locked = !have && B.lv > lvl, b;
+              if (B.k === cur) b = btn('Teraz', null, 'pick', true);
+              else if (have) b = btn('Wybierz', function () { if (!live(S2)) return; setSurf(t, B.k); ctx.sfx('paint'); S2.keepScroll = true; S2.render(); }, 'pick');
+              else if (locked) b = lockTag(B.lv);
+              else b = btn(B.p + ' ★', function () { if (live(S2)) buySurf(t, B, S2); }, '', B.p > bal);
+              var r = row(body, decoSurfThumb(t, B), B.n, have && B.k !== cur ? 'masz' : '', b, B.k === cur ? 'cur' : locked ? 'lock' : '');
+              r.querySelector('img').className = 'wide';
+            });
+          } else {
+            note(body, t === 'meble' ? 'Kupiona rzecz staje w domku. Przesuń ją palcem.' : 'Ozdoby, lampki i zabawki dla zwierzątek.');
+            DC.list.forEach(function (I) {
+              if (I.cat !== t) return;
+              var have = dc.owned[I.k] || 0, locked = I.lv > lvl;
+              var b = locked ? lockTag(I.lv) : btn(I.p + ' ★', function () { if (live(S2)) buyDeco(I, S2); }, '', I.p > bal);
+              row(body, decoThumb(I, locked), I.n, have ? 'masz: ' + have : I.pet ? 'dla zwierzątek' : '', b, locked ? 'lock' : '', !have && I.pet ? 'fav' : '');
+            });
+          }
+          if (bal < 60) note(body, 'Za mało gwiazdek? Zbieraj je w nauce!', 'warn');
+        });
+      }
+      function openDecoBox() {
+        decoDeselect();
+        openSheet('Pudło', function (body, S2) {
+          var grid = document.createElement('div'), any = false; grid.className = 'zw-grid';
+          DC.list.forEach(function (I) {
+            var n = inBox(I.k); if (!n) return; any = true;
+            var c = document.createElement('button'); c.type = 'button'; c.className = 'zw-cell';
+            c.innerHTML = '<img alt=""><span></span>' + (n > 1 ? '<i>×' + n + '</i>' : '');
+            c.querySelector('img').src = decoThumb(I, false); c.querySelector('span').textContent = I.n;
+            c.onclick = function () { if (live(S2)) takeOut(I); };
+            grid.appendChild(c);
+          });
+          if (any) { note(body, 'Dotknij rzeczy, żeby postawić ją w domku.'); body.appendChild(grid); }
+          else note(body, 'Pudło jest puste. Tu czekają rzeczy, które schowasz.');
+        });
+      }
+      function takeOut(I) {
+        if (!inBox(I.k)) return;
+        if (save.deco.items.length >= DECO_MAX) { ctx.toast('W domku nie ma już miejsca.'); ctx.sfx('error'); return; }
+        var it = decoAdd(I.k);
+        persist(); closeSheet(); updateDecoBar();
+        ctx.sfx('pop'); later(function () { ctx.sfx('place'); }, 120);
+        decoSelect(it); decoHello(it, I.n);
+      }
+
       // ---------- input ----------
       function pos(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / S, y: (e.clientY - r.top) / S }; }
       function capture(e) { try { cv.setPointerCapture(e.pointerId); } catch (er) {} }
       function onDown(e) {
         if (e.button > 0 || overlay) return;
         var q = pos(e);
+        if (mode === 'deco') { decoDown(e, q); e.preventDefault(); return; }
         if (mode === 'home') {
           stopPlay(); playT = Math.max(playT, 10);
           if (food) return;
@@ -3396,6 +4001,7 @@
       function onMove(e) {
         if (!drag) return;
         var q = pos(e);
+        if (drag.kind === 'item') { decoMove(q); return; }
         if (drag.kind === 'stroke') {
           var p = byId(drag.id), d = Math.hypot(q.x - drag.x, q.y - drag.y);
           drag.x = q.x; drag.y = q.y;
@@ -3406,7 +4012,7 @@
           scrub(q.x, q.y, d2); updateBarMsg();
         } else if (GS && MG[mode] && MG[mode].move) MG[mode].move(q);
       }
-      function onUp() { if (GS && MG[mode] && MG[mode].up) MG[mode].up(); drag = null; }
+      function onUp() { if (drag && drag.kind === 'item') { decoUp(); return; } if (GS && MG[mode] && MG[mode].up) MG[mode].up(); drag = null; }
       function onKey(e) { if (GS && MG[mode] && MG[mode].key) MG[mode].key(e); }
       cv.addEventListener('pointerdown', onDown);
       cv.addEventListener('pointermove', onMove);
@@ -3455,6 +4061,8 @@
         r.wanderT -= dt;
         if (r.wanderT <= 0) {
           r.wanderT = rnd(3, 7);
+          r.visit = Math.random() < 0.25 ? visitSpot(p) : null;
+          if (r.visit) { r.tx = r.visit.x; r.ty = r.visit.y; r.wanderT = rnd(6, 9); return moveTo(p, r, r.tx, r.ty, dt, 1); }
           var best = null, bd = -1;
           for (var i = 0; i < 6; i++) {
             var mg = edge(p), cx = rnd(mg, LW - mg), cy = floorY(rnd(0, 1)), md = 1e9;
@@ -3463,7 +4071,7 @@
           }
           r.tx = best[0]; r.ty = best[1];
         }
-        moveTo(p, r, r.tx, r.ty, dt, 1);
+        if (moveTo(p, r, r.tx, r.ty, dt, 1) && r.visit) { visitReact(p, r, r.visit); r.visit = null; }
       }
       function moveTo(p, r, tx, ty, dt, k) {
         var dx = tx - r.x, dy = ty - r.y, d = Math.hypot(dx, dy * 1.6);
@@ -3667,18 +4275,24 @@
         else { g.translate(b.x, b.y); g.rotate(b.rot); THING.pilka(g, b.r); }
         g.restore();
       }
+      function sleepTick(p, r, dt) {
+        p.needs.sleep = Math.min(100, p.needs.sleep + SLEEP_GAIN_S * upV('bed') * dt);
+        var sp = sleepSpot(p); moveTo(p, r, sp.x, sp.y, dt, 2.5); r.walking = false;
+        r.zT -= dt;
+        if (r.zT <= 0) { r.zT = 1.1 + Math.random() * 0.3; var s = petScale(p); parts.push({ kind: 'z', x: r.x + 14 * s, y: r.y - 28 * s, vx: 14, vy: -26, t: 0, life: 2.4, r: 14 + Math.random() * 8 }); }
+        if (p.needs.sleep >= 100 && r.wakeT < 0) r.wakeT = 1.6;
+        if (r.wakeT > 0) { r.wakeT -= dt; if (r.wakeT <= 0) wake(p, true); }
+      }
+      // while decorating the pets stay where they are (sleepers keep sleeping)
+      function updateDeco(dt) {
+        homePets().forEach(function (p) { var r = R(p); if (p.asleep) sleepTick(p, r, dt); else r.walking = false; });
+      }
       function updateHome(dt) {
         if (food) updateFood(dt);
         homePets().forEach(function (p) {
           var r = R(p);
-          if (p.asleep) {
-            p.needs.sleep = Math.min(100, p.needs.sleep + SLEEP_GAIN_S * upV('bed') * dt);
-            var sp = sleepSpot(p); moveTo(p, r, sp.x, sp.y, dt, 2.5); r.walking = false;
-            r.zT -= dt;
-            if (r.zT <= 0) { r.zT = 1.1 + Math.random() * 0.3; var s = petScale(p); parts.push({ kind: 'z', x: r.x + 14 * s, y: r.y - 28 * s, vx: 14, vy: -26, t: 0, life: 2.4, r: 14 + Math.random() * 8 }); }
-            if (p.needs.sleep >= 100 && r.wakeT < 0) r.wakeT = 1.6;
-            if (r.wakeT > 0) { r.wakeT -= dt; if (r.wakeT <= 0) wake(p, true); }
-          } else if (busy(p, r) || (duo && (duo.a === p.id || duo.b === p.id)) || inPlay(p)) { if (!(drag && drag.id === p.id)) r.walking = false; }
+          if (p.asleep) sleepTick(p, r, dt);
+          else if (busy(p, r) || (duo && (duo.a === p.id || duo.b === p.id)) || inPlay(p)) { if (!(drag && drag.id === p.id)) r.walking = false; }
           else wander(p, r, dt);
         });
         updateDuo(dt);
@@ -3703,8 +4317,9 @@
         var want = mode === 'home' && cur && cur.asleep ? (allZ ? 1 : 0.55) : 0;
         dark += (want - dark) * Math.min(1, dt * (reduce ? 20 : 2.5));
         if (speech) { speech.t -= dt; if (speech.t <= 0) speech = null; }
-        if (mode === 'home' || mode === 'bath') hp.forEach(function (p) { petTimers(p, dt); });
+        if (mode === 'home' || mode === 'bath' || mode === 'deco') hp.forEach(function (p) { petTimers(p, dt); });
         if (mode === 'home') updateHome(dt);
+        else if (mode === 'deco') updateDeco(dt);
         else if (mode === 'bath' && bath) updateBath(dt);
         else if (mode === 'polana') updatePolana(dt);
         else if (GS && MG[mode]) MG[mode].update(dt);
@@ -3721,51 +4336,27 @@
 
       // ---------- draw ----------
       function isNight() { var h = new Date().getHours(); return h >= 20 || h < 7; }
-      function drawWindow(night) {
-        var ww = Math.min(124, LW * 0.28), wh = ww * 1.05, wx = LW * 0.07, wy = Math.max(56, FY * 0.26);
-        win = { x: wx, y: wy, w: ww, h: wh };
-        function shape() { g.beginPath(); g.moveTo(wx, wy + wh); g.lineTo(wx, wy + ww / 2); g.arc(wx + ww / 2, wy + ww / 2, ww / 2, Math.PI, 0); g.lineTo(wx + ww, wy + wh); g.closePath(); }
-        shape();
-        var sk = g.createLinearGradient(0, wy, 0, wy + wh);
-        if (night) { sk.addColorStop(0, '#24316e'); sk.addColorStop(1, '#4b5ea8'); } else { sk.addColorStop(0, '#8fcdf8'); sk.addColorStop(1, '#e8f7ff'); }
-        g.fillStyle = sk; g.fill();
-        g.save(); shape(); g.clip();
-        if (night) {
-          g.beginPath(); g.arc(wx + ww * 0.66, wy + ww * 0.36, ww * 0.15, 0, Math.PI * 2); g.fillStyle = '#fff4c4'; g.fill();
-          g.beginPath(); g.arc(wx + ww * 0.72, wy + ww * 0.32, ww * 0.13, 0, Math.PI * 2); g.fillStyle = '#24316e'; g.fill();
-          g.fillStyle = '#fff';
-          [[0.2, 0.3], [0.35, 0.6], [0.8, 0.7], [0.5, 0.2], [0.25, 0.85]].forEach(function (s) { g.beginPath(); g.arc(wx + ww * s[0], wy + wh * s[1], 1.5, 0, Math.PI * 2); g.fill(); });
-        } else {
-          g.beginPath(); g.arc(wx + ww * 0.7, wy + ww * 0.34, ww * 0.13, 0, Math.PI * 2); g.fillStyle = '#ffd84a'; g.fill();
-          g.fillStyle = 'rgba(255,255,255,.95)';
-          g.beginPath(); g.arc(wx + ww * 0.28, wy + wh * 0.6, ww * 0.1, 0, Math.PI * 2); g.arc(wx + ww * 0.4, wy + wh * 0.56, ww * 0.12, 0, Math.PI * 2); g.arc(wx + ww * 0.52, wy + wh * 0.61, ww * 0.09, 0, Math.PI * 2); g.fill();
-          g.beginPath(); g.ellipse(wx + ww * 0.5, wy + wh * 1.02, ww * 0.7, wh * 0.2, 0, 0, Math.PI * 2); g.fillStyle = '#93d273'; g.fill();
-        }
-        g.restore();
-        shape(); outline(g, 3);
-        g.beginPath(); g.moveTo(wx + ww / 2, wy); g.lineTo(wx + ww / 2, wy + wh); g.moveTo(wx, wy + wh * 0.55); g.lineTo(wx + ww, wy + wh * 0.55); outline(g, 2.5);
-        rr(g, wx - 8, wy + wh - 2, ww + 16, 10, 4); g.fillStyle = '#c98f5a'; g.fill(); outline(g, 2);
+      function buildBg() {
+        if (!bgC) bgC = document.createElement('canvas');
+        if (bgC.width !== cv.width || bgC.height !== cv.height) { bgC.width = cv.width; bgC.height = cv.height; }
+        var b = bgC.getContext('2d'), dc = save.deco, RA = NG.roomArt, u = IS * 0.8;
+        b.setTransform(1, 0, 0, 1, 0, 0); b.clearRect(0, 0, bgC.width, bgC.height);
+        b.setTransform(DPR * S, 0, 0, DPR * S, 0, 0);
+        b.save();
+        if (dc.wall !== 'dom' && RA && DC.wb[dc.wall]) RA.drawWall(b, dc.wall, LW + 2, FY, u); else decoDomWall(b, LW, FY);
+        b.restore(); b.save();
+        if (dc.floor !== 'dom' && RA && DC.fb[dc.floor]) RA.drawFloor(b, dc.floor, FY, LW + 2, LH + 2, u); else decoDomFloor(b, LW, LH, FY);
+        b.restore();
+        b.fillStyle = '#c98f5a'; b.fillRect(0, FY - 12, LW + 2, 14);
+        b.beginPath(); b.moveTo(0, FY - 12); b.lineTo(LW, FY - 12); b.moveTo(0, FY + 2); b.lineTo(LW, FY + 2); outline(b, 2);
+        bgDirty = false;
       }
       function drawRoom() {
         var night = isNight() || dark > 0.5, cur = sel();
-        g.fillStyle = '#fbe6c8'; g.fillRect(0, 0, LW + 2, FY);
-        g.fillStyle = '#f6d9b3'; for (var x = 8; x < LW; x += 40) g.fillRect(x, 0, 18, FY);
-        g.fillStyle = '#ffffff55';
-        for (var hx = 17; hx < LW; hx += 40) for (var hy = 30; hy < FY - 20; hy += 60) { g.beginPath(); g.arc(hx, hy + ((hx / 40) % 2) * 30, 2.4, 0, Math.PI * 2); g.fill(); }
-        g.fillStyle = '#e0b07a'; g.fillRect(0, FY, LW + 2, LH - FY + 2);
-        g.beginPath();
-        for (var py = FY + 30, row2 = 0; py < LH; py += 34, row2++) {
-          g.moveTo(0, py); g.lineTo(LW, py);
-          for (var px = (row2 % 2) * 60 + 40; px < LW; px += 120) { g.moveTo(px, py - 34); g.lineTo(px, py); }
-        }
-        g.strokeStyle = 'rgba(138,90,51,.35)'; g.lineWidth = 1.5; g.stroke();
-        g.fillStyle = '#c98f5a'; g.fillRect(0, FY - 12, LW + 2, 14);
-        g.beginPath(); g.moveTo(0, FY - 12); g.lineTo(LW, FY - 12); g.moveTo(0, FY + 2); g.lineTo(LW, FY + 2); outline(g, 2);
-        drawWindow(night);
-        var fw = Math.min(70, LW * 0.16), fx = LW - fw - LW * 0.08, fy = Math.max(60, FY * 0.3);
-        rr(g, fx, fy, fw, fw * 1.15, 6); g.fillStyle = '#fffaf0'; g.fill(); outline(g, 3);
-        rr(g, fx + 6, fy + 6, fw - 12, fw * 1.15 - 12, 3); g.strokeStyle = '#e3a008'; g.lineWidth = 2; g.stroke();
-        heart(g, fx + fw / 2, fy + fw * 0.6, fw * 0.2, '#ff9ec7');
+        if (bgDirty || !bgC) buildBg();
+        g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(bgC, 0, 0); g.restore();
+        // rugs, then things on the wall (in their own order); standing things are drawn with the pets
+        [0, 1].forEach(function (L) { decoItems().forEach(function (it) { if (DI(it.k).L === L && !isDragged(it)) drawItemAt(it, ipos(it), 0, night); }); });
         // name plate (the selected pet)
         var nm = cur ? cur.name : 'Domek';
         g.font = '24px ' + FONT;
@@ -3776,17 +4367,6 @@
         rr(g, pxp + 4, pyp + 4, tw - 8, ph - 8, 7); g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1.5; g.stroke();
         g.fillStyle = '#fff8ea'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(nm, LW / 2, pyp + ph / 2 + 1);
         plate = cur ? { x: pxp, y: pyp, w: tw, h: ph } : { x: -99, y: -99, w: 0, h: 0 };
-        var plx = LW - LW * 0.08, ply = FY + 14;
-        g.save(); g.translate(plx, ply);
-        [[-0.5, '#3fae5f'], [0, '#58b25c'], [0.5, '#3fae5f'], [-0.9, '#58b25c'], [0.9, '#58b25c']].forEach(function (l) {
-          g.save(); g.rotate(l[0]); g.beginPath(); g.ellipse(0, -30, 8, 22, 0, 0, Math.PI * 2); g.fillStyle = l[1]; g.fill(); outline(g, 1.8); g.restore();
-        });
-        g.beginPath(); g.moveTo(-16, -10); g.lineTo(16, -10); g.lineTo(12, 14); g.lineTo(-12, 14); g.closePath(); g.fillStyle = '#e2714f'; g.fill(); outline(g, 2);
-        g.restore();
-        var ry = floorY(0.5), rw = Math.min(LW * 0.42, 260), rh = Math.min(40, (LH - FY) * 0.22);
-        g.beginPath(); g.ellipse(LW / 2, ry, rw, rh, 0, 0, Math.PI * 2); g.fillStyle = '#f7b7c8'; g.fill(); outline(g, 2.5);
-        g.beginPath(); g.ellipse(LW / 2, ry, rw * 0.78, rh * 0.7, 0, 0, Math.PI * 2);
-        g.setLineDash([8, 7]); g.strokeStyle = '#fff'; g.lineWidth = 3; g.stroke(); g.setLineDash([]);
       }
       function petState(p, pose) {
         var r = R(p), low = minNeed(p) < 25, chewing = food && food.id === p.id && food.drop >= 1 && food.bites < 3;
@@ -3908,6 +4488,7 @@
         if (mode === 'bath' && bath) {
           var bp = byId(bath.id), r = R(bp), s = petScale(bp), G = geo(bp.sp, bp.stage);
           var others = hp.filter(function (q) { return q !== bp; });
+          standing().forEach(function (e) { drawItemAt(e.it, e.ip, 0, false); });
           others.forEach(function (q, i) { var left = i === 0; drawPetHome(q, LW * (left ? 0.12 : 0.88), floorY(0.05), HS * 0.5, left ? 1 : -1); });
           var tw = Math.max(70 * HS, (G.x1 - G.x0) * s * 1.2);
           drawTub(false, r.x + (G.x0 + G.x1) / 2 * s * 0.5, r.y, tw);
@@ -3924,9 +4505,23 @@
             g.fillStyle = INK; for (var hh = -3; hh <= 3; hh++) { g.beginPath(); g.arc(sx + hh * 7 * HS, sy - 3, 1.6, 0, Math.PI * 2); g.fill(); }
           } else drawSponge();
         } else {
-          var list = hp.slice().sort(function (a, b) { return R(a).y - R(b).y; });
+          // pets and standing things by depth (a pet asleep in a bed: bed, pet, then the bed's front rim)
+          var ents = standing(), byItem = {};
+          ents.forEach(function (e) { byItem[e.it.id] = e; });
+          hp.forEach(function (p) {
+            var r = R(p), e = { k: r.y, p: p };
+            if (p.asleep) {
+              var sp = sleepSpot(p), be = sp.bed && byItem[sp.bed];
+              if (be && Math.abs(r.x - sp.x) < 6 && Math.abs(r.y - sp.y) < 6) { e.k = be.k + 0.01; ents.push({ k: be.k + 0.02, front: be.it, ip: be.ip }); }
+            }
+            ents.push(e);
+          });
+          ents.sort(function (a, b) { return a.k - b.k; });
           drawPlay(false);
-          list.forEach(function (p) {
+          ents.forEach(function (e) {
+            if (e.front) { drawBedFront(e.front, e.ip); return; }
+            if (e.it) { drawItemAt(e.it, e.ip, 0, false); return; }
+            var p = e.p;
             if (food && food.id === p.id) {
               var f = food, fy = f.y - (1 - f.drop) * 140, rad = 13 * HS / 2.2 * (1 - f.bites * 0.25);
               g.save(); g.translate(f.x, fy); if (f.bites < 3) THING[f.f.k](g, rad); g.restore();
@@ -3934,12 +4529,17 @@
             drawPetHome(p);
           });
           drawPlay(true);
+          if (drag && drag.kind === 'item' && drag.moving) drawItemAt(drag.it, ipos(drag.it), 8, false);
+          if (mode === 'deco' && decoSel) drawSelBox(decoSel);
           if (!hp.length) text('Tu zamieszka Twoje zwierzątko!', LW / 2, floorY(0.4), 26, PURPLE);
         }
         drawParts(function (p) { return p.kind !== 'z'; });
         if (dark > 0.01) {
           g.fillStyle = 'rgba(16,24,64,' + (0.6 * dark).toFixed(3) + ')'; g.fillRect(0, 0, LW + 2, LH + 2);
-          g.save(); g.globalAlpha = dark; drawWindow(true); g.restore();
+          // windows show the night sky and lamps keep shining
+          g.save();
+          decoItems().forEach(function (it) { var lp = DECO_LAMPS[it.k]; if (lp) { g.globalAlpha = dark * (lp === 'win' ? 1 : 0.9); drawItemAt(it, ipos(it), 0, true, true); } });
+          g.restore();
         }
         drawParts(function (p) { return p.kind === 'z'; });
         drawSpeech();
@@ -4051,6 +4651,8 @@
               x: r.x, y: p.home ? petY(p) : r.y, s: p.home ? petScale(p) : meadowScale(p), face: r.face, belly: r.belly || 0, pm: r.pm || 0, pose: pose,
               box: { x0: G.x0, x1: G.x1, top: G.top, hx: G.hx, hy: G.hy, hr: G.hr, cx: G.cx, cy: G.cy, rx: G.rx } };
           }),
+          deco: JSON.parse(JSON.stringify(save.deco)), IS: IS, decoSel: decoSel ? decoSel.id : 0, tools: !tools.hidden,
+          items: decoItems().map(function (it) { var p = ipos(it); return { id: it.id, k: it.k, x: p.x, y: p.y, w: p.d.w, h: p.d.h, key: ikey(it, p), L: DI(it.k).L }; }),
           gs: GS ? JSON.parse(JSON.stringify(GS, function (k, v) { return k === 'btns' ? undefined : v; })) : null
         };
       };

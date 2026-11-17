@@ -6,6 +6,8 @@
  * Wallpapers and floors are bought once and picked per room. A second room (Pokój zabaw) can be bought from
  * level 5. "Zrób zdjęcie" only celebrates (no download).
  * A guest from Zwierzątko (NG.petArt, the next pet in the family each visit) walks around the room; tap it.
+ * NG.roomArt exposes the item catalogue and the drawing (items, wallpapers, floors, thumbnails, toolbar icons) so
+ * Zwierzątko can decorate its pet house with the same art; it keeps its own prices and purchases.
  */
 (function () {
   'use strict';
@@ -807,6 +809,20 @@
     return m.c.toDataURL();
   }
 
+  // ---------- shared art: Zwierzątko decorates its pet house with the same furniture, wallpapers and floors ----------
+  // Read-only catalogue + drawing; Zwierzątko keeps its own prices and purchases. drawItem draws in item units
+  // (base centre 0,0, up is -y) with outline width lw (item units); drawWall/drawFloor fill 0..W x 0..H (floor from top)
+  // in the current transform, u = pattern scale. Thumbnails are cached data URLs.
+  NG.roomArt = {
+    items: ITEMS, walls: WALLS, floors: FLOORS, byKey: IB, wallByKey: WB, floorByKey: FB,
+    icons: null,   // the toolbar/shop/box SVGs, set below
+    drawItem: function (g, k, t, o, lw) { if (!DRAW[k]) return; U = lw || 2; drawItem(g, k, t, o); },
+    drawWall: function (g, k, W, H, u) { if (WB[k]) drawWall(g, WB[k], W, H, u); },
+    drawFloor: function (g, k, top, W, H, u) { if (FB[k]) drawFloor(g, FB[k], top, W, H, u); },
+    itemThumb: function (k, size, lock) { return IB[k] ? itemThumb(IB[k], size, lock) : ''; },
+    surfThumb: function (kind, k, w, h) { var B = kind === 'w' ? WB[k] : FB[k]; return B ? surfThumb(kind, B, w, h) : ''; }
+  };
+
   var CSS = [
     '.pk{display:flex;flex-direction:column;font-family:var(--hand);color:#1d2f6f;background:#fbf1dc}',
     '.pk-cv{flex:1;position:relative;min-height:0}',
@@ -880,6 +896,8 @@
     back: '<svg viewBox="0 0 30 24" aria-hidden="true"><rect x="11" y="9" width="14" height="12" rx="2" fill="#e6e9f2" stroke="#1d2f6f" stroke-width="2"/><rect x="4" y="4" width="13" height="11" rx="2" fill="#f7a8c4" stroke="#1d2f6f" stroke-width="2"/></svg>',
     stow: '<svg viewBox="0 0 30 24" aria-hidden="true"><path d="M4 10 h22 v11 h-22 z" fill="#e0b07a" stroke="#1d2f6f" stroke-width="2" stroke-linejoin="round"/><path d="M15 1 v8 M11 5 l4 4 l4 -4" fill="none" stroke="#1d2f6f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   };
+
+  NG.roomArt.icons = SVG;
 
   var PIC = '<rect width="120" height="72" fill="#fde2ea"/>' +
     '<g fill="#f9c9d8"><rect x="6" width="8" height="52"/><rect x="26" width="8" height="52"/><rect x="46" width="8" height="52"/><rect x="66" width="8" height="52"/><rect x="86" width="8" height="52"/><rect x="106" width="8" height="52"/></g>' +
