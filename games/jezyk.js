@@ -2,11 +2,15 @@
  * Jeżyk w biegu: a hedgehog runs. Tap = jump, tap again in the air = higher jump (roll).
  * v2: stages instead of one endless run. Five worlds (Łąka, Las, Góry, Nad morzem, Zima), 3 stages each,
  * every stage ends at grandma's house and is rated 1-3 apples by the share of apples collected.
- * A stage gives 3 hearts; one mushroom per run gives a shield for one hit.
+ * A stage gives 3 hearts; one mushroom per run gives a shield for one hit (more with upgrades).
  * 'Bez końca' is the old endless run (seasons change every 30 s, one hit ends it), unlocked after the first world.
  * Cosmetics (hats, scarf, glasses) unlocked by player level, bought once for 75 ★, chosen in the wardrobe.
+ * Upgrades (map -> Ulepszenia), bought per level with stars, gated by player level, each can be switched off
+ *   (off = exactly like not bought): Dodatkowe serduszko (hearts 3/4/5), Magnes na jabłka (apples within
+ *   56/80 units fly to the hedgehog), Mocniejszy grzybek (the mushroom shield takes 1/2/3 hits).
  * Save (naukagry.jezyk): best, bestScore, bestSeason, runs, stages { '<idx>': best rating 1-3 },
- *   owned + wear (the wardrobe; Zwierzątko reads these two keys, do not rename them).
+ *   owned + wear (the wardrobe; Zwierzątko reads these two keys, do not rename them),
+ *   up { k: bought level }, off { k: true when switched off }.
  * Logical coordinates: 1 unit = S css px, so a portrait phone is ~400 units wide whatever its size.
  */
 (function () {
@@ -20,7 +24,7 @@
   // jumps are 1.5x longer than the original 2400/820/900 at the same height:
   // air time x1.5 -> jump speed x2/3, gravity x4/9
   var GRAV = 2400 * 4 / 9, JUMP = 820 * 2 / 3, JUMP2 = 900 * 2 / 3, GRAV_CRASH = 2400;
-  var HEARTS = 3, BRAKE = 170, RATE3 = 0.7, RATE2 = 0.4, STAGES = 15;
+  var BRAKE = 170, RATE3 = 0.7, RATE2 = 0.4, STAGES = 15;
 
   // drawing styles: 0-3 are the endless-run seasons, 4-6 the extra worlds
   var STYLES = [
@@ -51,6 +55,19 @@
     { id: 'korona',   name: 'Korona',   slot: 'head', lvl: 8,  info: 'dla króla łąki' },
     { id: 'okulary',  name: 'Okulary',  slot: 'eyes', lvl: 10, info: 'przeciwsłoneczne' }
   ];
+  // ---------- upgrades (map -> Ulepszenia): bought once per level with stars, kept forever, each can be switched off ----------
+  // v: the value at each level (index 0 = not bought / switched off), price[i]: cost of level i+1, lv[i]: player level needed,
+  // say[i]: what level i does
+  var UPS = [
+    { k: 'heart', n: 'Dodatkowe serduszko', v: [3, 4, 5], price: [500, 1200], lv: [3, 7],
+      say: ['W etapie są 3 serduszka', 'W etapie są 4 serduszka', 'W etapie jest 5 serduszek'] },
+    { k: 'magnet', n: 'Magnes na jabłka', v: [0, 56, 80], price: [600, 1300], lv: [2, 6],
+      say: ['Jabłka trzeba złapać samemu', 'Jabłka tuż obok lecą do jeżyka', 'Magnes łapie jabłka z dalszej odległości'] },
+    { k: 'shield', n: 'Mocniejszy grzybek', v: [1, 2, 3], price: [400, 900], lv: [1, 5],
+      say: ['Tarcza z grzybka chroni raz', 'Tarcza wytrzyma 2 uderzenia', 'Tarcza wytrzyma 3 uderzenia'] }
+  ];
+  var UB = {}; UPS.forEach(function (U) { UB[U.k] = U; });
+  var MAG_PULL = 14;   // how fast a magnet apple flies to the hedgehog (share of the distance per second)
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function rnd(a, b) { return a + Math.random() * (b - a); }
@@ -256,6 +273,42 @@
     }
   }
 
+  // a horseshoe magnet, centre at 0,0, about 40 units tall, poles pointing down
+  function drawMagnet(g, s) {
+    g.save(); g.scale(s, s);
+    g.beginPath(); g.moveTo(-18, 14); g.lineTo(-18, -2); g.arc(0, -2, 18, Math.PI, 0); g.lineTo(18, 14);
+    g.lineTo(8, 14); g.lineTo(8, -2); g.arc(0, -2, 8, 0, Math.PI, true); g.lineTo(-8, 14); g.closePath();
+    g.fillStyle = '#e2533f'; g.fill(); outline(g, 2.5);
+    [-13, 13].forEach(function (x) { rr(g, x - 5, 10, 10, 9, 2); g.fillStyle = '#dfe6f2'; g.fill(); outline(g, 2); });
+    g.beginPath(); g.arc(0, -2, 13, Math.PI * 1.15, Math.PI * 1.45); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 3; g.stroke();
+    g.restore();
+  }
+  // upgrade pictures for the shop, centre at 0,0, about 80 units across
+  function drawUp(g, k) {
+    if (k === 'heart') {
+      heart(g, -4, 4, 30, '#e2533f');
+      g.beginPath(); g.ellipse(-16, -8, 6, 4, -0.6, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,.6)'; g.fill();
+      g.beginPath(); g.arc(24, -22, 13, 0, Math.PI * 2); g.fillStyle = GOLD; g.fill(); outline(g, 2.5);
+      g.fillStyle = '#fff'; g.font = 'bold 22px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('+', 24, -21);
+    } else if (k === 'magnet') {
+      g.save(); g.translate(-10, -6); g.rotate(-0.5); drawMagnet(g, 1.35); g.restore();
+      g.strokeStyle = 'rgba(63,134,216,.8)'; g.lineWidth = 2.5; g.lineCap = 'round';
+      [[12, 16, 22], [16, 22, 30]].forEach(function (a) { g.beginPath(); g.arc(4, 8, a[2], -0.2, 0.9); g.stroke(); });
+      drawApple(g, 26, 24, 10);
+    } else if (k === 'shield') {
+      g.beginPath(); g.arc(0, 0, 36, 0, Math.PI * 2); g.fillStyle = 'rgba(140,210,255,.35)'; g.fill();
+      g.lineWidth = 3; g.strokeStyle = 'rgba(63,134,216,.9)'; g.stroke();
+      g.beginPath(); g.arc(0, 0, 30, -2.5, -1.6); g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 3.5; g.stroke();
+      g.save(); g.translate(0, 14); g.scale(1.2, 1.2);
+      rr(g, -6, -8, 12, 16, 5); g.fillStyle = '#fff4dc'; g.fill(); outline(g);
+      g.beginPath(); g.moveTo(-17, -6); g.quadraticCurveTo(-17, -26, 0, -26); g.quadraticCurveTo(17, -26, 17, -6); g.closePath();
+      g.fillStyle = '#e2533f'; g.fill(); outline(g);
+      g.fillStyle = '#fff';
+      [[-8, -15, 3.4], [4, -20, 3], [9, -11, 2.6], [-2, -10, 2]].forEach(function (p) { g.beginPath(); g.arc(p[0], p[1], p[2], 0, Math.PI * 2); g.fill(); });
+      g.restore();
+    }
+  }
+
   // grandma's house; x = centre, gy = ground line; the door is on the left (towards the hedgehog)
   function drawHouse(g, x, gy, Wd, snow, t) {
     var hw = 104, hh = 70, x0 = x - hw / 2;
@@ -315,6 +368,17 @@
       if (!save.wear || typeof save.wear !== 'object') save.wear = { head: null, neck: null, eyes: null };
       if (!save.owned || typeof save.owned !== 'object') save.owned = {};
       if (!save.stages || typeof save.stages !== 'object' || Array.isArray(save.stages)) save.stages = {};
+      // upgrades: up[k] = bought level, off[k] = true when the player switched it off (then it works like level 0)
+      if (!save.up || typeof save.up !== 'object' || Array.isArray(save.up)) save.up = {};
+      if (!save.off || typeof save.off !== 'object' || Array.isArray(save.off)) save.off = {};
+      UPS.forEach(function (U) {
+        var n = Math.floor(+save.up[U.k] || 0);
+        if (n > 0) save.up[U.k] = clamp(n, 0, U.v.length - 1); else delete save.up[U.k];
+        if (save.off[U.k] !== true || !save.up[U.k]) delete save.off[U.k];
+      });
+      function upLv(k) { return clamp(save.up[k] | 0, 0, UB[k].v.length - 1); }
+      function upOn(k) { return upLv(k) > 0 && !save.off[k]; }
+      function upV(k) { return UB[k].v[upOn(k) ? upLv(k) : 0]; }
       var reduced = false;
       try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
 
@@ -340,7 +404,25 @@
         '@media (prefers-reduced-motion: reduce){.jz-node.next{animation:none}}',
         '.jz-foot{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:3px solid ' + INK + ';background:#fff}',
         '.jz-foot .ng-btn{line-height:1.05;min-height:48px}',
-        '.jz-foot small{display:block;font-size:.95rem;opacity:.8}'
+        '.jz-foot small{display:block;font-size:.95rem;opacity:.8}',
+        '.jz-up{display:flex;align-items:center;gap:10px;border:2px solid #d4def0;border-radius:14px;padding:6px 8px;text-align:left;background:#fff}',
+        '.jz-up.top{background:#f3fbe9;border-color:#8fd06b}',
+        '.jz-up.lock{opacity:.6}.jz-up.lock canvas{filter:grayscale(1)}',
+        '.jz-up.off canvas{filter:grayscale(.8);opacity:.6}',
+        '.jz-up .tx{flex:1;min-width:0;line-height:1.1}',
+        '.jz-up .tx b{font-weight:400;font-size:1.3rem;display:block}',
+        '.jz-up .tx small{display:block;color:#5a6690;font-size:1rem}',
+        '.jz-up .dots{display:flex;gap:4px;margin:3px 0 2px}.jz-up .dots i{width:14px;height:14px;border-radius:50%;border:2px solid ' + INK + ';background:#fff;box-sizing:border-box}.jz-up .dots i.on{background:' + GOLD + '}',
+        '.jz-up.off .dots i.on{background:#c9d3e3}',
+        '.jz-buy{flex:none;min-width:84px;min-height:46px;border:3px solid ' + INK + ';border-radius:14px;background:' + GOLD + ';color:#2a1d00;font:inherit;font-size:1.25rem;box-shadow:0 3px 0 ' + INK + ';cursor:pointer;padding:2px 8px}',
+        '.jz-buy[disabled]{background:#e6e9f2;color:#5a6690;box-shadow:none;cursor:default}',
+        '.jz-buy:active{transform:translateY(2px);box-shadow:0 1px 0 ' + INK + '}',
+        '.jz-lockt{flex:none;font-size:1.05rem;color:#5a6690;text-align:center;max-width:76px;line-height:1.1}',
+        '.jz-done{flex:none;font-size:1.8rem;color:#2a8a56;min-width:46px;text-align:center}',
+        '.jz-tog{display:inline-flex;align-items:center;gap:6px;margin-top:5px;min-height:36px;border:2px solid ' + INK + ';border-radius:18px;padding:2px 10px 2px 4px;font:inherit;font-size:1.1rem;cursor:pointer;background:#dff3d2;color:' + INK + '}',
+        '.jz-tog i{position:relative;width:34px;height:20px;border-radius:10px;background:#3fae5f;border:2px solid ' + INK + ';box-sizing:border-box;flex:none}',
+        '.jz-tog i::after{content:"";position:absolute;top:1px;left:15px;width:14px;height:14px;border-radius:50%;background:#fff;border:1.5px solid ' + INK + ';box-sizing:border-box;transition:left .15s}',
+        '.jz-tog.off{background:#eef1f7;color:#5a6690}.jz-tog.off i{background:#c9d3e3}.jz-tog.off i::after{left:1px}'
       ].join('\n');
       el.appendChild(css);
 
@@ -365,7 +447,7 @@
       var R = null;           // current run
       var style = 0;          // drawing style outside the endless run (world being played / previewed)
       var bg = { far: 0, near: 0, ground: 0, trees: [], decor: [], clouds: [], parts: [] };
-      var panel = null, wardrobe = null, mapEl = null, music = 'meadow';
+      var panel = null, wardrobe = null, shop = null, mapEl = null, music = 'meadow';
       var god = false, timeScale = 1;   // test hooks only
 
       function curSeason() { return R && R.mode === 'endless' ? R.season : 0; }
@@ -396,9 +478,10 @@
 
       function newRun(mode, c) {
         R = {
-          mode: mode, cfg: c || null, world: c ? c.w : 0, L: c ? c.len * 40 : 0, hearts: c ? HEARTS : null,
+          mode: mode, cfg: c || null, world: c ? c.w : 0, L: c ? c.len * 40 : 0, hearts: c ? upV('heart') : null, maxHearts: c ? upV('heart') : 0,
+          mag: upV('magnet'), shieldHits: upV('shield'),
           t: 0, v: c ? c.v0 : 230, dist: 0, apples: 0, spawned: 0, h: 0, vy: 0, ground: true, dbl: false, roll: 0, legs: 0,
-          shield: false, inv: 0, ouch: 0, obs: [], items: [], pops: [], fx: [], gap: 420, mushT: c ? rnd(8, 20) : rnd(18, 42), mushDone: false,
+          shield: 0, inv: 0, ouch: 0, obs: [], items: [], pops: [], fx: [], gap: 420, mushT: c ? rnd(8, 20) : rnd(18, 42), mushDone: false,
           season: 0, banner: 0, buffer: 0, crashT: 0, record: false,
           brakeA: 0, stopped: false, stopT: 0, rating: 0, shown: 0, hops: 0, ended: false
         };
@@ -558,15 +641,22 @@
         }
       }
 
-      function collect(r) {
+      function collect(r, dt) {
         var cx = 94, cy = GY - r.h - 22;
         r.items.forEach(function (it) {
           var iy = GY - it.y, d2 = (it.x - cx) * (it.x - cx) + (iy - cy) * (iy - cy);
+          // the magnet: an apple that came close enough flies to the hedgehog
+          if (it.type === 'apple' && !it.got && (it.mag || (r.mag && d2 < r.mag * r.mag))) {
+            it.mag = true;
+            var k = Math.min(1, (dt || 0) * MAG_PULL);
+            it.x += (cx - it.x) * k; it.y += ((GY - cy) - it.y) * k;
+            iy = GY - it.y; d2 = (it.x - cx) * (it.x - cx) + (iy - cy) * (iy - cy);
+          }
           if (it.type === 'apple' && d2 < 32 * 32) {
             it.got = true; r.apples++; ctx.sfx('coin');
             r.pops.push({ x: it.x, y: iy - 10, t: 0, text: r.mode === 'endless' ? '+5' : '+1', col: '#cf412d' });
           } else if (it.type === 'mush' && d2 < 38 * 38) {
-            it.got = true; r.shield = true; ctx.sfx('pop');
+            it.got = true; r.shield = r.shieldHits || 1; ctx.sfx('pop');
             r.pops.push({ x: it.x, y: iy - 30, t: 0, text: 'Tarcza!', col: '#3f86d8' });
           }
         });
@@ -614,15 +704,15 @@
           if (hit) {
             if (r.inv > 0 || god) continue;
             if (r.shield) {
-              r.shield = false; r.inv = 1.3; o.ko = 0; ctx.sfx('pop');
-              r.pops.push({ x: hx + 10, y: hy - 70, t: 0, text: 'Uff!', col: '#3f86d8' });
+              r.shield--; r.inv = 1.3; o.ko = 0; ctx.sfx('pop');
+              r.pops.push({ x: hx + 10, y: hy - 70, t: 0, text: r.shield ? 'Uff! Tarcza: ' + r.shield : 'Uff!', col: '#3f86d8' });
             } else if (r.hearts != null && r.hearts > 1) {
               r.hearts--; r.inv = 1.6; r.ouch = 0.7; o.ko = 0; ctx.sfx('hit');
               r.pops.push({ x: hx + 10, y: hy - 70, t: 0, text: 'Ojej!', col: '#cf412d' });
             } else { if (r.hearts != null) r.hearts = 0; crash(); return; }
           }
         }
-        collect(r);
+        collect(r, dt);
         if (r.mode === 'stage' && r.L - r.dist <= BRAKE) {
           state = 'finish';
           r.brakeA = r.v * r.v / (2 * Math.max(1, r.L - r.dist));
@@ -641,7 +731,7 @@
           air(r, dt);
           if (r.ground) r.legs += dt * (6 + r.v / 30);
           moveWorld(dx, dt);
-          collect(r);
+          collect(r, dt);
           if (r.L - r.dist <= 0.01 && r.ground) { r.stopped = true; r.stopT = 0; r.v = 0; stageCleared(); }
           return;
         }
@@ -763,7 +853,7 @@
       function stagePanel(idx) {
         var c = stageCfg(idx), Wd = WORLDS[c.w], best = save.stages[idx] || 0;
         state = 'idle'; R = null; setStyle(Wd.style);
-        var lines = ['Dobiegnij do domku babci!', c.len + ' m · ' + HEARTS + ' serduszka'];
+        var hs = upV('heart'), lines = ['Dobiegnij do domku babci!', c.len + ' m · ' + hs + ' ' + pl(hs, 'serduszko', 'serduszka', 'serduszek')];
         if (idx === 0) lines.push('Dotknij: skok. Jeszcze raz w górze: wyżej!');
         else if (c.j === 0) lines.push('Nowe: ' + Wd.warn + '.');
         lines.push({ text: best ? 'Najlepiej: ' + appleRow(best) + ' z 3' : 'Zbierz dużo jabłek, a dostaniesz 3 🍎', muted: true });
@@ -909,9 +999,11 @@
         }
         var wb = document.createElement('button'); wb.type = 'button'; wb.className = 'ng-btn sec'; wb.textContent = 'Szafa';
         wb.onclick = function () { closeMap(); openWardrobe(showMap); };
+        var ub = document.createElement('button'); ub.type = 'button'; ub.className = 'ng-btn sec'; ub.textContent = 'Ulepszenia';
+        ub.onclick = function () { ctx.sfx('tap'); closeMap(); openShop(showMap); };
         var xb = document.createElement('button'); xb.type = 'button'; xb.className = 'ng-btn sec'; xb.textContent = 'Wróć do gier';
         xb.onclick = function () { ctx.exit(); };
-        foot.appendChild(eb); foot.appendChild(wb); foot.appendChild(xb);
+        foot.appendChild(eb); foot.appendChild(wb); foot.appendChild(ub); foot.appendChild(xb);
         m.appendChild(foot);
         el.appendChild(m);
         if (focus) sc.scrollTop = Math.max(0, focus.offsetTop - sc.offsetTop - (sc.clientHeight - focus.offsetHeight) / 2);
@@ -989,6 +1081,75 @@
           done.onclick = function () { p.remove(); wardrobe = null; back(); };
           card.appendChild(done);
           if (!raf) draw();
+        }
+        build();
+      }
+
+      // ---------- upgrades shop ----------
+      function openShop(back) {
+        var p = document.createElement('div');
+        p.className = 'ng-panel';
+        var card = document.createElement('div');
+        card.className = 'ng-card';
+        card.style.cssText = 'max-height:100%;overflow-y:auto;gap:8px;padding:16px 14px';
+        p.appendChild(card);
+        el.appendChild(p);
+        shop = p;
+        var msg = null;
+        function add(parent, tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; parent.appendChild(e); return e; }
+        function build() {
+          var lvl = ctx.level(), bal = ctx.balance(), top0 = card.scrollTop;
+          card.innerHTML = '';
+          add(card, 'h2', '', 'Ulepszenia jeżyka');
+          add(card, 'p', 'muted', 'Masz ' + bal + ' ★ · poziom ' + lvl);
+          add(card, 'p', 'muted', 'Ulepszenia zostają na zawsze. Każde możesz wyłączyć, gdy chcesz trudniej.').style.fontSize = '1rem';
+          if (msg) { var mp = add(card, 'p', '', msg.text); mp.style.color = msg.bad ? '#cf412d' : '#2a8a56'; msg = null; }
+          UPS.forEach(function (U) {
+            var L = upLv(U.k), top = L >= U.v.length - 1, need = top ? 0 : U.lv[L], locked = !top && need > lvl, off = L > 0 && !!save.off[U.k];
+            var row = add(card, 'div', 'jz-up' + (locked ? ' lock' : '') + (top && !off ? ' top' : '') + (off ? ' off' : ''));
+            var d = Math.min(3, window.devicePixelRatio || 1), cvs = document.createElement('canvas');
+            cvs.width = 56 * d; cvs.height = 56 * d; cvs.style.cssText = 'width:56px;height:56px;flex:none';
+            var cg = cvs.getContext('2d'); cg.setTransform(d, 0, 0, d, 0, 0);
+            cg.fillStyle = '#f3f6fc'; rr(cg, 1, 1, 54, 54, 12); cg.fill();
+            cg.translate(28, 28); cg.scale(0.6, 0.6); drawUp(cg, U.k);
+            row.appendChild(cvs);
+            var tx = add(row, 'div', 'tx');
+            add(tx, 'b', '', U.n);
+            var dots = add(tx, 'span', 'dots');
+            for (var i = 1; i < U.v.length; i++) add(dots, 'i', i <= L ? 'on' : '');
+            var now = L ? (off ? 'Wyłączone: jak bez ulepszenia' : U.say[L]) : U.say[0];
+            var next = top ? 'Najwyższy poziom!' : L ? 'Dalej: ' + U.say[L + 1].charAt(0).toLowerCase() + U.say[L + 1].slice(1) : 'Kupisz: ' + U.say[1].charAt(0).toLowerCase() + U.say[1].slice(1);
+            add(tx, 'small', '', now);
+            add(tx, 'small', '', next);
+            if (L > 0) {
+              var tg = add(tx, 'button', 'jz-tog' + (off ? ' off' : '')); tg.type = 'button';
+              tg.setAttribute('aria-pressed', off ? 'false' : 'true');
+              add(tg, 'i');
+              add(tg, 'span', '', off ? 'Wyłączone' : 'Włączone');
+              tg.onclick = function () {
+                if (save.off[U.k]) delete save.off[U.k]; else save.off[U.k] = true;
+                ctx.save(save); ctx.sfx('tap'); build();
+              };
+            }
+            if (top) { add(row, 'span', 'jz-done', '✓'); return; }
+            if (locked) { add(row, 'span', 'jz-lockt', 'od poziomu ' + need); return; }
+            var price = U.price[L], b = add(row, 'button', 'jz-buy', price + ' ★'); b.type = 'button';
+            if (price > bal) b.disabled = true;
+            b.onclick = function () { buyUp(U, L); };
+          });
+          add(card, 'p', 'muted', 'Gwiazdki zdobędziesz w nauce.').style.fontSize = '1rem';
+          var done = add(card, 'button', 'ng-btn sec', 'Gotowe'); done.type = 'button'; done.style.marginTop = '4px';
+          done.onclick = function () { p.remove(); shop = null; back(); };
+          card.scrollTop = top0;
+          if (!raf) draw();
+        }
+        function buyUp(U, L) {
+          if (upLv(U.k) !== L || L >= U.v.length - 1 || U.lv[L] > ctx.level()) return;
+          if (!ctx.spend(U.price[L], U.n)) { msg = { text: 'Za mało gwiazdek. Zbieraj je w nauce!', bad: true }; ctx.sfx('error'); build(); return; }
+          save.up[U.k] = L + 1; delete save.off[U.k];
+          ctx.save(save); ctx.sfx('buy');
+          msg = { text: 'Hura! ' + U.n + ': ' + U.say[L + 1].charAt(0).toLowerCase() + U.say[L + 1].slice(1) + '.' };
+          build();
         }
         build();
       }
@@ -1433,13 +1594,17 @@
         }
       }
 
+      // the mushroom in the corner, with the hits it still takes when that is more than one
+      function shieldHud(x, y, s) {
+        g.save(); g.translate(x, y); g.scale(s, s); drawMushroom(g, 0, 0, clock); g.restore();
+        if (R.shield > 1) text('×' + R.shield, x - 22, y - 2, 24, '#3f86d8', 'right');
+      }
       function drawEndlessHud() {
         text(meters() + ' m', 14, 26, 32, INK);
         drawApple(g, 26, 62, 10);
         text('' + R.apples, 44, 62, 28, '#cf412d');
-        if (R.shield) {
-          g.save(); g.translate(LW - 32, 80); g.scale(0.7, 0.7); drawMushroom(g, 0, 0, clock); g.restore();
-        }
+        if (R.shield) shieldHud(LW - 32, 80, 0.7);
+        if (R.mag) { g.save(); g.translate(26, 96); g.rotate(-0.4); drawMagnet(g, 0.55); g.restore(); }
         var sn = SEASONS[R.season % 4].name;
         g.font = '22px ' + FONT; var tw = g.measureText(sn).width + 22;
         rr(g, LW - 12 - tw, 12, tw, 30, 15); g.fillStyle = '#fff'; g.fill(); outline(g, 2);
@@ -1470,8 +1635,9 @@
         // apples and hearts
         drawApple(g, 26, 66, 10);
         text('' + R.apples, 44, 66, 28, '#cf412d');
-        for (var i = 0; i < HEARTS; i++) heart(g, LW - 26 - i * 30, 66, 10, i < R.hearts ? '#e2533f' : '#fff');
-        if (R.shield) { g.save(); g.translate(LW - 30, 110); g.scale(0.65, 0.65); drawMushroom(g, 0, 0, clock); g.restore(); }
+        for (var i = 0; i < R.maxHearts; i++) heart(g, LW - 26 - i * 30, 66, 10, i < R.hearts ? '#e2533f' : '#fff');
+        if (R.shield) shieldHud(LW - 30, 110, 0.65);
+        if (R.mag) { g.save(); g.translate(26, 100); g.rotate(-0.4); drawMagnet(g, 0.55); g.restore(); }
         if (R.t < 3.5 && state === 'run') {
           g.globalAlpha = clamp((3.5 - R.t) / 0.6, 0, 1);
           text(Wd.name + ' · etap ' + (c.j + 1), LW / 2, GY * 0.34, 44, PURPLE, 'center', 9);
@@ -1527,6 +1693,7 @@
           closePanel();
           closeMap();
           if (wardrobe) { wardrobe.remove(); wardrobe = null; }
+          if (shop) { shop.remove(); shop = null; }
           cv.remove();
           css.remove();
         }

@@ -5,6 +5,10 @@
  * Every catch goes into the pond book (Księga stawu). Aquarium fish that "escaped" into the pond can be
  * sent to the Akwarium game: their kind id is appended to localStorage 'naukagry.akwarium.inbox'.
  * No stars are paid back inside the game; the reward is the book, stickers, medals and aquarium fish.
+ * Upgrades (button "Ulepszenia" on the start/end card): bought once per level with stars and kept forever
+ * in save.up[k]; each bought one has an on/off switch (save.off[k] = true), and switched off the game plays
+ * exactly as without it. Rod: wider green part of the line bar. Bait: shorter wait for a bite. Boat: more
+ * rare fish in far water. Thermos: a longer trip (90 -> 105 -> 120 s).
  */
 (function () {
   'use strict';
@@ -55,6 +59,78 @@
     2: { n: 'rzadka', c: '#3f86d8' },
     3: { n: 'bardzo rzadka', c: LVL }
   };
+
+  // ---------- upgrades (Ulepszenia): bought once per level with stars, kept forever, each can be switched off ----------
+  // v: the value at each level (index 0 = not bought / switched off), price[i]: the cost of level i+1,
+  // lv[i]: player level needed for level i+1
+  //  rod:  extra width of the green part of the line bar, in % of the bar
+  //  bait: how long the wait for a bite takes (1 = normal)
+  //  boat: extra weight of rare fish in far water, in % (scaled by how far the fish swims)
+  //  tea:  trip length in seconds
+  var UPS = [
+    { k: 'rod', n: 'Lepsza wędka', v: [0, 6, 12, 18], price: [400, 800, 1300], lv: [1, 4, 8],
+      say: function (v) { return v ? 'Zielony pasek szerszy o ' + v + '%' : 'Szerszy zielony pasek przy kręceniu'; } },
+    { k: 'bait', n: 'Przynęta', v: [1, 0.8, 0.65, 0.5], price: [300, 650, 1100], lv: [1, 3, 7],
+      say: function (v) { return v < 1 ? 'Ryby biorą o ' + Math.round((1 - v) * 100) + '% szybciej' : 'Ryby szybciej biorą'; } },
+    { k: 'boat', n: 'Łódka', v: [0, 50, 100], price: [600, 1200], lv: [3, 8],
+      say: function (v) { return v ? 'Daleko od pomostu: +' + v + '% rzadkich ryb' : 'Daleko pływa więcej rzadkich ryb'; } },
+    { k: 'tea', n: 'Termos z herbatą', v: [90, 105, 120], price: [500, 1000], lv: [2, 6],
+      say: function (v) { return 'Wyprawa trwa ' + v + ' s'; } }
+  ];
+  var UB = {};
+  UPS.forEach(function (U) { UB[U.k] = U; });
+
+  // upgrade pictures: centre bottom at 0,0, about 80 units tall
+  function drawUp(c, k) {
+    function o(w) { c.lineWidth = w || 3; c.strokeStyle = INK; c.lineJoin = 'round'; c.lineCap = 'round'; c.stroke(); }
+    function rr(x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+    if (k === 'rod') {
+      // line from the tip down to the bobber
+      c.beginPath(); c.moveTo(30, -78); c.quadraticCurveTo(40, -52, 38, -30); c.lineWidth = 1.6; c.strokeStyle = INK; c.stroke();
+      c.beginPath(); c.moveTo(-34, -2); c.lineTo(30, -78); c.lineWidth = 9; c.strokeStyle = INK; c.stroke();
+      c.beginPath(); c.moveTo(-34, -2); c.lineTo(30, -78); c.lineWidth = 5; c.strokeStyle = '#c98b4f'; c.stroke();
+      c.beginPath(); c.moveTo(-34, -2); c.lineTo(-20, -19); c.lineWidth = 8; c.strokeStyle = '#3a2a1a'; c.stroke();
+      c.beginPath(); c.arc(-20, -30, 10, 0, 7); c.fillStyle = '#c9d6ea'; c.fill(); o(2.5);
+      c.beginPath(); c.moveTo(-20, -30); c.lineTo(-30, -38); o(3);
+      c.beginPath(); c.arc(-31, -39, 4, 0, 7); c.fillStyle = '#e2533f'; c.fill(); o(2);
+      c.beginPath(); c.arc(38, -24, 7, 0, 7); c.fillStyle = '#fff'; c.fill(); o(2);
+      c.beginPath(); c.arc(38, -24, 7, Math.PI, 0); c.closePath(); c.fillStyle = '#e2533f'; c.fill(); o(2);
+      // the green bar
+      rr(-4, -12, 46, 10, 5); c.fillStyle = '#8fd06b'; c.fill(); o(2);
+    } else if (k === 'bait') {
+      // worms poking out of a tin
+      [[-12, '#f08aa6', -1], [4, '#e9779a', 1], [14, '#f08aa6', -0.6]].forEach(function (w) {
+        c.beginPath(); c.moveTo(w[0], -40); c.bezierCurveTo(w[0] + 10 * w[2], -54, w[0] - 10 * w[2], -62, w[0] + 4 * w[2], -72);
+        c.lineWidth = 10; c.strokeStyle = INK; c.lineCap = 'round'; c.stroke(); c.lineWidth = 6; c.strokeStyle = w[1]; c.stroke();
+      });
+      c.fillStyle = INK; c.beginPath(); c.arc(-11, -71, 1.6, 0, 7); c.arc(-15, -70, 1.6, 0, 7); c.fill();
+      rr(-30, -44, 52, 42, 6); c.fillStyle = '#8e9bb8'; c.fill(); o();
+      rr(-30, -34, 52, 20, 0); c.fillStyle = '#5cbc4b'; c.fill(); o(2.5);
+      c.beginPath(); c.ellipse(-4, -44, 26, 5, 0, 0, 7); c.fillStyle = '#5e3b22'; c.fill(); o(2.5);
+      // a hook
+      c.beginPath(); c.moveTo(38, -70); c.lineTo(38, -26); c.arc(31, -26, 7, 0, Math.PI * 0.95); o(3.5);
+      c.beginPath(); c.moveTo(24, -26); c.lineTo(26, -33); o(3);
+      c.beginPath(); c.arc(38, -72, 3, 0, 7); o(2.5);
+    } else if (k === 'boat') {
+      c.beginPath(); c.moveTo(-36, -50); c.lineTo(30, -12); c.lineWidth = 7; c.strokeStyle = INK; c.stroke(); c.lineWidth = 3.5; c.strokeStyle = '#d6a061'; c.stroke();
+      c.beginPath(); c.ellipse(32, -10, 9, 4, 0.5, 0, 7); c.fillStyle = '#d6a061'; c.fill(); o(2);
+      c.beginPath(); c.moveTo(-46, -36); c.lineTo(46, -36); c.quadraticCurveTo(40, -10, 24, -8); c.lineTo(-26, -8); c.quadraticCurveTo(-42, -12, -46, -36); c.closePath();
+      c.fillStyle = '#c0703c'; c.fill(); o();
+      c.beginPath(); c.moveTo(-42, -26); c.lineTo(42, -26); c.lineWidth = 2.5; c.strokeStyle = '#8a4a22'; c.stroke();
+      c.beginPath(); c.moveTo(-46, -36); c.lineTo(46, -36); c.lineWidth = 6; c.strokeStyle = INK; c.stroke(); c.lineWidth = 3; c.strokeStyle = '#f2f2f2'; c.stroke();
+      c.beginPath(); c.moveTo(-48, -4); for (var x = -48; x < 48; x += 16) c.quadraticCurveTo(x + 8, -10, x + 16, -4); c.lineWidth = 3; c.strokeStyle = '#3f86d8'; c.stroke();
+    } else if (k === 'tea') {
+      // steaming cup
+      [[18, 0], [28, 1]].forEach(function (s) { c.beginPath(); c.moveTo(s[0], -34); c.quadraticCurveTo(s[0] - 6, -42, s[0], -48); c.quadraticCurveTo(s[0] + 6, -54, s[0], -60); c.lineWidth = 2.5; c.strokeStyle = 'rgba(29,47,111,.4)'; c.stroke(); });
+      c.beginPath(); c.moveTo(8, -30); c.lineTo(40, -30); c.lineTo(36, -2); c.lineTo(12, -2); c.closePath(); c.fillStyle = '#f2f2f2'; c.fill(); o(2.5);
+      c.beginPath(); c.ellipse(24, -30, 16, 4, 0, 0, 7); c.fillStyle = '#b5652a'; c.fill(); o(2);
+      // thermos
+      rr(-36, -66, 34, 64, 8); c.fillStyle = '#e2533f'; c.fill(); o();
+      rr(-36, -48, 34, 10, 0); c.fillStyle = '#f5c330'; c.fill(); o(2);
+      c.fillStyle = 'rgba(255,255,255,.45)'; rr(-31, -34, 6, 26, 3); c.fill();
+      rr(-33, -80, 28, 16, 5); c.fillStyle = '#8e9bb8'; c.fill(); o();
+    }
+  }
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function rnd(a, b) { return a + Math.random() * (b - a); }
@@ -293,7 +369,20 @@
       var save = ctx.load({ book: {}, diff: 'easy', trips: 0, total: 0, aq: 0 });
       if (!save.book || typeof save.book !== 'object') save.book = {};
       if (save.diff !== 'hard') save.diff = 'easy';
+      // upgrades: up[k] = bought level, off[k] = true when the child switched it off
+      var up0 = save.up && typeof save.up === 'object' && !Array.isArray(save.up) ? save.up : {};
+      var off0 = save.off && typeof save.off === 'object' && !Array.isArray(save.off) ? save.off : {};
+      save.up = {}; save.off = {};
+      UPS.forEach(function (U) {
+        var n = Math.floor(Number(up0[U.k]));
+        if (n > 0) save.up[U.k] = Math.min(n, U.v.length - 1);
+        if (off0[U.k] === true && save.up[U.k]) save.off[U.k] = true;
+      });
       function persist() { ctx.save(save); }
+      function upLv(k) { return save.up[k] || 0; }
+      function upOn(k) { return upLv(k) > 0 && !save.off[k]; }
+      function upV(k) { return UB[k].v[upOn(k) ? upLv(k) : 0]; }
+      function tripLen() { return upV('tea'); }
 
       var reduce = false;
       try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
@@ -329,7 +418,26 @@
         '.wk-cell canvas{width:92px;height:52px}',
         '.wk-cell b{font-weight:400;font-size:1.05rem;line-height:1.05}',
         '.wk-cell small{font-size:.85rem;color:#5a6690;line-height:1.05}',
-        '.wk-cell i{font-style:normal;font-size:.8rem;border-radius:999px;color:#fff;padding:0 7px;margin-top:2px}'
+        '.wk-cell i{font-style:normal;font-size:.8rem;border-radius:999px;color:#fff;padding:0 7px;margin-top:2px}',
+        '.wk-muted{margin:0;color:#5a6690;font-size:1.05rem;line-height:1.2}',
+        '.wk-up{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid #d4def0;border-radius:14px;padding:6px 8px}',
+        '.wk-up canvas{width:60px;height:60px;flex:none}',
+        '.wk-up .tx{flex:1;min-width:0;line-height:1.1}',
+        '.wk-up .tx b{font-weight:400;font-size:1.3rem;display:block}',
+        '.wk-up .tx small{display:block;color:#5a6690;font-size:1rem}',
+        '.wk-dots{display:flex;gap:4px;margin:3px 0 2px}.wk-dots i{width:14px;height:14px;border-radius:50%;border:2px solid #1d2f6f;background:#fff}.wk-dots i.on{background:#e3a008}',
+        '.wk-up.top{background:#f3fbe9;border-color:#8fd06b}',
+        '.wk-up.lock{opacity:.6}.wk-up.lock canvas{filter:grayscale(1)}',
+        '.wk-up.off{background:#f4f5f9}.wk-up.off canvas{filter:grayscale(1);opacity:.6}.wk-up.off .wk-dots i.on{background:#c4cad8}',
+        '.wk-buy{flex:none;min-width:84px;min-height:46px;border:3px solid #1d2f6f;border-radius:14px;background:#e3a008;color:#2a1d00;font-size:1.25rem;box-shadow:0 3px 0 #1d2f6f}',
+        '.wk-buy[disabled]{background:#e6e9f2;color:#5a6690;box-shadow:none}',
+        '.wk-buy:active{transform:translateY(2px);box-shadow:0 1px 0 #1d2f6f}',
+        '.wk-lockt{flex:none;color:#7a4fc4;font-size:1.05rem;white-space:nowrap}.wk-lockt.ok{color:#2a8a56;font-size:1.8rem;padding:0 10px}',
+        '.wk-sw{display:inline-flex;align-items:center;gap:7px;margin-top:6px;min-height:36px;border:2px solid #1d2f6f;border-radius:999px;padding:2px 12px 2px 4px;background:#fff;color:#5a6690;font-size:1.05rem}',
+        '.wk-sw.on{background:#eafbe0;color:#1d2f6f}',
+        '.wk-sw .tr{position:relative;width:40px;height:24px;flex:none;border-radius:999px;border:2px solid #1d2f6f;background:#c4cad8;transition:background .15s}',
+        '.wk-sw .tr::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;border:2px solid #1d2f6f;background:#fff;box-sizing:border-box;transition:left .15s}',
+        '.wk-sw.on .tr{background:#5cbc4b}.wk-sw.on .tr::after{left:18px}'
       ].join('\n');
       root.appendChild(css);
       var canvas = document.createElement('canvas');
@@ -403,6 +511,7 @@
           if (K.tier === 2) w *= 0.5 + 1.0 * d;
           if (K.tier === 3) w *= 0.3 + 1.4 * d;
           if (hard && K.tier >= 2) w *= 1.3;
+          if (K.tier >= 2) w *= 1 + upV('boat') / 100 * d;
           return w;
         });
       }
@@ -439,7 +548,8 @@
           if (s.state === 'come' && bob) {
             tx = bob.x - Math.cos(s.ang) * 4 * sc; ty = bob.y + 3 * sc;
             var dd = Math.hypot(tx - s.x, ty - s.y);
-            speed = Math.max(55 * u, dd / 2.2);
+            var bf = upV('bait');
+            speed = Math.max(55 * u / bf, dd / (2.2 * bf));
             if (dd < 5 * sc) { s.state = 'nibble'; s.x = tx; s.y = ty; }
           } else if (s.state === 'nibble' && bob) {
             tx = bob.x; ty = bob.y + 3 * sc; speed = 2 * sc;
@@ -476,7 +586,9 @@
 
       // ---------- trip flow ----------
       function startTrip() {
-        trip = { left: TRIP, fish: 0, items: [], newKinds: 0, aqSent: 0, timeUp: false };
+        // shadows keep the kind they were rolled with: roll again so a boat bought or switched does count
+        shadows.forEach(function (s) { if (s.state === 'swim') s.K = rollKind(s.home); });
+        trip = { left: tripLen(), len: tripLen(), fish: 0, items: [], newKinds: 0, aqSent: 0, timeUp: false };
         bob = null; aim = null; target = null; reel = null; holding = false;
         setPhase('idle');
         say('Dotknij wody, żeby zarzucić!');
@@ -498,15 +610,15 @@
         target = null; junkK = null;
         if (Math.random() < 0.1) {
           junkK = pick(JUNK, function (K) { return K.w; });
-          waitT = rnd(1.8, 3.2);
+          waitT = rnd(1.8, 3.2) * upV('bait');
           return;
         }
-        var best = null, bd = 125 * u;
+        var best = null, bd = 125 * u * (2 - upV('bait'));
         shadows.forEach(function (s) { var dd = Math.hypot(s.x - bob.x, s.y - bob.y); if (s.state === 'swim' && dd < bd) { bd = dd; best = s; } });
         if (best) { target = best; best.state = 'come'; }
-        waitT = 1.2;
+        waitT = 1.2 * upV('bait');
       }
-      function startNibble() { setPhase('nibble'); waitT = rnd(0.7, 1.4); bob.nibAt = [0.25, waitT * 0.6]; }
+      function startNibble() { setPhase('nibble'); waitT = rnd(0.7, 1.4) * upV('bait'); bob.nibAt = [0.25, waitT * 0.6]; }
       function startBite() {
         setPhase('bite');
         biteLeft = save.diff === 'hard' ? 1.1 : 1.7;
@@ -542,7 +654,9 @@
         else setPhase('idle');
       }
       function zoneOf(r) {
-        var hi = (save.diff === 'hard' ? 0.72 : 0.8) - r.K.diff * 0.16, lo = 0.2;
+        // a better rod widens the green part on both sides
+        var wide = upV('rod') / 100;
+        var hi = Math.min(0.94, (save.diff === 'hard' ? 0.72 : 0.8) - r.K.diff * 0.16 + wide * 0.55), lo = 0.2 - wide * 0.45;
         return { lo: lo, hi: hi };
       }
       function stepReel(dt) {
@@ -722,6 +836,7 @@
         return [
           { label: (save.diff === 'easy' ? '● ' : '') + 'Łatwo', onClick: function () { save.diff = 'easy'; persist(); ctx.sfx('click'); showPanel(kind); } },
           { label: (save.diff === 'hard' ? '● ' : '') + 'Trudniej', onClick: function () { save.diff = 'hard'; persist(); ctx.sfx('click'); showPanel(kind); } },
+          { label: 'Ulepszenia', onClick: function () { openUps(function () { showPanel(kind); }); } },
           { label: 'Księga stawu', onClick: function () { openBook(function () { showPanel(kind); }); } },
           { label: 'Wróć do gier', onClick: function () { ctx.exit(); } }
         ];
@@ -753,7 +868,7 @@
           o.title = 'Wędkarz';
           o.lines = [
             'Zarzuć wędkę, poczekaj, aż spławik zanurkuje, i wyciągnij rybę!',
-            'Wyprawa trwa ' + TRIP + ' sekund.',
+            'Wyprawa trwa ' + tripLen() + ' sekund.',
             { text: diffLine, muted: true },
             bookLine
           ];
@@ -764,7 +879,8 @@
 
       // ---------- pond book ----------
       var bookCb = null, bookPrevPhase = null;
-      function openBook(onClose) {
+      // a bottom sheet (pond book, upgrades); fill(body, subtitle) builds the content
+      function openSheet(title, fill, onClose) {
         if (bookEl) return;
         if (phase === 'reel' || phase === 'bite' || phase === 'cast') { say('Najpierw wyciągnij rybę!'); return; }
         bookCb = onClose || null;
@@ -772,13 +888,24 @@
         var inn = el2('div', 'wk-book-in'); inn.setAttribute('role', 'dialog'); inn.setAttribute('aria-modal', 'true');
         w.appendChild(inn);
         var hd = el2('div', 'wk-book-hd');
-        var h = el2('h2', null, 'Księga stawu');
-        h.appendChild(el2('small', null, bookCount() + ' / ' + KINDS.length));
+        var h = el2('h2', null, title), sub = el2('small');
+        h.appendChild(sub);
         var cb = el2('button', null, 'Zamknij'); cb.type = 'button';
         cb.onclick = closeBook;
         hd.appendChild(h); hd.appendChild(cb);
         inn.appendChild(hd);
         var bd = el2('div', 'wk-book-bd');
+        fill(bd, sub);
+        inn.appendChild(bd);
+        w.addEventListener('pointerdown', function (e) { if (e.target === w) closeBook(); });
+        root.appendChild(w);
+        bookEl = w;
+        holding = false;
+        ctx.sfx('open');
+      }
+      function openBook(onClose) { openSheet('Księga stawu', fillBook, onClose); }
+      function fillBook(bd, sub) {
+        sub.textContent = bookCount() + ' / ' + KINDS.length;
         PAGES.forEach(function (pg) {
           var sec = el2('section', 'wk-sec');
           var kinds = KINDS.filter(function (K) { return K.pg === pg.id; });
@@ -806,12 +933,67 @@
           sec.appendChild(grid);
           bd.appendChild(sec);
         });
-        inn.appendChild(bd);
-        w.addEventListener('pointerdown', function (e) { if (e.target === w) closeBook(); });
-        root.appendChild(w);
-        bookEl = w;
-        holding = false;
-        ctx.sfx('open');
+      }
+
+      // ---------- upgrades ----------
+      function openUps(onClose) { openSheet('Ulepszenia', fillUps, onClose); }
+      function fillUps(bd, sub) {
+        var bal = ctx.balance(), lvl = ctx.level();
+        bd.innerHTML = '';
+        sub.textContent = bal + ' ★';
+        bd.appendChild(el2('p', 'wk-muted', 'Kupujesz raz i masz na zawsze. Każde ulepszenie możesz wyłączyć.'));
+        UPS.forEach(function (U) {
+          var n = upLv(U.k), top = n >= U.v.length - 1, need = top ? 0 : U.lv[n], locked = !top && need > lvl, on = upOn(U.k);
+          var r = el2('div', 'wk-up' + (locked && !n ? ' lock' : '') + (top ? ' top' : '') + (n && !on ? ' off' : ''));
+          var cc = makeCanvas(60, 60);
+          cc.cv.style.cssText = 'width:60px;height:60px;flex:none';   // inline: #stage canvas in index.html stretches canvases
+          cc.c.translate(30, 56); cc.c.scale(0.6, 0.6); drawUp(cc.c, U.k);
+          r.appendChild(cc.cv);
+          var tx = el2('div', 'tx');
+          tx.appendChild(el2('b', null, U.n));
+          var dots = el2('span', 'wk-dots');
+          for (var i = 1; i < U.v.length; i++) dots.appendChild(el2('i', i <= n ? 'on' : ''));
+          tx.appendChild(dots);
+          var lines = [];
+          if (n) lines.push((on ? 'Teraz: ' : 'Wyłączone. Po włączeniu: ') + U.say(U.v[n]));
+          lines.push(top ? 'Najwyższy poziom!' : (n ? 'Dalej: ' : '') + U.say(U.v[n + 1]));
+          tx.appendChild(el2('small', null, lines.join(' · ')));
+          if (n) {
+            var sw = el2('button', 'wk-sw' + (on ? ' on' : '')); sw.type = 'button';
+            sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', on ? 'true' : 'false');
+            sw.setAttribute('aria-label', U.n);
+            sw.appendChild(el2('span', 'tr'));
+            sw.appendChild(el2('span', null, on ? 'Włączone' : 'Wyłączone'));
+            sw.onclick = function () {
+              if (save.off[U.k]) delete save.off[U.k]; else save.off[U.k] = true;
+              persist(); ctx.sfx('click');
+              fillUps(bd, sub);
+            };
+            tx.appendChild(sw);
+          }
+          r.appendChild(tx);
+          if (top) r.appendChild(el2('span', 'wk-lockt ok', '✓'));
+          else if (locked) r.appendChild(el2('span', 'wk-lockt', 'od poziomu ' + need));
+          else {
+            var price = U.price[n], b = el2('button', 'wk-buy', price + ' ★'); b.type = 'button';
+            if (price > bal) b.disabled = true;
+            b.onclick = function () { buyUp(U, n); fillUps(bd, sub); };
+            r.appendChild(b);
+          }
+          bd.appendChild(r);
+        });
+        bd.appendChild(el2('p', 'wk-muted', 'Gwiazdki zdobędziesz w Matmie, Angielskim i Polskim.'));
+      }
+      function buyUp(U, n) {
+        if (upLv(U.k) !== n || n >= U.v.length - 1 || U.lv[n] > ctx.level()) return;
+        if (!ctx.spend(U.price[n], U.n)) { ctx.toast('Za mało gwiazdek.'); ctx.sfx('error'); return; }
+        save.up[U.k] = n + 1;
+        delete save.off[U.k];
+        persist();
+        ctx.sfx('buy');
+        ctx.stat('upgrades', 1);
+        ctx.toast({ rod: 'Lepsza wędka! Zielony pasek jest szerszy.', bait: 'Nowa przynęta! Ryby szybciej biorą.',
+          boat: 'Łódka! Daleko pływa więcej rzadkich ryb.', tea: 'Termos! Wyprawa trwa ' + tripLen() + ' sekund.' }[U.k]);
       }
       function closeBook() {
         if (!bookEl) return;
@@ -906,7 +1088,7 @@
             var best = null, bd = 1e9;
             shadows.forEach(function (s) { var dd = Math.hypot(s.x - bob.x, s.y - bob.y); if (s.state === 'swim' && s.alpha > 0.5 && dd < bd) { bd = dd; best = s; } });
             if (best) { target = best; best.state = 'come'; }
-            else if (phaseT > waitT + 2.5) { junkK = pick(JUNK, function (K) { return K.w; }); waitT = phaseT + 0.8; }
+            else if (phaseT > waitT + 2.5 * upV('bait')) { junkK = pick(JUNK, function (K) { return K.w; }); waitT = phaseT + 0.8; }
           }
         } else if (phase === 'nibble') {
           var sc = scaleAt(bob.y);
@@ -1162,7 +1344,7 @@
       function drawHud() {
         g.textBaseline = 'middle'; g.textAlign = 'left';
         if (trip) {
-          var left = Math.max(0, Math.ceil(trip.left)), frac = trip.left / TRIP;
+          var left = Math.max(0, Math.ceil(trip.left)), frac = trip.left / (trip.len || TRIP);
           var low = trip.left <= 10;
           pill(8, 10, 104, 40);
           g.fillStyle = '#e8f1ff'; g.beginPath(); g.arc(30, 30, 12, 0, 7); g.fill();
@@ -1259,6 +1441,11 @@
         shadows.forEach(drawShadow);
         drawHooked();
         drawRipples();
+        if (upOn('boat')) {
+          // the boat waits by the left bank, gently rocking
+          g.save(); g.translate(W * 0.24, L.pierTop + 8 * u + Math.sin(T * 1.6) * 1.5 * u); g.rotate(Math.sin(T * 1.1) * 0.03);
+          g.scale(0.62 * u, 0.62 * u); drawUp(g, 'boat'); g.restore();
+        }
         drawBank();
         drawRod();
         drawLine();

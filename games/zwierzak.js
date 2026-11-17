@@ -8,6 +8,7 @@
  * Pets grow from care (Maluch -> Młode -> Dorosłe): care actions give growth points, capped per day, so
  * growing takes days and never goes back. Pets that are not at home live on "Leśna Polana" (a happy
  * meadow; they don't grow there) and can come back to a free home slot any time for free.
+ * Home upgrades (Rodzina -> Ulepszenia domku: basket, bed, bubble bath, toy box), each can be switched off.
  * Feed (food 10-25 ★, a free apple basket every day, produce from the Ogródek pantry for free), bath (drag the sponge), sleep, stroke (zones; a good
  * petting session makes the pet roll over and show its belly), tickle (quick taps), dress up with the
  * items the child owns in Jeżyk w biegu (read-only), and seven mini-games for 30 ★ that fill "humor".
@@ -709,6 +710,15 @@
       if (mode === 'sad') { g.beginPath(); g.moveTo(x - r * 1.15, y - r * 1.45); g.lineTo(x + r * 1.15, y - r * 2.3); outline(g, lw * 0.85); }
     } else if (mode === 'happy') {
       g.beginPath(); g.moveTo(x - r * 0.95, y + r * 0.35); g.quadraticCurveTo(x, y - r * 1.25, x + r * 0.95, y + r * 0.35); outline(g, lw);
+    } else if (mode === 'tired') {
+      // half-closed: the lower half of the eye under a heavy, slightly drooping lid
+      if (blink) { g.beginPath(); g.moveTo(x - r * 0.95, y); g.quadraticCurveTo(x, y + r * 0.6, x + r * 0.95, y); outline(g, lw); }
+      else {
+        g.beginPath(); g.moveTo(x - r, y - r * 0.05); g.arc(x, y - r * 0.05, r, Math.PI, 0, true); g.closePath(); g.fillStyle = iris || INK; g.fill();
+        if (iris) { g.beginPath(); g.ellipse(x + r * 0.05, y + r * 0.25, r * 0.3, r * 0.5, 0, 0, Math.PI); g.fillStyle = INK; g.fill(); }
+        g.beginPath(); g.arc(x - r * 0.3, y + r * 0.4, r * 0.15, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
+        g.beginPath(); g.moveTo(x - r * 1.15, y - r * 0.2); g.quadraticCurveTo(x, y - r * 0.45, x + r * 1.15, y + r * 0.05); outline(g, lw);
+      }
     } else if (mode === 'purr') {
       g.beginPath(); g.moveTo(x - r * 0.95, y - r * 0.1); g.quadraticCurveTo(x, y - r * 0.75, x + r * 0.95, y - r * 0.1); outline(g, lw);
     } else {
@@ -1189,7 +1199,44 @@
     if (!((+p.f || 0) > 0) && !((+p.b || 0) > 0)) delete o.pantry[gk];
     try { localStorage.setItem(GARDEN_KEY, JSON.stringify(o)); return true; } catch (e) { return false; }
   }
-  var FAV_FUN = 8;                                 // a favourite snack also cheers the pet up
+  var FAV_FUN = 8;
+  // home upgrades (Rodzina -> Ulepszenia domku): v = value per level (0 = not bought), price/lv = cost and player
+  // level needed for the next level. Every bought upgrade can be switched off (save.off) and then acts as level 0.
+  var UPS = [
+    { k: 'basket', n: 'Większy koszyk', v: [3, 4, 5], price: [250, 600], lv: [1, 5],
+      say: function (v) { return v + ' ' + pl(v, 'darmowe jabłko', 'darmowe jabłka', 'darmowych jabłek') + ' dziennie'; } },
+    { k: 'bed', n: 'Wygodne posłanie', v: [1, 1.5, 2], price: [300, 700], lv: [2, 6],
+      say: function (v) { return v > 1 ? 'Sen wraca ' + (v === 2 ? '2 razy' : '1,5 raza') + ' szybciej' : 'Zwykłe spanie'; } },
+    { k: 'tub', n: 'Wanna z bąbelkami', v: [0, 10, 20], price: [250, 550], lv: [1, 5],
+      say: function (v) { return v ? 'Kąpiel daje też +' + v + ' humoru' : 'Zwykła kąpiel'; } },
+    { k: 'toys', n: 'Pudło z zabawkami', v: [1, 0.85, 0.7], price: [400, 900], lv: [3, 8],
+      say: function (v) { return v < 1 ? 'Potrzeby spadają o ' + Math.round((1 - v) * 100) + '% wolniej' : 'Zwykłe tempo'; } }
+  ];
+  var UPB = {}; UPS.forEach(function (U) { UPB[U.k] = U; });
+  function drawUpPic(g, k) {   // centre (0,0), about 40 units across
+    function o(w) { outline(g, w || 2.2); }
+    if (k === 'basket') {
+      [[-9, -6], [0, -9], [9, -6], [-4, -1], [5, -1]].forEach(function (a) { drawApple(g, a[0], a[1], 6); });
+      g.beginPath(); g.moveTo(-17, -2); g.lineTo(17, -2); g.lineTo(13, 16); g.lineTo(-13, 16); g.closePath(); g.fillStyle = '#d99a52'; g.fill(); o();
+      g.strokeStyle = '#a8692e'; g.lineWidth = 1.6; [4, 10].forEach(function (y) { g.beginPath(); g.moveTo(-15 + (y / 8), y); g.lineTo(15 - (y / 8), y); g.stroke(); });
+      g.beginPath(); g.arc(0, -2, 17, Math.PI * 1.05, Math.PI * 1.95); g.lineWidth = 3; g.strokeStyle = INK; g.stroke();
+    } else if (k === 'bed') {
+      g.beginPath(); g.ellipse(0, 6, 20, 10, 0, 0, Math.PI * 2); g.fillStyle = '#7fb6ea'; g.fill(); o();
+      g.beginPath(); g.ellipse(0, 3, 14, 6, 0, 0, Math.PI * 2); g.fillStyle = '#d9ecff'; g.fill(); o(1.6);
+      rr(g, -12, -8, 13, 8, 4); g.fillStyle = '#fff'; g.fill(); o(1.6);
+      g.fillStyle = PURPLE; g.font = '13px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('z', 8, -10); g.fillText('z', 14, -17);
+    } else if (k === 'tub') {
+      [[-8, -12, 5], [2, -16, 4], [10, -11, 3.5], [-2, -9, 3]].forEach(function (b) { g.beginPath(); g.arc(b[0], b[1], b[2], 0, Math.PI * 2); g.fillStyle = '#e8f6ff'; g.fill(); o(1.4); });
+      g.beginPath(); g.moveTo(-19, -4); g.lineTo(19, -4); g.quadraticCurveTo(19, 12, 6, 12); g.lineTo(-6, 12); g.quadraticCurveTo(-19, 12, -19, -4); g.closePath(); g.fillStyle = '#ff9ec7'; g.fill(); o();
+      g.beginPath(); g.moveTo(-12, 12); g.lineTo(-14, 17); g.moveTo(12, 12); g.lineTo(14, 17); o(2.4);
+      heart(g, 0, 4, 4, '#fff');
+    } else if (k === 'toys') {
+      rr(g, -17, -2, 34, 18, 3); g.fillStyle = '#f5c330'; g.fill(); o();
+      g.beginPath(); g.moveTo(-17, 4); g.lineTo(17, 4); g.strokeStyle = '#c98a10'; g.lineWidth = 2; g.stroke();
+      g.save(); g.translate(-7, -7); THING.pilka(g, 7); g.restore();
+      rr(g, 3, -14, 10, 10, 2); g.fillStyle = '#5cbc4b'; g.fill(); o(1.8); rr(g, 8, -8, 9, 9, 2); g.fillStyle = '#3f86d8'; g.fill(); o(1.8);
+    }
+  }                                 // a favourite snack also cheers the pet up
   // same ids/slots as Jeżyk w biegu (the child buys them there)
   var ITEMS = [
     { id: 'czapka',   name: 'Czapka',   slot: 'head' },
@@ -1228,6 +1275,7 @@
     wave: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 27 v-11 q0 -3 2.5 -3 q2.5 0 2.5 3 v-8 q0 -3 2.5 -3 q2.5 0 2.5 3 v12 q3 -4 5 -2 q1 1 -1 4 l-5 8 z" fill="#ffd0a8" stroke="#1d2f6f" stroke-width="2.2" stroke-linejoin="round"/><path d="M6 10 q-2 -3 0 -6 M4 14 q-3 -2 -2 -5" fill="none" stroke="#f5c330" stroke-width="2.4" stroke-linecap="round"/></svg>',
     roll: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10" fill="#ff9ec7" stroke="#1d2f6f" stroke-width="2.4"/><path d="M16 6 a10 10 0 0 1 0 20" fill="#ff7eb6" stroke="#1d2f6f" stroke-width="2"/><circle cx="12" cy="13" r="1.8" fill="#1d2f6f"/><circle cx="20" cy="19" r="1.8" fill="#1d2f6f"/></svg>'
   };
+  var LOW_NEED = 30;                                // below this a pet shows the need (tired, hungry, dirty, bored)
   var NEED_NAME = { food: 'Brzuszek', fun: 'Humor', clean: 'Czystość', sleep: 'Sen' };
   var NEED_SAY = {
     food: ['Burczy mi w brzuszku.', 'Chętnie coś zjem.', 'Brzuszek pełny!'],
@@ -1258,7 +1306,24 @@
     '.zw-chip.zz::after{content:"z";position:absolute;top:-2px;left:34px;font-size:1rem;color:#7a4fc4}',
     '.zw-fam{flex:none;width:58px;min-height:50px;border:2px solid #1d2f6f;border-radius:14px;background:#fff;color:inherit;font:inherit;font-size:.86rem;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;padding:2px}',
     '.zw-fam svg{width:26px;height:26px}',
-    '.zw-hud{flex:none;display:flex;gap:6px;padding:5px 8px 6px;background:#fff;border-bottom:3px solid #1d2f6f}',
+    '.zw-top{border-bottom:3px solid #1d2f6f;padding-bottom:6px!important}',
+    '.zw-chip{flex-direction:column;align-items:stretch!important;max-width:280px!important;padding:3px 6px 5px 3px!important;gap:3px!important}',
+    '.zw-chip .hd{display:flex;align-items:center;gap:3px;min-width:0}',
+    '.zw-chip .nb{display:flex;flex-direction:column;gap:2px;padding-left:3px}',
+    '.zw-chip .nr{display:flex;align-items:center;gap:4px;min-width:0}',
+    '.zw-chip .nr svg{width:15px;height:15px;flex:none}',
+    '.zw-chip .nr .zw-bar{height:9px;border-width:1.5px}',
+    '.zw-chip .nr.low svg{animation:zwbob 1.4s ease-in-out infinite}',
+    '.zw-chip .nr.low .zw-bar{border-color:#cf412d}',
+    '.zw-chip.need{border-color:#f08a24;background:#fff3e8}',
+    '.zw-chip.need.on{background:#fff4d6;border-color:#e3a008}',
+    '.zw-chip .wb{position:absolute;top:-7px;right:-6px;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid #cf412d;display:none;align-items:center;justify-content:center;z-index:1}',
+    '.zw-chip.need .wb{display:flex;animation:zwbob 1.2s ease-in-out infinite}',
+    '.zw-chip .wb svg{width:18px;height:18px}',
+    '.zw-chip.zz::after{left:auto;right:6px;top:2px}',
+    '.zw-chip.need.ready::before{right:22px}',
+    '@media (max-width:480px){.zw-top.many .zw-chip canvas{display:none!important}.zw-top.many .zw-chip .hd{padding-left:4px}.zw-chip canvas{width:28px!important;height:25px!important}.zw-chip .hd{gap:1px}.zw-chip .nm{font-size:.98rem!important}.zw-chip .st{font-size:.72rem}.zw-chip .nr svg{width:13px;height:13px}.zw-chip .nr{gap:2px}}',
+    '@media (min-width:700px){.zw-chip .nr svg{width:18px;height:18px}.zw-chip .nr .zw-bar{height:11px}.zw-chip canvas{width:52px!important;height:45px!important}}',
     '.zw-need{flex:1;min-width:0;min-height:44px;border:2px solid #1d2f6f;border-radius:14px;background:#fff;display:flex;align-items:center;gap:4px;padding:3px 6px;color:inherit;font:inherit}',
     '.zw-need svg{width:28px;height:28px;flex:none}',
     '.zw-need.low svg{animation:zwbob 1.4s ease-in-out infinite}',
@@ -1299,6 +1364,11 @@
     '.zw-row .tx small.fav{color:#e8559a}',
     '.zw-row.cur{border-color:#e3a008;background:#fff7e0}',
     '.zw-row.lock{opacity:.6}',
+    '.zw-sw{display:flex;width:fit-content;align-items:center;gap:6px;margin-top:5px;min-height:34px;border:2px solid #1d2f6f;border-radius:999px;background:#e6e9f2;color:#5a6690;font:inherit;font-size:1rem;padding:0 12px 0 4px}',
+    '.zw-sw::before{content:"";width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid #1d2f6f}',
+    '.zw-sw.on{background:#8fd06b;color:#1d2f6f;flex-direction:row-reverse;padding:0 4px 0 12px}',
+    '.zw-up.off img{filter:grayscale(1);opacity:.6}',
+    '.zw-top-ok{font-size:1.6rem;color:#3fae5f;padding:0 10px}',
     '.zw-buy{min-width:84px;min-height:46px;border:3px solid #1d2f6f;border-radius:14px;background:#e3a008;color:#2a1d00;font:inherit;font-size:1.2rem;box-shadow:0 3px 0 #1d2f6f;padding:2px 8px}',
     '.zw-buy.pick{background:#fff;color:#1d2f6f}',
     '.zw-buy[disabled]{background:#e6e9f2;color:#5a6690;box-shadow:none}',
@@ -1314,7 +1384,7 @@
     '.zw-sp:active{transform:translateY(2px);box-shadow:0 1px 0 #1d2f6f}',
     '.zw-wide{width:100%;margin-top:8px}',
     '.zw-card canvas{display:block;margin:0 auto}',
-    '@media (prefers-reduced-motion: reduce){.zw-grow{animation:none}.zw-need.low svg{animation:none}.zw-sheet,.zw-sheetw{transition:none}}'
+    '@media (prefers-reduced-motion: reduce){.zw-grow{animation:none}.zw-chip .nr.low svg,.zw-chip.need .wb{animation:none}.zw-sheet,.zw-sheetw{transition:none}}'
   ].join('');
 
   var PIC = '<rect x="0" y="60" width="120" height="12" fill="#8fd06b"/>' +
@@ -1449,6 +1519,8 @@
         save.seenV2 = false; save.wearInit = true;
       }
       if (typeof save.best !== 'object' || !save.best) save.best = {};
+      if (!save.up || typeof save.up !== 'object' || Array.isArray(save.up)) save.up = {};
+      if (!save.off || typeof save.off !== 'object' || Array.isArray(save.off)) save.off = {};
       save.slots = clamp(Math.round(+save.slots || 1), 1, SLOT_PRICE.length);
       save.diff = save.diff ? 1 : 0;
       save.pets = save.pets.filter(function (p) { return p && typeof p === 'object'; });
@@ -1507,18 +1579,6 @@
       var root = document.createElement('div'); root.className = 'zw';
       var style = document.createElement('style'); style.textContent = CSS; root.appendChild(style);
       var top = document.createElement('div'); top.className = 'zw-top'; root.appendChild(top);
-      var hud = document.createElement('div'); hud.className = 'zw-hud'; root.appendChild(hud);
-      var needEl = {};
-      NEEDS.forEach(function (k) {
-        var b = document.createElement('button'); b.type = 'button'; b.className = 'zw-need';
-        b.setAttribute('aria-label', NEED_NAME[k]);
-        b.innerHTML = ICON[k] + '<span class="zw-bar"><i></i></span>';
-        b.onclick = function () {
-          var p = sel(); if (mode !== 'home' || !p) return;
-          ctx.sfx('tap'); say(p, NEED_NAME[k] + ': ' + (p.asleep && k !== 'sleep' ? 'Chrr...' : needSay(k, p.needs[k])), 2.6);
-        };
-        hud.appendChild(b); needEl[k] = b;
-      });
       var cvWrap = document.createElement('div'); cvWrap.className = 'zw-cv'; root.appendChild(cvWrap);
       var cv = document.createElement('canvas'); cvWrap.appendChild(cv);
       var growBtn = document.createElement('button'); growBtn.type = 'button'; growBtn.className = 'zw-grow'; growBtn.hidden = true;
@@ -1546,8 +1606,8 @@
         if (dt < 1e-6) return;
         NEEDS.forEach(function (k) {
           var v = p.needs[k];
-          if (p.asleep) v += k === 'sleep' ? SLEEP_GAIN_H * dt : -RATES[k] * 0.5 * dt;
-          else v -= RATES[k] * dt;
+          if (p.asleep) v += k === 'sleep' ? SLEEP_GAIN_H * upV('bed') * dt : -RATES[k] * 0.5 * upV('toys') * dt;
+          else v -= RATES[k] * upV('toys') * dt;
           p.needs[k] = clamp(v, MIN_NEED, 100);
         });
         p.t = now;
@@ -1560,10 +1620,16 @@
         if (cap != null) v = Math.max(p.needs[k], Math.min(v, cap));
         p.needs[k] = v;
       }
+      function isTired(p) { return !p.asleep && p.needs.sleep < LOW_NEED; }
       function minNeed(p) { return Math.min(p.needs.food, p.needs.fun, p.needs.clean, p.needs.sleep); }
       function lowest(p) { var k = 'food'; NEEDS.forEach(function (n) { if (p.needs[n] < p.needs[k]) k = n; }); return k; }
       function cared() { var d = today(); if (save.careDay !== d) { save.careDay = d; ctx.stat('days', 1); } }
-      function basket() { if (save.basketDay !== today()) { save.basketDay = today(); save.basketLeft = BASKET; } return save.basketLeft; }
+      function upLv(k) { return clamp(save.up[k] | 0, 0, UPB[k].v.length - 1); }
+      function upV(k) { return UPB[k].v[save.off[k] ? 0 : upLv(k)]; }
+      function basket() {
+        if (save.basketDay !== today()) { save.basketDay = today(); save.basketLeft = upV('basket'); }
+        return Math.min(save.basketLeft, upV('basket'));
+      }
 
       // ---------- growth ----------
       function growLeft(p) { return p.gDay === today() ? Math.max(0, GP_DAY - (p.gToday || 0)) : GP_DAY; }
@@ -1658,7 +1724,7 @@
           parts.push(q);
         }
       }
-      function popText(text, x, y, col) { parts.push({ kind: 'text', text: text, x: x, y: y, vx: 0, vy: -50, t: 0, life: 0.9, col: col || '#cf412d' }); }
+      function popText(text, x, y, col, life) { parts.push({ kind: 'text', text: text, x: x, y: y, vx: 0, vy: life ? -24 : -50, t: 0, life: life || 0.9, col: col || '#cf412d' }); }
       function purr() {
         if (!NG.sound.pref().sfx) return;
         try { NG.sound.tone({ f: 70, to: 58, dur: 0.32, type: 'sawtooth', vol: 0.05, attack: 0.04 }); NG.sound.tone({ f: 140, to: 120, dur: 0.3, type: 'sine', vol: 0.08, attack: 0.04 }); } catch (e) {}
@@ -1668,23 +1734,52 @@
       var chipEls = {};
       function renderChips() {
         top.innerHTML = ''; chipEls = {};
+        top.classList.toggle('many', homePets().length >= 3);
         var cur = sel();
         homePets().forEach(function (p) {
           var b = document.createElement('button'); b.type = 'button'; b.className = 'zw-chip' + (cur && p.id === cur.id ? ' on' : '') + (p.asleep ? ' zz' : '') + (canGrow(p) ? ' ready' : '');
           b.setAttribute('aria-label', p.name);
-          b.innerHTML = '<canvas width="92" height="80"></canvas><span class="tx"><span class="nm"></span><span class="st"></span><span class="zw-gb"><i></i></span></span>';
+          b.innerHTML = '<span class="hd"><canvas width="92" height="80"></canvas><span class="tx"><span class="nm"></span><span class="st"></span><span class="zw-gb"><i></i></span></span></span>' +
+            '<span class="nb">' + NEEDS.map(function (k) { return '<span class="nr" data-k="' + k + '">' + ICON[k] + '<span class="zw-bar"><i></i></span></span>'; }).join('') + '</span>' +
+            '<span class="wb" aria-hidden="true"></span>';
           b.querySelector('.nm').textContent = p.name;
           if (p.name.length >= 7) b.querySelector('.nm').style.fontSize = p.name.length >= 8 ? '.86rem' : '.96rem';   // long names shrink a little instead of being cut
           b.querySelector('.st').textContent = 'poz. ' + levelOf(p.gp);
           b.querySelector('.zw-gb i').style.width = Math.round(growFrac(p) * 100) + '%';
           var c = b.querySelector('canvas'), cg = c.getContext('2d'); cg.scale(2, 2);
           fitPet(cg, p.sp, p.stage, 46, 40, { wear: wearOf(p), eye: p.asleep ? 'closed' : 'open', pose: p.asleep ? 'sleep' : 'stand' }, 2);
-          b.onclick = function () { tapChip(p); };
+          b.onclick = function (e) {
+            // a tap on a bar of the chosen pet: it says how that need is
+            var nr = e.target.closest && e.target.closest('.nr');
+            if (nr && save.sel === p.id && mode === 'home' && !food) {
+              var k = nr.getAttribute('data-k'); ctx.sfx('tap');
+              say(p, NEED_NAME[k] + ': ' + (p.asleep && k !== 'sleep' ? 'Chrr...' : needSay(k, p.needs[k])), 2.6); return;
+            }
+            tapChip(p);
+          };
           top.appendChild(b); chipEls[p.id] = b;
+          fillChip(p);
         });
         var f = document.createElement('button'); f.type = 'button'; f.className = 'zw-fam';
         f.innerHTML = ICON.fam + '<span>Rodzina</span>'; f.onclick = function () { if (mode === 'home' && !food) openFamily(); };
         top.appendChild(f);
+      }
+      function fillChip(q) {
+        var c = chipEls[q.id]; if (!c) return;
+        var low = null;
+        NEEDS.forEach(function (k) {
+          var v = q.needs[k], nr = c.querySelector('.nr[data-k="' + k + '"]'), i = nr.querySelector('i');
+          i.style.width = Math.round(v) + '%'; i.style.background = needCol(v);
+          var isLow = v < LOW_NEED && !(q.asleep && k === 'sleep');
+          nr.classList.toggle('low', isLow);
+          if (isLow && (!low || v < q.needs[low])) low = k;
+        });
+        // the badge shows the most urgent need, so it is easy to see who needs help
+        c.classList.toggle('need', !!low && !q.asleep);
+        var wb = c.querySelector('.wb');
+        if (low && !q.asleep) { if (wb.getAttribute('data-k') !== low) { wb.innerHTML = ICON[low]; wb.setAttribute('data-k', low); } } else { wb.innerHTML = ''; wb.removeAttribute('data-k'); }
+        c.querySelector('.zw-gb i').style.width = Math.round(growFrac(q) * 100) + '%';
+        c.classList.toggle('zz', !!q.asleep); c.classList.toggle('ready', canGrow(q));
       }
       function tapChip(p) {
         if (mode !== 'home' || food || bellyBusy()) return;
@@ -1746,16 +1841,11 @@
       function updateHud() {
         var p = sel();
         if (!p) return;
-        NEEDS.forEach(function (k) {
-          var v = p.needs[k], i = needEl[k].querySelector('i');
-          i.style.width = Math.round(v) + '%'; i.style.background = needCol(v);
-          needEl[k].classList.toggle('low', v < 30 && mode === 'home');
-        });
         if (mode === 'home' && !p.asleep) {
           var hints = [p.needs.food < 35, p.needs.clean < 35, p.needs.sleep < 35, p.needs.fun < 35];
           actBtns.forEach(function (b, i) { if (i < 4) b.classList.toggle('zw-hint', hints[i]); });
         }
-        homePets().forEach(function (q) { var c = chipEls[q.id]; if (c) { c.querySelector('.zw-gb i').style.width = Math.round(growFrac(q) * 100) + '%'; c.classList.toggle('zz', !!q.asleep); c.classList.toggle('ready', canGrow(q)); } });
+        homePets().forEach(fillChip);
         syncGrow();
       }
       function syncMusic() {
@@ -1767,8 +1857,7 @@
         stopPlay(); if (m === 'home') playT = Math.max(playT, rnd(8, 12));
         mode = m; drag = null;
         var showTop = m === 'home' || m === 'bath';
-        top.style.display = m === 'home' && save.pets.length ? '' : 'none';
-        hud.style.display = showTop && save.pets.length ? '' : 'none';
+        top.style.display = showTop && save.pets.length ? '' : 'none';
         buildBar(); updateHud(); syncMusic();
         layout();
       }
@@ -1900,7 +1989,7 @@
             btn(left ? 'Daj' : 'jutro', function () {
               if (!live(S2) || food || mode !== 'home' || basket() <= 0) return;
               if (p.needs.food >= 95) { S2.msg = { text: 'Brzuszek pełny! Może później.', cls: 'ok' }; S2.render(); return; }
-              save.basketLeft--; persist(); closeSheet(); feed(p, FOODS[0], true);
+              save.basketLeft = basket() - 1; persist(); closeSheet(); feed(p, FOODS[0], true);
             }, 'pick', !left || full));
           var garden = gardenRead(), crops = GARDEN.filter(function (c) { return pantryCount(garden, c.g) > 0; });
           if (crops.length) {
@@ -2003,7 +2092,7 @@
         if (mode !== 'bath' || !bath) return;
         var p = byId(bath.id), pr = full ? 1 : Math.min(1, bath.prog);
         addNeed(p, 'clean', (100 - p.needs.clean) * pr);
-        if (full) { ctx.stat('baths', 1); ctx.sticker('bath'); ctx.sfx('clear'); grow(p, 'bath'); }
+        if (full) { ctx.stat('baths', 1); ctx.sticker('bath'); ctx.sfx('clear'); grow(p, 'bath'); if (upV('tub')) addNeed(p, 'fun', upV('tub')); }
         if (pr >= 0.3) cared();
         bath = null; parts = parts.filter(function (q) { return q.kind !== 'drop'; });
         setMode('home');
@@ -2156,7 +2245,43 @@
           bigBtn(body, 'Adoptuj zwierzątko · ' + ADOPT_PRICE + ' ★', function () { if (!live(S2) || full) return; openAdopt(); }, '', full || bal < ADOPT_PRICE);
           if (full) note(body, 'Masz już ' + MAX_PETS + ' zwierzątek. Wszystkie bawią się w domku albo na polanie.');
           else if (bal < ADOPT_PRICE) note(body, 'Na adopcję potrzeba ' + ADOPT_PRICE + ' ★. Zbieraj je w nauce!');
+          bigBtn(body, 'Ulepszenia domku', function () { if (!live(S2)) return; openUps(); }, 'sec');
           bigBtn(body, 'Idź na Leśną Polanę', function () { if (!live(S2)) return; closeSheet(); enterPolana(); }, 'sec');
+        });
+      }
+      function upThumb(k) { return thumb('up' + k, 56, 56, function (cg) { cg.translate(28, 28); cg.scale(1.2, 1.2); drawUpPic(cg, k); }); }
+      function openUps() {
+        openSheet('Ulepszenia domku', function (body, S2) {
+          var bal = ctx.balance(), lvl = ctx.level();
+          note(body, 'Ulepszenia zostają na zawsze i działają dla wszystkich zwierzątek. Każde można wyłączyć.');
+          UPS.forEach(function (U) {
+            var L = upLv(U.k), top = L >= U.v.length - 1, need = top ? 0 : U.lv[L], locked = !top && need > lvl, off = !!save.off[U.k];
+            var sub = [L ? U.say(U.v[L]) : '', top ? 'Najwyższy poziom!' : (L ? 'Dalej: ' : '') + U.say(U.v[L + 1])].filter(Boolean).join(' · ');
+            var buttons = [];
+            if (top) { var ok = document.createElement('span'); ok.className = 'zw-top-ok'; ok.textContent = '✓'; buttons.push(ok); }
+            else buttons.push(btn(locked ? 'poz. ' + need : U.price[L] + ' ★', function () {
+              if (!live(S2) || upLv(U.k) !== L || U.lv[L] > ctx.level()) return;
+              if (!ctx.spend(U.price[L], U.n)) { poor(S2); return; }
+              settle(Date.now()); save.up[U.k] = L + 1; delete save.off[U.k];
+              if (U.k === 'basket' && save.basketDay === today()) save.basketLeft = (save.basketLeft | 0) + 1;
+              ctx.sfx('buy'); persist();
+              S2.msg = { text: U.n + ': poziom ' + (L + 1) + '!', cls: 'ok' }; S2.render();
+            }, '', locked || bal < U.price[L]));
+            var dots = ''; for (var i = 1; i < U.v.length; i++) dots += i <= L ? '●' : '○';
+            var r = row(body, upThumb(U.k), U.n + ' ' + dots, sub, buttons, 'zw-up' + (off ? ' off' : '') + (locked ? ' lock' : ''));
+            if (L) {
+              var sw = document.createElement('button'); sw.type = 'button'; sw.className = 'zw-sw' + (off ? '' : ' on');
+              sw.textContent = off ? 'Wyłączone' : 'Włączone'; sw.setAttribute('aria-pressed', off ? 'false' : 'true');
+              sw.onclick = function () {
+                if (!live(S2)) return;
+                settle(Date.now());   // needs so far count with the old setting
+                if (save.off[U.k]) delete save.off[U.k]; else save.off[U.k] = true;
+                ctx.sfx(save.off[U.k] ? 'close' : 'open'); persist(); updateHud(); S2.render();
+              };
+              r.querySelector('.tx').appendChild(sw);
+            }
+          });
+          bigBtn(body, 'Wróć', function () { if (!live(S2)) return; openFamily(); }, 'sec');
         });
       }
       function slotThumb(free) {
@@ -3305,6 +3430,22 @@
         if (r.earP > 0) { r.earP += dt / 0.3; if (r.earP >= 1) r.earP = 0; }
         r.earK = r.earP > 0 ? Math.sin(r.earP * Math.PI) * 0.35 : 0;
         if (r.roll > 0) r.roll = Math.max(0, r.roll - dt);
+        if (r.yawn > 0) r.yawn = Math.max(0, r.yawn - dt);
+        // a pet that needs something shows it now and then: yawns, a rumbling tummy, a sigh (dirt shows by itself)
+        if (mode === 'home' && !p.asleep && !food) {
+          r.moodT = (r.moodT == null ? rnd(2, 6) : r.moodT) - dt;
+          if (r.moodT <= 0) {
+            r.moodT = rnd(6, 11);
+            var s0 = petScale(p), want = NEEDS.filter(function (k) { return p.needs[k] < LOW_NEED; });
+            if (want.length && !(r.happy > 0) && !(r.belly > 0)) {
+              var k = pick(want), hx = r.x + r.face * 14 * s0, hy = r.y - 34 * s0;
+              if (k === 'sleep') { r.yawn = 1.4; popText(pick(['Ziew...', 'Aaaa... ziew!', 'Ziew!']), hx, hy, PURPLE, 1.8); }
+              else if (k === 'food') { r.wig = Math.max(r.wig, 0.45); popText(pick(['Burrr!', 'Burczy mi...', 'Burr burr!']), r.x, r.y - 18 * s0, '#d9622b', 1.8); }
+              else if (k === 'fun') { popText(pick(['Eh... nudno.', 'Nudzę się...', 'Ehh...']), hx, hy, MUTED, 1.8); }
+              else { popText(pick(['Fuj, śmierdzę!', 'Pfu...', 'Fe!']), hx, hy, '#5e8a2e', 1.8); }
+            }
+          }
+        }
         if (r.belly > 0) {
           r.belly -= dt;
           if (r.belly <= 0) { r.belly = 0; r.rollIn = false; r.roll = reduce ? 0 : 0.4; r.happy = 1.5; say(p, r.rubbed ? 'Ale było miło!' : 'Hop, wstaję!', 1.6); }
@@ -3328,7 +3469,7 @@
         var dx = tx - r.x, dy = ty - r.y, d = Math.hypot(dx, dy * 1.6);
         if (d > 2) {
           r.walking = true; if (Math.abs(dx) > 1.5) r.face = dx > 0 ? 1 : -1;
-          var sp = 34 * dt * HS / 2 * (k || 1) * (p.stage === 0 ? 0.8 : 1), st = Math.min(1, sp / d);
+          var sp = 34 * dt * HS / 2 * (k || 1) * (p.stage === 0 ? 0.8 : 1) * (isTired(p) ? 0.6 : 1), st = Math.min(1, sp / d);
           r.x += dx * st; r.y += dy * st; r.legs += dt * (p.stage === 0 ? 11 : 9);
           return false;
         }
@@ -3531,7 +3672,7 @@
         homePets().forEach(function (p) {
           var r = R(p);
           if (p.asleep) {
-            p.needs.sleep = Math.min(100, p.needs.sleep + SLEEP_GAIN_S * dt);
+            p.needs.sleep = Math.min(100, p.needs.sleep + SLEEP_GAIN_S * upV('bed') * dt);
             var sp = sleepSpot(p); moveTo(p, r, sp.x, sp.y, dt, 2.5); r.walking = false;
             r.zT -= dt;
             if (r.zT <= 0) { r.zT = 1.1 + Math.random() * 0.3; var s = petScale(p); parts.push({ kind: 'z', x: r.x + 14 * s, y: r.y - 28 * s, vx: 14, vy: -26, t: 0, life: 2.4, r: 14 + Math.random() * 8 }); }
@@ -3649,11 +3790,13 @@
       }
       function petState(p, pose) {
         var r = R(p), low = minNeed(p) < 25, chewing = food && food.id === p.id && food.drop >= 1 && food.bites < 3;
-        var eye = p.asleep ? 'closed' : r.purr > 0 ? 'purr' : (r.happy > 0 || r.wig > 0) ? 'happy' : low ? 'sad' : 'open';
-        var mouth = chewing ? (Math.sin(T * 16) > 0 ? 'open' : 'chew') : p.asleep ? 'chew' : r.wig > 0.2 ? 'giggle' : r.happy > 0.8 ? 'open' : low ? 'frown' : 'smile';
+        var tired = isTired(p), yawn = r.yawn > 0;
+        var eye = p.asleep ? 'closed' : r.purr > 0 ? 'purr' : (r.happy > 0 || r.wig > 0) ? 'happy' : yawn ? 'closed' : tired ? 'tired' : low ? 'sad' : 'open';
+        var mouth = chewing ? (Math.sin(T * 16) > 0 ? 'open' : 'chew') : p.asleep ? 'chew' : yawn ? 'open' : r.wig > 0.2 ? 'giggle' : r.happy > 0.8 ? 'open' : low ? 'frown' : 'smile';
         if (pose === 'belly') { eye = 'happy'; mouth = r.wig > 0 ? 'giggle' : 'open'; }
         var dirt = mode === 'bath' ? 0 : p.needs.clean < 55 ? clamp((55 - p.needs.clean) / 45, 0, 1) : 0;
-        return { t: T, stage: p.stage, pose: pose, legs: r.walking ? r.legs : 0, wear: wearOf(p), eye: eye, mouth: mouth, dirt: dirt, seed: r.seed, earRot: r.earK || 0, wag: (r.happy > 0 || r.wagT > 0) ? 1 : 0 };
+        var droop = tired && pose === 'stand' && !(r.happy > 0) ? 0.16 + (yawn ? -0.25 * Math.sin(Math.min(1, r.yawn / 1.4) * Math.PI) : 0) : 0;
+        return { t: T, stage: p.stage, pose: pose, legs: r.walking ? r.legs : 0, wear: wearOf(p), eye: eye, mouth: mouth, dirt: dirt, seed: r.seed, earRot: (r.earK || 0) + (tired ? 0.25 : 0), headRot: droop, wag: (r.happy > 0 || r.wagT > 0) ? 1 : 0 };
       }
       function drawPetHome(p, xo, yo, so, faceO) {
         var r = R(p), pose = poseOf(p), s = so || petScale(p), G = geo(p.sp, p.stage, pose);
@@ -3667,6 +3810,7 @@
         var hopY = SP[p.sp].hops && r.walking && pose === 'stand' && !reduce ? Math.abs(Math.sin(r.legs * 0.55)) * 7 * s : 0;   // a rabbit hops along
         g.save(); g.translate(x, y - hopY); g.rotate(wg + wob + ra * face); g.scale(s * face * sx, s * br);
         drawCritter(g, p.sp, petState(p, pose)); g.restore();
+        if (mode === 'home' && p.needs.clean < LOW_NEED) drawStink(x, y, s, G, r.seed, (LOW_NEED - p.needs.clean) / LOW_NEED);
         if (mode === 'home' && pose === 'stand' && !p.asleep && canGrow(p)) {
           var hw = (G.x1 - G.x0) * s * 0.55, cy2 = y + G.top * s * 0.55;
           for (var i = 0; i < 4; i++) {
@@ -3674,6 +3818,23 @@
             star(g, x + Math.cos(a) * hw, cy2 + Math.sin(a) * hw * 0.55, 4.5 + (reduce ? 0 : Math.sin(T * 5 + i) * 1.5), i % 2 ? '#ffe066' : '#fff4c4');
           }
         }
+      }
+      // a dirty pet smells: wavy green lines rise from its back and a little fly circles above
+      function drawStink(x, y, s, G, seed, k) {
+        var w = (G.x1 - G.x0) * s, top = y + G.top * s, n = k > 0.5 ? 3 : 2;
+        g.save(); g.lineCap = 'round';
+        for (var i = 0; i < n; i++) {
+          var ph = reduce ? 0.5 : ((T * 0.45 + i / n + seed) % 1), bx = x + (i - (n - 1) / 2) * w * 0.28, by = top + 6 - ph * 34;
+          g.globalAlpha = Math.sin(ph * Math.PI) * 0.85;
+          g.beginPath();
+          for (var j = 0; j <= 12; j++) { var yy = by - j * 1.6, xx = bx + Math.sin(j * 0.9 + T * 3 + i) * 3.2; if (j) g.lineTo(xx, yy); else g.moveTo(xx, yy); }
+          g.lineWidth = 3.4; g.strokeStyle = '#7cae3c'; g.stroke();
+        }
+        g.globalAlpha = 1;
+        var a = reduce ? 0.6 : T * 2.6 + seed * 3, fx = x + Math.cos(a) * w * 0.32, fy = top - 12 + Math.sin(a * 1.7) * 6;
+        g.beginPath(); g.ellipse(fx - 2, fy - 3, 3, 2, -0.5 + Math.sin(T * 40) * 0.4, 0, Math.PI * 2); g.ellipse(fx + 2, fy - 3, 3, 2, 0.5 - Math.sin(T * 40) * 0.4, 0, Math.PI * 2); g.fillStyle = 'rgba(220,240,255,.85)'; g.fill();
+        g.beginPath(); g.arc(fx, fy, 2.4, 0, Math.PI * 2); g.fillStyle = INK; g.fill();
+        g.restore();
       }
       function drawSpeech() {
         if (!speech) return;

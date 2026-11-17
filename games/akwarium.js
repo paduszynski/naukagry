@@ -3,6 +3,10 @@
  * and unlock by player level. Fish wander (boid-ish), scatter when the glass is tapped, swim to food.
  * Feeding once per day keeps them smiling; a hungry fish only looks sad. Decorations can be dragged; the
  * layout is saved. Tapping a fish shows its Polish and English name.
+ * Upgrades (Sklep -> Ulepszenia, UPS): bought once per level with stars and kept forever; st.up[k] is the bought
+ * level, st.off[k] = true switches a bought upgrade off (then it works exactly like level 0). Automatic feeder
+ * (missed days still count as fed), bigger tank (more fish), bubbles / filter (bubble curtain the fish play in,
+ * clear sparkly water, bubbles to pop) and more room for decorations.
  */
 (function () {
   'use strict';
@@ -49,6 +53,27 @@
   FISH.forEach(function (f) { FB[f.k] = f; });
   DECOS.forEach(function (d) { DB[d.k] = d; });
   BGS.forEach(function (b) { BB[b.k] = b; });
+
+  // ---------- upgrades (Sklep -> Ulepszenia): bought once per level with stars, kept forever, each can be switched off ----------
+  // v: the value at each level (index 0 = not bought / switched off), price[i]: the cost of level i+1, lv[i]: player level needed
+  // show0: also show the level-0 value as "now" (the tank and decoration room have a base size)
+  var UPS = [
+    { k: 'feeder', n: 'Automatyczny karmnik', v: [0, 1, 2], price: [600, 1200], lv: [3, 8],
+      say: function (v) { return 'Karmi, gdy zapomnisz' + (v ? ': ' + (v === 1 ? '1 dzień' : v + ' dni') : ''); },
+      more: 'Rybki nie są wtedy smutne.' },
+    { k: 'tank', n: 'Większe akwarium', v: [MAX_FISH, 24, 28, 32], price: [500, 1000, 1600], lv: [4, 8, 12], show0: true,
+      say: function (v) { return 'Miejsce na ' + v + ' ' + plural(v, 'rybkę', 'rybki', 'rybek'); } },
+    { k: 'bubbles', n: 'Bąbelki i filtr', v: [0, 1, 2], price: [300, 700], lv: [2, 6],
+      say: function (v) { return v === 2 ? 'Filtr: czysta woda, bąbelki do pękania palcem' : v === 1 ? 'Kurtyna bąbelków: rybki się w niej bawią' : ''; } },
+    { k: 'decos', n: 'Miejsce na ozdoby', v: [MAX_DECO, 18, 22], price: [400, 900], lv: [3, 7], show0: true,
+      say: function (v) { return 'Miejsce na ' + v + ' ' + plural(v, 'ozdobę', 'ozdoby', 'ozdób'); } }
+  ];
+  var UB = {}; UPS.forEach(function (X) { UB[X.k] = X; });
+  function plural(n, one, few, many) {
+    if (n === 1) return one;
+    var d = n % 10, dd = n % 100;
+    return d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? few : many;
+  }
 
   function today() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -498,6 +523,62 @@
     return (thumbs[key] = c.toDataURL());
   }
 
+  // upgrade pictures (centre bottom at 0,0, about 85 units tall)
+  function drawUp(g, k) {
+    G = g; g.lineJoin = 'round'; g.lineCap = 'round'; U = 2.6;
+    function rr(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+    function fill(c, lw) { g.fillStyle = c; g.fill(); g.lineWidth = lw || 3; g.strokeStyle = INK; g.stroke(); }
+    function plus(x, y) {
+      g.beginPath(); g.arc(x, y, 12, 0, 7); fill('#e3a008', 2.5);
+      g.fillStyle = '#fff'; g.font = 'bold 20px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('+', x, y + 1);
+    }
+    function fishAt(sp, x, y, s, flip) { g.save(); g.translate(x, y); g.scale(flip ? -s : s, s); U = 2.4 / s; drawFish(g, FB[sp], 0.6, false, 1); g.restore(); U = 2.6; }
+    if (k === 'feeder') {
+      // food falling from the chute
+      [[-3, -12, '#e2533f'], [3, -5, '#5cbc4b'], [-2, 1, '#a8653a']].forEach(function (p) { g.beginPath(); g.ellipse(p[0], p[1] - 4, 3.2, 2.4, 0.5, 0, 7); g.fillStyle = p[2]; g.fill(); });
+      g.beginPath(); g.moveTo(-10, -30); g.lineTo(10, -30); g.lineTo(5, -19); g.lineTo(-5, -19); g.closePath(); fill('#8f9cad');
+      rr(-26, -74, 52, 46, 8); fill('#f7c25a');
+      rr(-30, -84, 60, 13, 4); fill('#e2533f');
+      g.beginPath(); g.arc(-4, -51, 13, 0, 7); fill('#fff', 2.5);
+      [[-9, -47, '#a8653a'], [-2, -45, '#e2533f'], [3, -49, '#5cbc4b'], [-6, -53, '#f2b51d'], [1, -55, '#a8653a']].forEach(function (p) { dot(p[0], p[1], 2.6, p[2]); });
+      // little clock: it feeds by itself
+      g.beginPath(); g.arc(24, -76, 13, 0, 7); fill('#fff', 2.5);
+      g.beginPath(); g.moveTo(24, -76); g.lineTo(24, -84); g.moveTo(24, -76); g.lineTo(30, -73); g.lineWidth = 2.5; g.strokeStyle = INK; g.stroke();
+    } else if (k === 'tank') {
+      rr(-42, -66, 84, 62, 6); fill('#86ccf2');
+      g.save(); rr(-42, -66, 84, 62, 6); g.clip();
+      g.fillStyle = '#2c74c2'; g.globalAlpha = 0.35; g.fillRect(-42, -36, 84, 32); g.globalAlpha = 1;
+      g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(-42, -66, 84, 7);
+      g.fillStyle = '#f2dca0'; g.fillRect(-42, -15, 84, 12);
+      g.restore();
+      rr(-42, -66, 84, 62, 6); g.lineWidth = 3; g.strokeStyle = INK; g.stroke();
+      g.beginPath(); g.moveTo(-42, -15); g.lineTo(42, -15); g.lineWidth = 2; g.stroke();
+      fishAt('zlota', -14, -42, 0.5); fishAt('gupik', 18, -28, 0.45, true); fishAt('neonek', 14, -52, 0.4);
+      plus(36, -66);
+    } else if (k === 'bubbles') {
+      rr(-42, -78, 84, 74, 10); g.fillStyle = '#d7f0fb'; g.fill();
+      [[-14, -24, 5], [-20, -42, 7], [-10, -60, 5], [-22, -70, 4], [6, -34, 4], [10, -54, 8], [2, -72, 4], [-4, -46, 3]].forEach(function (b) {
+        g.beginPath(); g.arc(b[0], b[1], b[2], 0, 7); fill('#fff', 2); dot(b[0] - b[2] * 0.35, b[1] - b[2] * 0.35, b[2] * 0.28, '#9fd4f5');
+      });
+      g.beginPath(); g.ellipse(-8, -12, 30, 8, 0, 0, 7); fill('#8f9cad');
+      dot(-22, -12, 2, INK); dot(-8, -12, 2, INK); dot(6, -12, 2, INK);
+      fishAt('gupik', 26, -44, 0.55, true);
+    } else if (k === 'decos') {
+      g.beginPath(); g.ellipse(0, -6, 44, 9, 0, 0, 7); fill('#f2dca0');
+      g.save(); g.translate(-14, -6); g.scale(0.62, 0.62); U = 2.6 / 0.62; drawDeco(g, 'zamek', 0.5, 0); g.restore();
+      g.save(); g.translate(24, -6); g.scale(0.8, 0.8); U = 2.6 / 0.8; drawDeco(g, 'muszla', 0.5, 0); g.restore();
+      U = 2.6; plus(30, -62);
+    }
+  }
+  var upCache = {};
+  function upUrl(k, size) {
+    var key = k + size;
+    if (upCache[key]) return upCache[key];
+    var d = Math.min(3, window.devicePixelRatio || 1), c = document.createElement('canvas'); c.width = Math.round(size * d); c.height = Math.round(size * d);
+    var g = c.getContext('2d'); g.scale(d, d); g.translate(size / 2, size * 0.94); g.scale(size / 100, size / 100); drawUp(g, k);
+    return (upCache[key] = c.toDataURL());
+  }
+
   var CSS = [
     '.aq{display:flex;flex-direction:column;font-family:var(--hand);color:#1d2f6f;background:#2c74c2}',
     '.aq-cv{flex:1;position:relative;min-height:0}',
@@ -538,7 +619,16 @@
     '.aq-buy.pick{background:#fff;color:#1d2f6f}',
     '.aq-buy[disabled]{background:#e6e9f2;color:#5a6690;box-shadow:none}',
     '.aq-buy:active{transform:translateY(2px);box-shadow:0 1px 0 #1d2f6f}',
-    '.aq-lockt{color:#7a4fc4;font-size:1.05rem;white-space:nowrap}'
+    '.aq-lockt{color:#7a4fc4;font-size:1.05rem;white-space:nowrap}',
+    '.aq-tab{min-width:0;padding:0 4px;color:#1d2f6f}.aq-tab.wide{flex:1.5}',
+    '.aq-up .dots{display:flex;gap:4px;margin:3px 0 2px}.aq-up .dots i{width:14px;height:14px;border-radius:50%;border:2px solid #1d2f6f;background:#fff}.aq-up .dots i.on{background:#e3a008}',
+    '.aq-up.top{background:#f3fbe9;border-color:#8fd06b}',
+    '.aq-up.off{background:#f2f4f9}.aq-up.off img{filter:grayscale(1);opacity:.6}.aq-up.off .dots i.on{background:#c3cce0}',
+    '.aq-up.lock img{filter:grayscale(1)}',
+    '.aq-tog{margin-top:5px;min-height:36px;border:2px solid #1d2f6f;border-radius:999px;padding:0 12px 0 5px;display:inline-flex;align-items:center;gap:7px;font-size:1.1rem;background:#e7f7df;color:#1d2f6f;font-family:inherit}',
+    '.aq-tog i{width:36px;height:22px;border-radius:11px;background:#5cbc4b;border:2px solid #1d2f6f;position:relative;flex:none}',
+    '.aq-tog i::after{content:"";position:absolute;top:1px;left:15px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #1d2f6f;box-sizing:border-box;transition:left .15s}',
+    '.aq-tog.no{background:#fff;color:#5a6690}.aq-tog.no i{background:#c3cce0}.aq-tog.no i::after{left:1px}'
   ].join('');
   var SVG_SHOP = '<svg viewBox="0 0 40 34" aria-hidden="true"><path d="M6 12 h28 l-3 18 h-22 z" fill="#ffe7a3" stroke="#1d2f6f" stroke-width="2.5" stroke-linejoin="round"/><path d="M13 12 q0 -9 7 -9 q7 0 7 9" fill="none" stroke="#1d2f6f" stroke-width="2.5"/><path d="M14 21 q6 -6 12 0 q-6 6 -12 0 z M14 21 l-4 -3 v6 z" fill="#f6982a" stroke="#1d2f6f" stroke-width="1.8"/></svg>';
   function svgFood(full) {
@@ -570,7 +660,17 @@
       if (!BB[st.bg]) st.bg = 'zwykle';
       st.fish = st.fish.filter(function (f) { return f && FB[f.sp]; });
       st.deco = st.deco.filter(function (d) { return d && DB[d.k]; });
+      // upgrades: bought levels and on/off switches (older saves have neither)
+      if (!st.up || typeof st.up !== 'object' || Array.isArray(st.up)) st.up = {};
+      if (!st.off || typeof st.off !== 'object' || Array.isArray(st.off)) st.off = {};
+      Object.keys(st.up).forEach(function (k) { if (!UB[k]) delete st.up[k]; else st.up[k] = clamp(Math.floor(+st.up[k]) || 0, 0, UB[k].v.length - 1); });
+      Object.keys(st.off).forEach(function (k) { if (!UB[k] || st.off[k] !== true) delete st.off[k]; });
       var lvl = ctx.level();
+      function upLv(k) { return clamp(st.up[k] | 0, 0, UB[k].v.length - 1); }
+      function upOff(k) { return st.off[k] === true; }
+      function upV(k) { return UB[k].v[upOff(k) ? 0 : upLv(k)]; }
+      function maxFish() { return upV('tank'); }
+      function maxDeco() { return upV('decos'); }
 
       var root = document.createElement('div'); root.className = 'aq';
       var style = document.createElement('style'); style.textContent = CSS; root.appendChild(style);
@@ -586,7 +686,7 @@
 
       var W = 0, H = 0, dpr = 1, u = 1, surf = 0, sandTop = 0, bgCache = null;
       var raf = 0, running = true, timers = [], last = 0, T = 0;
-      var fish = [], food = [], bubbles = [], ripples = [], labels = [], hearts = [];
+      var fish = [], food = [], bubbles = [], ripples = [], labels = [], hearts = [], pops = [];
       var foodMode = 0, sheet = null, drag = null, bubbleClock = 0;
 
       function later(fn, ms) { var id = setTimeout(fn, ms); timers.push(id); return id; }
@@ -597,7 +697,11 @@
         // #stage > * gives every stage child inset:0; pin the toast to the top centre instead
         if (t) t.style.cssText += ';inset:auto;top:14px;left:50%;right:auto;bottom:auto;white-space:normal;width:max-content;max-width:calc(100% - 24px);text-align:center';
       }
-      function hungry(f) { return st.fedDay !== today() && f.born !== today(); }
+      // days are counted from the last meal (or the day the fish came); the automatic feeder covers upV('feeder') missed days
+      function dayN(s) { var p = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return p ? Math.round(Date.UTC(+p[1], p[2] - 1, +p[3]) / 864e5) : -1e9; }
+      function hungry(f) { var b = f.born || '', last = st.fedDay > b ? st.fedDay : b; return dayN(today()) - dayN(last) > upV('feeder'); }
+      // today the fish were fed by the automatic feeder, not by the child
+      function autoFed() { return st.fedDay !== today() && upV('feeder') > 0 && dayN(today()) - dayN(st.fedDay) <= upV('feeder'); }
 
       // ---------- stats, stickers, Wędkarz inbox ----------
       function fishStats() {
@@ -618,7 +722,7 @@
         box.forEach(function (it) {
           var k = it && typeof it === 'object' ? (it.k || it.kind || it.sp) : it;
           if (!FB[k]) return; // unknown fish: drop it
-          if (st.fish.length >= MAX_FISH) { keep.push(k); return; }
+          if (st.fish.length >= maxFish()) { keep.push(k); return; }
           var rec = { id: st.nextId++, sp: k, born: today(), from: 'wedka' };
           st.fish.push(rec);
           var o = spawn(rec, true);
@@ -746,12 +850,28 @@
         g.restore();
         // built-in plants at the back corners
         drawWeeds(W * 0.06, 0.95, 0); drawWeeds(W * 0.93, 1.15, 2);
-        // aerator
-        var ax = W * 0.2;
-        g.save(); g.translate(ax, sandTop + 2 * u); g.scale(u, u); U = 1.6 / u;
-        G = g; ell(0, 0, 9, 4, 0, '#8f9cad'); g.restore();
+        // aerator; with the Bąbelki upgrade a long bubble stone makes a curtain of bubbles
+        var ax = W * 0.2, bub = upV('bubbles'), half = bubHalf();
+        g.save(); g.translate(ax, sandTop + 2 * u); g.scale(u, u); U = 1.6 / u; G = g;
+        if (bub) { ell(0, 0, half / u + 6, 4.5, 0, '#8f9cad'); for (var hx = -half / u + 4; hx < half / u; hx += 9) dot(hx, -0.5, 1.3, INK); }
+        else ell(0, 0, 9, 4, 0, '#8f9cad');
+        g.restore();
         bubbleClock -= dt;
-        if (bubbleClock <= 0) { bubbleClock = rnd(0.35, 0.7); bubbles.push({ x: ax + rnd(-3, 3) * u, y: sandTop - 2 * u, r: rnd(1.6, 4) * u, vy: -rnd(30, 46) * u, w: rnd(0, 6) }); }
+        while (bubbleClock <= 0) {
+          bubbleClock += bub ? rnd(0.03, 0.07) / bub : rnd(0.35, 0.7);
+          if (bubbles.length < 220) bubbles.push({ x: ax + (bub ? rnd(-half, half) : rnd(-3, 3) * u), y: sandTop - 2 * u, r: rnd(1.6, bub ? 5 : 4) * u, vy: -rnd(30, 46) * u, w: rnd(0, 6) });
+        }
+        // clear water from the filter: brighter, with a few twinkles
+        if (bub >= 2) {
+          g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(0, surf, W, sandTop - surf);
+          for (var si = 0; si < 9; si++) {
+            var tw = Math.sin(T * 1.7 + si * 2.3);
+            if (tw < 0.4) continue;
+            var sx = (si * 0.137 + 0.05 + Math.sin(T * 0.05 + si) * 0.04) % 1 * W, sy = surf + ((si * 0.311 + 0.1) % 0.85) * (sandTop - surf), sr = (2 + tw * 3) * u;
+            g.strokeStyle = 'rgba(255,255,255,' + ((tw - 0.4) * 1.4) + ')'; g.lineWidth = 1.6;
+            g.beginPath(); g.moveTo(sx - sr, sy); g.lineTo(sx + sr, sy); g.moveTo(sx, sy - sr); g.lineTo(sx, sy + sr); g.stroke();
+          }
+        }
         // decorations sorted by depth
         var ds = st.deco.slice().sort(function (a, b) { return a.y - b.y; });
         ds.forEach(function (d) {
@@ -777,6 +897,12 @@
         });
         // fish
         fish.forEach(function (o) { stepFish(o, dt); });
+        // fish swimming through the bubble curtain have fun: a wiggle, a little hop and a heart
+        if (bub) fish.forEach(function (o) {
+          if (Math.abs(o.x - ax) > half || (o.played && T - o.played < 7) || Math.random() > dt * 0.9) return;
+          o.played = T; o.wig = 1; o.vy -= 30 * u;
+          hearts.push({ x: o.x, y: o.y - 18 * u, life: 1.2 });
+        });
         fish.slice().sort(function (a, b) { return a.F.size - b.F.size; }).forEach(drawOne);
         // front weeds
         drawWeeds(W * 0.8, 0.75, 4);
@@ -814,6 +940,23 @@
         g.fillStyle = 'rgba(255,255,255,.10)';
         g.beginPath(); g.moveTo(W * 0.68, 0); g.lineTo(W * 0.76, 0); g.lineTo(W * 0.5, H); g.lineTo(W * 0.42, H); g.closePath(); g.fill();
         g.beginPath(); g.moveTo(W * 0.8, 0); g.lineTo(W * 0.83, 0); g.lineTo(W * 0.57, H); g.lineTo(W * 0.54, H); g.closePath(); g.fill();
+        // automatic feeder hanging on the rim
+        if (upV('feeder')) {
+          g.save(); g.translate(feederX(), surf + 4 * u); g.scale(u, u); U = 1.6 / u; G = g;
+          path(function () { G.moveTo(-5, 10); G.lineTo(5, 10); G.lineTo(3, 16); G.lineTo(-3, 16); G.closePath(); }, '#8f9cad');
+          path(function () { G.rect(-13, -14, 26, 25); }, '#f7c25a');
+          path(function () { G.rect(-15, -19, 30, 6); }, '#e2533f');
+          circ(0, -1, 6, '#fff');
+          dot(-2, 1, 1.6, '#a8653a'); dot(2, 0, 1.6, '#e2533f'); dot(0, -3, 1.6, '#5cbc4b');
+          g.restore();
+        }
+        // popped bubbles
+        pops = pops.filter(function (q) {
+          q.t += dt; if (q.t > 0.35) return false;
+          var a = 1 - q.t / 0.35; g.strokeStyle = 'rgba(255,255,255,' + a + ')'; g.lineWidth = 2;
+          for (var pi = 0; pi < 6; pi++) { var an = pi * Math.PI / 3, r0 = q.r + q.t * 30 * u; g.beginPath(); g.moveTo(q.x + Math.cos(an) * r0, q.y + Math.sin(an) * r0); g.lineTo(q.x + Math.cos(an) * (r0 + 4 * u), q.y + Math.sin(an) * (r0 + 4 * u)); g.stroke(); }
+          return true;
+        });
         // labels
         labels = labels.filter(function (l) {
           l.life -= dt; if (l.life <= 0) return false;
@@ -855,11 +998,13 @@
       // ---------- UI ----------
       function updateBar() {
         var fed = st.fedDay === today();
-        bFood.className = 'aq-btn' + (foodMode ? ' on' : fed ? ' done' : st.fish.length ? ' hungry' : '');
+        var auto = !fed && autoFed() && st.fish.length;
+        bFood.className = 'aq-btn' + (foodMode ? ' on' : fed ? ' done' : st.fish.length && !auto ? ' hungry' : '');
         bFood.innerHTML = svgFood(!fed || foodMode) + '<span>' + (foodMode ? 'Sypnij (' + foodMode + ')' : fed ? 'Najedzone ✓' : 'Karm') + '</span>';
         if (foodMode) { banner.hidden = false; banner.textContent = 'Dotknij wody, żeby sypnąć jedzenie.'; }
         else if (!st.fish.length) { banner.hidden = false; banner.textContent = 'Kup pierwszą rybkę w sklepie.'; }
         else if (!fed && fish.some(function (o) { return hungry(o.rec); })) { banner.hidden = false; banner.textContent = 'Rybki są głodne. Nakarm je!'; }
+        else if (auto) { banner.hidden = false; banner.textContent = 'Automatyczny karmnik nakarmił rybki.'; }
         else banner.hidden = true;
       }
       function feedBtn() {
@@ -889,7 +1034,7 @@
         var wrap = document.createElement('div'); wrap.className = 'aq-sheetw';
         var sh = document.createElement('div'); sh.className = 'aq-sheet'; wrap.appendChild(sh);
         sh.innerHTML = '<div class="aq-sh-h"><h3>Sklep</h3><span class="bal"><span>★</span> <b style="font-weight:400"></b></span><button type="button" class="aq-x" aria-label="Zamknij">×</button></div>' +
-          '<div class="aq-tabs"><button type="button" class="aq-tab" data-t="fish">Rybki</button><button type="button" class="aq-tab" data-t="deco">Ozdoby</button><button type="button" class="aq-tab" data-t="bg">Tła</button></div><div class="aq-sh-b"></div>';
+          '<div class="aq-tabs"><button type="button" class="aq-tab" data-t="fish">Rybki</button><button type="button" class="aq-tab" data-t="deco">Ozdoby</button><button type="button" class="aq-tab" data-t="bg">Tła</button><button type="button" class="aq-tab wide" data-t="up">Ulepszenia</button></div><div class="aq-sh-b"></div>';
         var body = sh.querySelector('.aq-sh-b');
         sh.querySelector('.aq-x').onclick = closeSheet;
         wrap.addEventListener('pointerdown', function (e) { if (e.target === wrap) closeSheet(); });
@@ -920,8 +1065,8 @@
           Array.prototype.forEach.call(sh.querySelectorAll('.aq-tab'), function (b) { b.classList.toggle('on', b.getAttribute('data-t') === tab); });
           body.innerHTML = '';
           if (tab === 'fish') {
-            var full = st.fish.length >= MAX_FISH;
-            note('Rybki w akwarium: ' + st.fish.length + ' z ' + MAX_FISH + (full ? '. Akwarium jest pełne!' : ''), full);
+            var full = st.fish.length >= maxFish();
+            note('Rybki w akwarium: ' + (st.fish.length > maxFish() ? st.fish.length + '. Nowe zmieszczą się, gdy włączysz większe akwarium.' : st.fish.length + ' z ' + maxFish() + (full ? '. Akwarium jest pełne!' : '')), full);
             FISH.forEach(function (F) {
               var locked = F.lv > lvl, have = st.fish.filter(function (f) { return f.sp === F.k; }).length;
               var r = row(fishThumb(F, 120, locked), false, esc(F.pl) + ' <i>/ ' + esc(F.en) + '</i>', have ? 'masz: ' + have : '',
@@ -929,14 +1074,16 @@
               if (locked) r.classList.add('lock');
             });
           } else if (tab === 'deco') {
-            var dfull = st.deco.length >= MAX_DECO;
-            note(dfull ? 'Nie ma już miejsca na ozdoby.' : 'Ozdoby możesz przesuwać palcem po piasku.', dfull);
+            var dfull = st.deco.length >= maxDeco();
+            note(st.deco.length > maxDeco() ? 'Ozdoby: ' + st.deco.length + '. Nowe zmieszczą się, gdy włączysz miejsce na ozdoby.' : (dfull ? 'Nie ma już miejsca na ozdoby' : 'Ozdoby możesz przesuwać palcem po piasku') + ' (' + st.deco.length + ' z ' + maxDeco() + ').', dfull);
             DECOS.forEach(function (D) {
               var locked = D.lv > lvl, have = st.deco.filter(function (d) { return d.k === D.k; }).length;
               var r = row(decoThumb(D, 120, locked), false, esc(D.n), have ? 'masz: ' + have : '',
                 locked ? lockT(D.lv) : buyBtn(D.price + ' ★', dfull || D.price > bal, function () { buyDeco(D); }));
               if (locked) r.classList.add('lock');
             });
+          } else if (tab === 'up') {
+            renderUps(bal);
           } else {
             note('Nowe tło co 5 poziomów.');
             BGS.forEach(function (B) {
@@ -954,11 +1101,39 @@
           var cheapest = Infinity;
           if (tab === 'fish') { if (!full) FISH.forEach(function (F) { if (F.lv <= lvl) cheapest = Math.min(cheapest, F.price); }); }
           else if (tab === 'deco') { if (!dfull) DECOS.forEach(function (D) { if (D.lv <= lvl) cheapest = Math.min(cheapest, D.price); }); }
+          else if (tab === 'up') UPS.forEach(function (X) { var L = upLv(X.k); if (L < X.v.length - 1 && X.lv[L] <= lvl) cheapest = Math.min(cheapest, X.price[L]); });
           else BGS.forEach(function (B) { if (B.lv <= lvl && B.price > 0 && st.bgs.indexOf(B.k) < 0) cheapest = Math.min(cheapest, B.price); });
           if (cheapest < Infinity && bal < cheapest) note('Brakuje gwiazdek. Zdobądź je w <a href="/matma/">Matmie</a>, <a href="/angielski/">Angielskim</a> albo <a href="/polski/">Polskim</a>.', true);
         }
+        function renderUps(bal) {
+          note('Ulepszenia zostają na zawsze. Każde możesz wyłączyć i włączyć.');
+          UPS.forEach(function (X) {
+            var L = upLv(X.k), top = L >= X.v.length - 1, need = top ? 0 : X.lv[L], locked = !top && need > lvl, off = L > 0 && upOff(X.k);
+            var r = document.createElement('div'); r.className = 'aq-row aq-up' + (locked ? ' lock' : '') + (top && !off ? ' top' : '') + (off ? ' off' : '');
+            r.innerHTML = '<img alt="" src="' + upUrl(X.k, 120) + '"><div class="tx"><b></b><span class="dots"></span><small></small></div>';
+            r.querySelector('b').textContent = X.n;
+            var dots = r.querySelector('.dots');
+            for (var i = 1; i < X.v.length; i++) { var d = document.createElement('i'); if (i <= L) d.className = 'on'; dots.appendChild(d); }
+            var now = off ? 'Kupione: ' + X.say(X.v[L]) : L || X.show0 ? (L ? '' : 'Teraz: ') + X.say(X.v[L]) : '';
+            var next = top ? 'Najwyższy poziom!' : (L || X.show0 ? 'Dalej: ' : '') + X.say(X.v[L + 1]);
+            r.querySelector('small').textContent = [now, next, !L && X.more ? X.more : ''].filter(Boolean).join(' · ');
+            if (L > 0) {
+              var t = document.createElement('button'); t.type = 'button'; t.className = 'aq-tog' + (off ? ' no' : '');
+              t.setAttribute('role', 'switch'); t.setAttribute('aria-checked', off ? 'false' : 'true');
+              t.innerHTML = '<i></i><span>' + (off ? 'Wyłączone' : 'Włączone') + '</span>';
+              t.onclick = function () { toggleUp(X); render(); };
+              r.querySelector('.tx').appendChild(t);
+            }
+            body.appendChild(r);
+            var b;
+            if (top) { b = document.createElement('span'); b.className = 'aq-lockt'; b.textContent = '✓'; }
+            else if (locked) b = lockT(need);
+            else b = buyBtn(X.price[L] + ' ★', X.price[L] > bal, function () { buyUp(X, L); render(); });
+            r.appendChild(b);
+          });
+        }
         function buyFish(F) {
-          if (st.fish.length >= MAX_FISH) return;
+          if (st.fish.length >= maxFish()) return;
           if (!ctx.spend(F.price, 'rybka: ' + F.pl)) { render(); return; }
           var rec = { id: st.nextId++, sp: F.k, born: today() };
           st.fish.push(rec); save();
@@ -971,7 +1146,7 @@
           updateBar();
         }
         function buyDeco(D) {
-          if (st.deco.length >= MAX_DECO) return;
+          if (st.deco.length >= maxDeco()) return;
           if (!ctx.spend(D.price, 'ozdoba: ' + D.n)) { render(); return; }
           var d = { id: st.nextId++, k: D.k, x: rnd(0.15, 0.85), y: rnd(0.2, 0.8) };
           st.deco.push(d); save();
@@ -984,6 +1159,42 @@
         render();
       }
       function setBg(k) { st.bg = k; save(); buildBg(); }
+      function buyUp(X, L) {
+        if (upLv(X.k) !== L || L >= X.v.length - 1 || X.lv[L] > lvl) return;
+        if (!ctx.spend(X.price[L], X.n)) { toast('Za mało gwiazdek.'); ctx.sfx('error'); return; }
+        st.up[X.k] = L + 1; delete st.off[X.k]; // buying a level switches the upgrade on
+        save(); ctx.sfx('buy');
+        toast({ feeder: 'Karmnik nakarmi rybki, gdy zapomnisz (' + (upV('feeder') === 1 ? '1 dzień' : upV('feeder') + ' dni') + ').',
+          tank: 'Większe akwarium! Miejsce na ' + maxFish() + ' ' + plural(maxFish(), 'rybkę', 'rybki', 'rybek') + '.', bubbles: L ? 'Nowy filtr! Dotknij bąbelka, a pęknie.' : 'Bąbelki! Rybki się w nich bawią.',
+          decos: 'Więcej miejsca: ' + maxDeco() + ' ' + plural(maxDeco(), 'ozdoba', 'ozdoby', 'ozdób') + '.' }[X.k]);
+        upChanged(X.k);
+      }
+      function toggleUp(X) {
+        if (!upLv(X.k)) return;
+        if (upOff(X.k)) delete st.off[X.k]; else st.off[X.k] = true;
+        save(); ctx.sfx(upOff(X.k) ? 'click' : 'pop');
+        upChanged(X.k);
+      }
+      function upChanged(k) {
+        if (k === 'tank') takeInbox(); // fish waiting in the bucket can come in now
+        if (k === 'feeder') autoDrop();
+        updateBar();
+      }
+      // the feeder drops a pinch of food when it fed the fish today (once a day per visit)
+      var dropDay = '';
+      function autoDrop() {
+        if (!autoFed() || !st.fish.length || dropDay === today()) return;
+        dropDay = today();
+        later(function () {
+          if (!autoFed() || !W) return;
+          var fx = feederX();
+          for (var i = 0; i < 8; i++) food.push({ x: clamp(fx + rnd(-10, 10) * u, 10, W - 10), y: surf + rnd(4, 14) * u, rest: 0, k: Math.floor(Math.random() * 1000) });
+          fish.forEach(function (o) { o.ate = Math.min(o.ate, 1); });
+          ctx.sfx('splash');
+        }, 900);
+      }
+      function feederX() { return W - 34 * u; } // right corner, clear of the banner
+      function bubHalf() { return (upV('bubbles') >= 2 ? 52 : 36) * u; }
 
       // ---------- input ----------
       var down = null;
@@ -1036,6 +1247,16 @@
           o.named = T || 0.001;
           return;
         }
+        // with the filter, bubbles can be popped
+        if (upV('bubbles') >= 2) {
+          var hit = bubbles.filter(function (b) { return Math.hypot(b.x - p.x, b.y - p.y) < Math.max(16, b.r + 12); });
+          if (hit.length) {
+            hit.forEach(function (b) { pops.push({ x: b.x, y: b.y, r: b.r, t: 0 }); });
+            bubbles = bubbles.filter(function (b) { return hit.indexOf(b) < 0; });
+            ctx.sfx('bubble');
+            return;
+          }
+        }
         // tap on the glass: fish scatter
         ripples.push({ x: p.x, y: p.y, t: 0 });
         ctx.sfx('bubble');
@@ -1065,6 +1286,7 @@
       takeInbox();
       fishStats();
       updateBar();
+      autoDrop();
       var offS = window.Skarbonka.on(function () { var l = ctx.level(); if (l !== lvl) lvl = l; });
       var iv = setInterval(function () { if (running) updateBar(); }, 20000);
       start();
@@ -1075,7 +1297,7 @@
 
       return {
         pause: function () { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; },
-        resume: function () { if (running) return; running = true; var n = st.fish.length; takeInbox(); if (st.fish.length > n) fishStats(); updateBar(); start(); },
+        resume: function () { if (running) return; running = true; var n = st.fish.length; takeInbox(); if (st.fish.length > n) fishStats(); updateBar(); autoDrop(); start(); },
         destroy: function () {
           running = false; if (raf) cancelAnimationFrame(raf); raf = 0;
           timers.forEach(clearTimeout); clearInterval(iv);

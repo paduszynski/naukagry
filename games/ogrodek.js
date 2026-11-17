@@ -645,6 +645,10 @@
     '.og-row .tx small{color:#5a6690;font-size:1rem}',
     '.og-up .dots{display:flex;gap:4px;margin:3px 0 2px}.og-up .dots i{width:14px;height:14px;border-radius:50%;border:2px solid #1d2f6f;background:#fff}.og-up .dots i.on{background:#e3a008}',
     '.og-up.top{background:#f3fbe9;border-color:#8fd06b}',
+    '.og-sw{display:flex;width:fit-content;align-items:center;gap:6px;margin-top:5px;min-height:34px;border:2px solid #1d2f6f;border-radius:999px;background:#e6e9f2;color:#5a6690;font-size:1rem;padding:0 12px 0 4px}',
+    '.og-sw::before{content:"";width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid #1d2f6f}',
+    '.og-sw.on{background:#8fd06b;color:#1d2f6f;flex-direction:row-reverse;padding:0 4px 0 12px}',
+    '.og-up.off img{filter:grayscale(1);opacity:.6}',
     '.og-row.lock{opacity:.6}.og-row.lock img{filter:grayscale(1)}',
     '.og-row.gift{border-color:#8fd06b;background:#f3fbec}',
     '.og-row.fast{border-color:#9fc3ea}',
@@ -996,7 +1000,7 @@
       var lvl = ctx.level();
       migrate();
       function upLv(k) { return clamp(st.up[k] | 0, 0, UB[k].v.length - 1); }
-      function upV(k) { return UB[k].v[upLv(k)]; }
+      function upV(k) { return UB[k].v[st.off[k] ? 0 : upLv(k)]; }   // a bought upgrade can be switched off (st.off)
       function baseCount() { return Math.min(MAX_PLOTS, 4 + Math.floor(lvl / 5)); }
       function plotCount() { return Math.min(MAX_PLOTS_UP, baseCount() + upV('plot')); }
       function nextPlotLevel() { var n = baseCount(); return n >= MAX_PLOTS ? 0 : (n - 3) * 5; }
@@ -1036,6 +1040,7 @@
         if (typeof st.orderT !== 'number') st.orderT = 0;
         if (!(st.nextId > 0)) st.nextId = 1;
         if (!isObj(st.up)) st.up = {};
+        if (!isObj(st.off)) st.off = {};
         if (!isObj(st.tank)) st.tank = { n: 0, t: 0 };
         if (!(st.tank.n >= 0)) st.tank.n = 0;
       }
@@ -1726,6 +1731,12 @@
             for (var i = 1; i < U.v.length; i++) addEl(dots, 'i', i <= L ? 'on' : '');
             var now = L ? U.say(U.v[L]) : '', next = top ? 'Najwyższy poziom!' : (L ? 'Dalej: ' : '') + U.say(U.v[L + 1]);
             r.querySelector('small').textContent = [now, next, !L && U.more ? U.more : ''].filter(Boolean).join(' · ');
+            if (L) {
+              var off = !!st.off[U.k], sw = addEl(r.querySelector('.tx'), 'button', 'og-sw' + (off ? '' : ' on'), off ? 'Wyłączone' : 'Włączone'); sw.type = 'button';
+              sw.setAttribute('aria-pressed', off ? 'false' : 'true');
+              sw.onclick = function () { toggleUp(U, render); };
+              if (off) r.classList.add('off');
+            }
             if (top) { addEl(r, 'span', 'og-lockt', '✓'); return; }
             if (locked) { addEl(r, 'span', 'og-lockt', 'od poziomu ' + need); return; }
             var price = U.price[L], b = addEl(r, 'button', 'og-buy', price + ' ★'); b.type = 'button';
@@ -1750,10 +1761,26 @@
         }
         render();
       }
+      function toggleUp(U, render) {
+        var turnOff = !st.off[U.k];
+        // switching off the extra beds would hide plants growing there: harvest them first
+        if (turnOff && U.k === 'plot') {
+          var base = baseCount();
+          for (var i = base; i < plotCount(); i++) if (st.plots[i]) { toast('Na dodatkowej grządce coś rośnie. Najpierw zbierz plony.'); ctx.sfx('error'); return; }
+        }
+        if (turnOff) st.off[U.k] = true; else delete st.off[U.k];
+        if (U.k === 'tank' && !turnOff) { st.tank.t = Date.now(); st.tank.n = Math.min(st.tank.n, tankCap()); }   // no rain banked while it was off
+        save(); ctx.sfx(turnOff ? 'close' : 'open');
+        if (U.k === 'plot') layout();
+        if (U.k === 'stall' && !turnOff) spawnOrders(Date.now());
+        toast(U.n + (turnOff ? ': wyłączone.' : ': włączone!'));
+        updateBar(); render();
+      }
       function buyUp(U, L, render) {
         if (upLv(U.k) !== L || L >= U.v.length - 1 || U.lv[L] > lvl) return;
         if (!ctx.spend(U.price[L], U.n)) { toast('Za mało gwiazdek.'); ctx.sfx('error'); render(); return; }
-        st.up[U.k] = L + 1;
+        if (U.k === 'tank' && st.off.tank) st.tank.t = Date.now();   // no rain banked while it was off
+        st.up[U.k] = L + 1; delete st.off[U.k];
         if (U.k === 'tank') { if (L === 0) st.tank = { n: tankCap(), t: Date.now() }; else { st.tank.n = Math.min(tankCap(), st.tank.n + 1); tankFill(Date.now()); } }
         save(); ctx.sfx('buy'); ctx.stat('upgrades', 1);
         if (U.k === 'plot') layout();
