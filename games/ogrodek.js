@@ -7,6 +7,8 @@
  * computed from timestamps. Decorations are bought with stars and dragged around. Harvest -> zielnik,
  * pantry and a small refund; animals at the gate order produce from the pantry for stars.
  * Free seeds from other games arrive through localStorage['naukagry.ogrodek.inbox'] = [{kind, n, from}].
+ * Upgrades (Sklep -> Ulepszenia, UPS, st.up): rain barrel (extra water, one can per 6 h up to its size, used when
+ * the learning cans are empty), bigger can, compost, up to 3 extra beds, beehive (chance of a double crop), stall.
  */
 (function () {
   'use strict';
@@ -15,14 +17,98 @@
   var FONT = '"Patrick Hand","Comic Sans MS",cursive';
   var HOUR = 3600e3;
   var INBOX = 'naukagry.ogrodek.inbox';
-  var MAX_PLOTS = 12;
-  var CAN_BOOST = 3 * HOUR, COMPOST_BOOST = 2 * HOUR;
-  var MAX_GUESTS = 4, GUEST_EVERY = 2 * HOUR;
-  var MAX_ORDERS = 3, ORDER_EVERY = 3 * HOUR, ORDER_AFTER = HOUR;
+  var MAX_PLOTS = 12, MAX_PLOTS_UP = 15;   // 12 from levels, 3 more bought as upgrades
+    var MAX_GUESTS = 4, GUEST_EVERY = 2 * HOUR;
+  var ORDER_EVERY = 3 * HOUR, ORDER_AFTER = HOUR;
   var MAX_DECO = 12, MAX_SAME = 3;
   // economy: harvest refunds 30% of what the seed cost; an order pays 80% of the seed price per item grown from
   // bought seeds (30% for free seeds). Produce that goes to an order returns 110% of its seed cost in total.
   var HARVEST_BACK = 0.3, ORDER_PAY = 0.8, ORDER_PAY_FREE = 0.3;
+
+  // ---------- upgrades (Sklep -> Ulepszenia): bought once per level with stars, kept forever ----------
+  // v: the value at each level (index 0 = not bought yet), price[i]: the cost of level i+1, lv[i]: player level needed
+  var RAIN = 6 * HOUR;   // the rain barrel collects one can of water every 6 hours, up to its size
+  var UPS = [
+    { k: 'tank', n: 'Beczka na deszczówkę', v: [0, 2, 3, 4, 6], price: [80, 150, 250, 400], lv: [1, 3, 6, 10],
+      say: function (v) { return v ? 'Mieści ' + v + ' ' + plural(v, 'konewkę', 'konewki', 'konewek') + ' wody z deszczu' : 'Zbiera deszcz: konewka co 6 godzin'; },
+      more: 'Woda z beczki podlewa, gdy konewka z nauki jest pusta.' },
+    { k: 'can', n: 'Duża konewka', v: [3, 4, 5, 6], price: [100, 200, 320], lv: [2, 5, 9],
+      say: function (v) { return 'Podlewanie: +' + v + ' godz. wzrostu'; } },
+    { k: 'comp', n: 'Kompostownik', v: [2, 3, 4], price: [60, 140], lv: [1, 4],
+      say: function (v) { return 'Kompost: +' + v + ' godz. wzrostu'; } },
+    { k: 'plot', n: 'Nowa grządka', v: [0, 1, 2, 3], price: [150, 250, 400], lv: [2, 6, 12],
+      say: function (v) { return v ? 'Dodatkowe grządki: ' + v : 'Jeszcze jedna grządka do sadzenia'; } },
+    { k: 'bee', n: 'Ul z pszczołami', v: [0, 20, 35, 50], price: [120, 220, 350], lv: [3, 7, 12],
+      say: function (v) { return v ? 'Szansa na podwójny plon: ' + v + '%' : 'Pszczoły czasem dają podwójny plon'; } },
+    { k: 'stall', n: 'Stragan przy bramie', v: [3, 4, 5], price: [100, 220], lv: [4, 8],
+      say: function (v) { return 'Zamówienia naraz: ' + v; } }
+  ];
+  var UB = {}; UPS.forEach(function (U) { UB[U.k] = U; });
+
+  // upgrade pictures (centre bottom at 0,0, about 80 units tall); fill: 0..1 water in the barrel
+  function drawUp(g, k, fill) {
+    function o(w) { g.lineWidth = w || 3; g.strokeStyle = INK; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke(); }
+    function rr(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+    if (k === 'tank') {
+      var bar = function () { g.beginPath(); g.moveTo(-26, -70); g.quadraticCurveTo(-34, -36, -26, -2); g.lineTo(26, -2); g.quadraticCurveTo(34, -36, 26, -70); g.closePath(); };
+      bar(); g.fillStyle = '#b97a3e'; g.fill();
+      if (fill > 0) { g.save(); bar(); g.clip(); g.fillStyle = '#6fb7ff'; g.fillRect(-40, -2 - 66 * fill, 80, 66 * fill); g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(-40, -2 - 66 * fill, 80, 3); g.restore(); }
+      g.strokeStyle = 'rgba(29,47,111,.35)'; g.lineWidth = 2; [-13, 0, 13].forEach(function (x) { g.beginPath(); g.moveTo(x * 1.05, -69); g.quadraticCurveTo(x * 1.3, -36, x * 1.05, -3); g.stroke(); });
+      bar(); o();
+      [-60, -14].forEach(function (y) { g.beginPath(); g.moveTo(-29, y); g.quadraticCurveTo(0, y + 4, 29, y); g.lineWidth = 7; g.strokeStyle = INK; g.stroke(); g.lineWidth = 4; g.strokeStyle = '#8e9bb8'; g.stroke(); });
+      g.beginPath(); g.ellipse(0, -70, 26, 6, 0, 0, Math.PI * 2); g.fillStyle = fill >= 0.98 ? '#6fb7ff' : '#7a4f28'; g.fill(); o(2.5);
+      // a drip from the gutter
+      g.beginPath(); g.moveTo(6, -92); g.quadraticCurveTo(12, -82, 6, -78); g.quadraticCurveTo(0, -82, 6, -92); g.fillStyle = '#6fb7ff'; g.fill(); o(2);
+    } else if (k === 'can') {
+      g.beginPath(); g.moveTo(14, -40); g.lineTo(44, -66); o(9); g.beginPath(); g.moveTo(14, -40); g.lineTo(44, -66); g.lineWidth = 5; g.strokeStyle = '#3f86d8'; g.stroke();
+      g.beginPath(); g.ellipse(46, -68, 7, 4, -0.7, 0, Math.PI * 2); g.fillStyle = '#9fd4f5'; g.fill(); o(2.5);
+      rr(-30, -58, 50, 56, 10); g.fillStyle = '#3f86d8'; g.fill(); o();
+      g.beginPath(); g.arc(-6, -58, 18, Math.PI, 0); o(6); g.beginPath(); g.arc(-6, -58, 18, Math.PI, 0); g.lineWidth = 3; g.strokeStyle = '#3f86d8'; g.stroke();
+      g.fillStyle = 'rgba(255,255,255,.5)'; rr(-24, -50, 8, 36, 4); g.fill();
+      g.fillStyle = '#fff'; g.font = '22px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('★', -4, -28);
+    } else if (k === 'comp') {
+      rr(-34, -54, 68, 52, 6); g.fillStyle = '#8a5a33'; g.fill(); o();
+      g.strokeStyle = '#5e3b22'; g.lineWidth = 2.5; [-38, -22].forEach(function (y) { g.beginPath(); g.moveTo(-32, y); g.lineTo(32, y); g.stroke(); });
+      [[-20, -60, '#5cbc4b'], [0, -66, '#8fd06b'], [18, -60, '#5cbc4b']].forEach(function (l) { g.beginPath(); g.ellipse(l[0], l[1], 10, 6, l[0] * 0.03, 0, Math.PI * 2); g.fillStyle = l[2]; g.fill(); o(2); });
+      g.beginPath(); g.arc(-4, -58, 6, 0, Math.PI * 2); g.fillStyle = '#e2533f'; g.fill(); o(2);
+    } else if (k === 'plot') {
+      g.beginPath(); g.ellipse(0, -14, 40, 13, 0, 0, Math.PI * 2); g.fillStyle = '#8a5a33'; g.fill(); o();
+      g.strokeStyle = '#6e4527'; g.lineWidth = 2; [-20, 0, 20].forEach(function (x) { g.beginPath(); g.moveTo(x - 8, -14); g.lineTo(x + 8, -14); g.stroke(); });
+      g.beginPath(); g.moveTo(0, -24); g.quadraticCurveTo(-2, -40, 0, -48); o(4); g.beginPath(); g.moveTo(0, -24); g.quadraticCurveTo(-2, -40, 0, -48); g.lineWidth = 2; g.strokeStyle = '#5cbc4b'; g.stroke();
+      [[-1, -0.5], [1, 0.5]].forEach(function (l) { g.beginPath(); g.ellipse(l[0] * 10, -46, 10, 5, l[1], 0, Math.PI * 2); g.fillStyle = '#8fd06b'; g.fill(); o(2); });
+      g.beginPath(); g.arc(30, -56, 12, 0, Math.PI * 2); g.fillStyle = '#e3a008'; g.fill(); o(2.5);
+      g.fillStyle = '#fff'; g.font = 'bold 20px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('+', 30, -55);
+    } else if (k === 'bee') {
+      g.beginPath(); g.moveTo(-28, -2); g.lineTo(28, -2); g.lineTo(26, -20); g.quadraticCurveTo(30, -36, 18, -50); g.quadraticCurveTo(8, -66, 0, -66); g.quadraticCurveTo(-8, -66, -18, -50); g.quadraticCurveTo(-30, -36, -26, -20); g.closePath();
+      g.fillStyle = '#f5c330'; g.fill(); o();
+      g.strokeStyle = '#c98a10'; g.lineWidth = 3; [-18, -34, -50].forEach(function (y) { g.beginPath(); g.moveTo(-26, y); g.lineTo(26, y); g.stroke(); });
+      g.beginPath(); g.ellipse(0, -14, 7, 8, 0, 0, Math.PI * 2); g.fillStyle = '#5e3b22'; g.fill(); o(2);
+      [[30, -62], [-34, -48]].forEach(function (b) {
+        g.beginPath(); g.ellipse(b[0], b[1] - 7, 6, 4, 0.4, 0, Math.PI * 2); g.ellipse(b[0] + 5, b[1] - 6, 5, 3.5, -0.3, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,.85)'; g.fill(); o(1.5);
+        g.beginPath(); g.ellipse(b[0], b[1], 8, 6, 0, 0, Math.PI * 2); g.fillStyle = '#f5c330'; g.fill(); o(2);
+        g.beginPath(); g.moveTo(b[0] - 2, b[1] - 5.5); g.lineTo(b[0] - 2, b[1] + 5.5); g.moveTo(b[0] + 3, b[1] - 5); g.lineTo(b[0] + 3, b[1] + 5); g.lineWidth = 2; g.strokeStyle = INK; g.stroke();
+      });
+    } else if (k === 'stall') {
+      [-30, 30].forEach(function (x) { rr(x - 3, -66, 6, 64, 2); g.fillStyle = '#c98b4f'; g.fill(); o(2); });
+      for (var i = 0; i < 5; i++) { g.beginPath(); g.moveTo(-38 + i * 15.2, -62); g.lineTo(-38 + (i + 1) * 15.2, -62); g.lineTo(-38 + (i + 1) * 15.2, -50); g.quadraticCurveTo(-38 + (i + 0.5) * 15.2, -44, -38 + i * 15.2, -50); g.closePath(); g.fillStyle = i % 2 ? '#fff' : '#e2533f'; g.fill(); o(2); }
+      g.beginPath(); g.moveTo(-40, -62); g.lineTo(0, -80); g.lineTo(40, -62); g.closePath(); g.fillStyle = '#e2533f'; g.fill(); o(2.5);
+      rr(-36, -30, 72, 28, 4); g.fillStyle = '#e9b97a'; g.fill(); o();
+      [[-20, '#e2402f'], [-4, '#f08a24'], [12, '#74c94e'], [26, '#8657c9']].forEach(function (f) { g.beginPath(); g.arc(f[0], -34, 6.5, 0, Math.PI * 2); g.fillStyle = f[1]; g.fill(); o(2); });
+    }
+  }
+  var upCache = {};
+  function upUrl(k, size) {
+    var key = k + size;
+    if (upCache[key]) return upCache[key];
+    var d = Math.min(3, window.devicePixelRatio || 1), c = document.createElement('canvas'); c.width = Math.round(size * d); c.height = Math.round(size * d);
+    var g = c.getContext('2d'); g.scale(d, d); g.translate(size / 2, size * 0.92); g.scale(size / 100, size / 100); drawUp(g, k, 0.7);
+    return (upCache[key] = c.toDataURL());
+  }
+  function plural(n, one, few, many) {
+    if (n === 1) return one;
+    var d = n % 10, dd = n % 100;
+    return d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? few : many;
+  }
 
   // ---------- catalogue ----------
   // h: hours of watered growth needed. type: drawing archetype.
@@ -557,6 +643,8 @@
     '.og-row .tx{flex:1;min-width:0;line-height:1.1}',
     '.og-row .tx b{font-weight:400;font-size:1.3rem;display:block}',
     '.og-row .tx small{color:#5a6690;font-size:1rem}',
+    '.og-up .dots{display:flex;gap:4px;margin:3px 0 2px}.og-up .dots i{width:14px;height:14px;border-radius:50%;border:2px solid #1d2f6f;background:#fff}.og-up .dots i.on{background:#e3a008}',
+    '.og-up.top{background:#f3fbe9;border-color:#8fd06b}',
     '.og-row.lock{opacity:.6}.og-row.lock img{filter:grayscale(1)}',
     '.og-row.gift{border-color:#8fd06b;background:#f3fbec}',
     '.og-row.fast{border-color:#9fc3ea}',
@@ -907,8 +995,14 @@
       var st = ctx.load({ v: 1, plots: [], pouch: {}, book: {}, wet: [], wateredDay: '', seenHelp: false });
       var lvl = ctx.level();
       migrate();
-      function plotCount() { return Math.min(MAX_PLOTS, 4 + Math.floor(lvl / 5)); }
-      function nextPlotLevel() { var n = plotCount(); return n >= MAX_PLOTS ? 0 : (n - 3) * 5; }
+      function upLv(k) { return clamp(st.up[k] | 0, 0, UB[k].v.length - 1); }
+      function upV(k) { return UB[k].v[upLv(k)]; }
+      function baseCount() { return Math.min(MAX_PLOTS, 4 + Math.floor(lvl / 5)); }
+      function plotCount() { return Math.min(MAX_PLOTS_UP, baseCount() + upV('plot')); }
+      function nextPlotLevel() { var n = baseCount(); return n >= MAX_PLOTS ? 0 : (n - 3) * 5; }
+      function maxOrders() { return upV('stall'); }
+      function canBoost() { return upV('can') * HOUR; }
+      function compostBoost() { return upV('comp') * HOUR; }
 
       function isObj(o) { return o && typeof o === 'object' && !Array.isArray(o); }
       function migrate() {
@@ -941,6 +1035,9 @@
         if (typeof st.guestT !== 'number') st.guestT = 0;
         if (typeof st.orderT !== 'number') st.orderT = 0;
         if (!(st.nextId > 0)) st.nextId = 1;
+        if (!isObj(st.up)) st.up = {};
+        if (!isObj(st.tank)) st.tank = { n: 0, t: 0 };
+        if (!(st.tank.n >= 0)) st.tank.n = 0;
       }
 
       // ---------- DOM ----------
@@ -1016,6 +1113,18 @@
       function cansUsed() { return st.cans.d === today() ? st.cans.used || 0 : 0; }
       function cansLeft() { return Math.max(0, setsToday() - cansUsed()); }
       function wetToday() { return st.wet.indexOf(today()) >= 0; }
+      // rain barrel: one can every RAIN while not full (a full barrel doesn't bank rain)
+      function tankCap() { return upV('tank'); }
+      function tankFill(now) {
+        var cap = tankCap(), T = st.tank, before = T.n;
+        if (!cap) return false;
+        if (T.n > cap) T.n = cap;
+        if (!T.t || T.t > now) T.t = now;
+        while (T.n < cap && now - T.t >= RAIN) { T.n++; T.t += RAIN; }
+        if (T.n >= cap) T.t = now;
+        return T.n !== before;
+      }
+      function waterLeft() { return cansLeft() + (tankCap() ? st.tank.n : 0); }
 
       // ---------- pantry and orders ----------
       function pantryN(k) { var p = st.pantry[k]; return p ? (p.b || 0) + (p.f || 0) : 0; }
@@ -1053,8 +1162,8 @@
       function spawnOrders(now) {
         var changed = false, guard = 0;
         if (!st.orderT) st.orderT = now; // the first order comes right away
-        while (st.orders.length < MAX_ORDERS && now >= st.orderT && guard++ < 10) { st.orders.push(makeOrder()); st.orderT += ORDER_EVERY; changed = true; }
-        if (st.orders.length >= MAX_ORDERS && st.orderT < now) st.orderT = now; // a full gate doesn't bank orders
+        while (st.orders.length < maxOrders() && now >= st.orderT && guard++ < 10) { st.orders.push(makeOrder()); st.orderT += ORDER_EVERY; changed = true; }
+        if (st.orders.length >= maxOrders() && st.orderT < now) st.orderT = now; // a full gate doesn't bank orders
         return changed;
       }
       function fillOrder(o) {
@@ -1201,7 +1310,7 @@
         dpr = Math.min(3, window.devicePixelRatio || 1);
         cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
         skyH = clamp(H * 0.12, 54, 100);
-        var n = plotCount(), total = n < MAX_PLOTS ? n + 1 : n;
+        var n = plotCount(), total = n < MAX_PLOTS_UP ? n + 1 : n;
         var cols = total <= 6 ? 2 : 3, rows = Math.ceil(total / cols);
         if (W > H * 1.1) { cols = Math.min(total, total <= 6 ? 3 : 4); rows = Math.ceil(total / cols); }
         var gy = skyH + 8, gw = W - 16, gh = H - gy - 6;
@@ -1279,6 +1388,17 @@
       // the garden gate: animals with orders wait here
       var GATE_X = 14, GATE_W = 46;
       function gateHit(x, y) { return x < GATE_X + GATE_W + 44 && y > skyH - 52 && y < skyH + 8; }
+      // the rain barrel (left of the sun) and the beehive (right of the gate) stand in the garden once bought
+      function barrelAt() { var k = clamp(skyH / 100, 0.5, 0.85); return { x: W - 88 * Math.max(0.8, k), y: skyH + 4, k: k }; }
+      function hiveAt() { var k = clamp(skyH / 100, 0.45, 0.7); return { x: GATE_X + GATE_W + 26, y: skyH + 3, k: k }; }
+      function drawUpsInGarden(t) {
+        if (tankCap()) { var b = barrelAt(); g.save(); g.translate(b.x, b.y); g.scale(b.k, b.k); drawUp(g, 'tank', st.tank.n / tankCap()); g.restore(); }
+        if (upV('bee')) {
+          var h = hiveAt(); g.save(); g.translate(h.x, h.y); g.scale(h.k, h.k);
+          drawUp(g, 'bee', 0); g.restore();
+        }
+      }
+      function barrelHit(x, y) { if (!tankCap()) return false; var b = barrelAt(); return Math.abs(x - b.x) < 34 * b.k + 8 && y < b.y + 6 && y > b.y - 96 * b.k; }
       function drawGate(t) {
         var x0 = GATE_X, w = GATE_W, top = skyH - 24, y1 = skyH + 2;
         g.save(); g.lineWidth = 2; g.strokeStyle = INK; g.lineJoin = 'round';
@@ -1336,6 +1456,7 @@
         var cx1 = ((t * 6) % (W + 120)) - 60, cx2 = ((t * 4 + W * 0.55) % (W + 120)) - 60;
         drawCloud(cx1, skyH * 0.35, 0.8); drawCloud(cx2, skyH * 0.62, 0.6);
         drawGate(t);
+        drawUpsInGarden(t);
         var wetT = st.wet.indexOf(td) >= 0, objs = [];
         // pass 1: beds; plants and decorations are drawn afterwards, sorted by depth
         cells.forEach(function (c, i) {
@@ -1346,7 +1467,7 @@
             g.beginPath(); g.arc(lx, ly - 7, 6, Math.PI, 0); g.stroke();
             rrect(lx - 9, ly - 7, 18, 14, 3); g.fill(); g.stroke();
             g.fillStyle = 'rgba(29,47,111,.75)'; g.font = Math.round(clamp(c.bw / 8, 14, 18)) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'top';
-            g.fillText('od poziomu ' + nextPlotLevel(), lx, ly + 10);
+            g.fillText(nextPlotLevel() ? 'od poziomu ' + nextPlotLevel() : 'Ulepszenia', lx, ly + 10);
             return;
           }
           var pl = st.plots[i];
@@ -1409,7 +1530,7 @@
         // watering can animation
         if (watering) {
           var wt = (now - watering.start) / watering.per, idx = Math.floor(wt);
-          if (idx >= watering.list.length) { watering = null; toast('Podlane! Rośliny urosły o ' + (CAN_BOOST / HOUR) + ' godziny.'); }
+          if (idx >= watering.list.length) { var wb = watering.boost / HOUR, wtank = watering.tank; watering = null; toast((wtank ? 'Woda z beczki! ' : 'Podlane! ') + 'Rośliny urosły o ' + wb + ' ' + plural(wb, 'godzinę', 'godziny', 'godzin') + '.'); }
           else {
             var cc = cells[watering.list[idx]], f = wt - idx;
             if (cc) {
@@ -1450,7 +1571,7 @@
 
       // ---------- UI state ----------
       function updateBar() {
-        var n = cansLeft(), wet = wetToday();
+        var n = waterLeft(), wet = wetToday();
         bCan.className = 'og-btn' + (n ? ' full' : wet ? ' done' : '');
         bCan.innerHTML = svgCan(n > 0) + '<span class="lb">' + (n ? 'Podlej' : wet ? 'Podlane ✓' : 'Konewka') + '</span>' + (n ? '<span class="bdg blue">' + n + '</span>' : '');
         var pouchN = 0; for (var k in st.pouch) pouchN += st.pouch[k] || 0;
@@ -1471,8 +1592,8 @@
       function tick() {
         var l = ctx.level();
         if (l !== lvl) { lvl = l; layout(); }
-        var now = Date.now(), a = spawnGuests(now), b = spawnOrders(now);
-        if (a || b) save();
+        var now = Date.now(), a = spawnGuests(now), b = spawnOrders(now), c = tankFill(now);
+        if (a || b || c) save();
         if (b && sheet && sheet.kind === 'orders' && sheet.render) sheet.render();
         updateBar();
       }
@@ -1487,7 +1608,7 @@
         info.innerHTML = '<img alt="" src="' + thumbUrl(P, 96, false) + '"><div style="flex:1;min-width:0"><b>' + P.n + '</b>' +
           '<span class="st">Teraz: ' + stageName(P, stageOf(p)) + '</span><div class="pb"><i style="width:' + Math.round(p * 100) + '%"></i></div>' +
           (th ? '<span class="th">Chce pić! Podlej konewką, wtedy urośnie.</span>' : '<span class="st">Gotowe za ' + hoursText(left) + '</span>') +
-          (st.compost > 0 && p < 1 ? '<button type="button" class="og-cbtn">' + SVG_COMPOST + 'Daj kompost: +' + (COMPOST_BOOST / HOUR) + ' godz. (masz ' + st.compost + ')</button>' : '') + '</div>';
+          (st.compost > 0 && p < 1 ? '<button type="button" class="og-cbtn">' + SVG_COMPOST + 'Daj kompost: +' + (compostBoost() / HOUR) + ' godz. (masz ' + st.compost + ')</button>' : '') + '</div>';
         info.onclick = closeInfo;
         var cb = info.querySelector('.og-cbtn');
         if (cb) cb.onclick = function (e) { e.stopPropagation(); useCompost(i); };
@@ -1497,7 +1618,7 @@
       function useCompost(i) {
         var pl = st.plots[i]; if (!pl || !(st.compost > 0)) return;
         st.compost--;
-        pl.extra = (pl.extra || 0) + COMPOST_BOOST;
+        pl.extra = (pl.extra || 0) + compostBoost();
         save();
         ctx.sfx('plant');
         pops[i] = performance.now();
@@ -1546,13 +1667,14 @@
       function openShop(target, tab) {
         var sh = openSheet('Sklep', true, 'shop');
         tab = tab || (target < 0 ? 'deco' : 'seeds');
-        mkTabs(sh, [['seeds', 'Nasiona'], ['deco', 'Ozdoby']], tab, function (t) { tab = t; render(); });
+        mkTabs(sh, [['seeds', 'Nasiona'], ['deco', 'Ozdoby'], ['up', 'Ulepszenia']], tab, function (t) { tab = t; render(); });
         function render() {
           if (!sh.wrap.isConnected) return;
           var bal = ctx.balance(), body = sh.body;
           sh.hd.querySelector('.bal b').textContent = bal;
           body.innerHTML = '';
           if (tab === 'deco') { renderDeco(body, bal); return; }
+          if (tab === 'up') { renderUps(body, bal); return; }
           if (target < 0) addEl(body, 'p', 'og-poor', 'Wszystkie grządki są zajęte. Zbierz plony albo poczekaj.');
           var cheapest = PLANTS.filter(function (P) { return P.lv <= lvl; }).reduce(function (m, P) { return Math.min(m, P.price); }, 1e9);
           if (bal < cheapest && !Object.keys(st.pouch).length) {
@@ -1593,6 +1715,25 @@
           }
           return r;
         }
+        function renderUps(body, bal) {
+          addEl(body, 'p', 'og-muted', 'Ulepszenia zostają na zawsze. Każde ma kilka poziomów.');
+          UPS.forEach(function (U) {
+            var L = upLv(U.k), top = L >= U.v.length - 1, need = top ? 0 : U.lv[L], locked = !top && need > lvl;
+            var r = addEl(body, 'div', 'og-row og-up' + (locked ? ' lock' : '') + (top ? ' top' : ''));
+            r.innerHTML = '<img alt="" src="' + upUrl(U.k, 112) + '"><div class="tx"><b></b><span class="dots"></span><small></small></div>';
+            r.querySelector('b').textContent = U.n;
+            var dots = r.querySelector('.dots');
+            for (var i = 1; i < U.v.length; i++) addEl(dots, 'i', i <= L ? 'on' : '');
+            var now = L ? U.say(U.v[L]) : '', next = top ? 'Najwyższy poziom!' : (L ? 'Dalej: ' : '') + U.say(U.v[L + 1]);
+            r.querySelector('small').textContent = [now, next, !L && U.more ? U.more : ''].filter(Boolean).join(' · ');
+            if (top) { addEl(r, 'span', 'og-lockt', '✓'); return; }
+            if (locked) { addEl(r, 'span', 'og-lockt', 'od poziomu ' + need); return; }
+            var price = U.price[L], b = addEl(r, 'button', 'og-buy', price + ' ★'); b.type = 'button';
+            if (price > bal) b.disabled = true;
+            b.onclick = function () { buyUp(U, L, render); };
+          });
+          addEl(body, 'p', 'og-muted', 'Gwiazdki zdobędziesz w Matmie, Angielskim i Polskim.');
+        }
         function renderDeco(body, bal) {
           addEl(body, 'p', 'og-muted', 'Kup ozdobę i przesuń ją palcem po ogródku. Ozdoby: ' + st.deco.length + ' z ' + MAX_DECO + '.');
           DECOS.forEach(function (DC) {
@@ -1608,6 +1749,19 @@
           });
         }
         render();
+      }
+      function buyUp(U, L, render) {
+        if (upLv(U.k) !== L || L >= U.v.length - 1 || U.lv[L] > lvl) return;
+        if (!ctx.spend(U.price[L], U.n)) { toast('Za mało gwiazdek.'); ctx.sfx('error'); render(); return; }
+        st.up[U.k] = L + 1;
+        if (U.k === 'tank') { if (L === 0) st.tank = { n: tankCap(), t: Date.now() }; else { st.tank.n = Math.min(tankCap(), st.tank.n + 1); tankFill(Date.now()); } }
+        save(); ctx.sfx('buy'); ctx.stat('upgrades', 1);
+        if (U.k === 'plot') layout();
+        if (U.k === 'stall') spawnOrders(Date.now());
+        toast({ tank: L ? 'Większa beczka! Mieści ' + tankCap() + ' ' + plural(tankCap(), 'konewkę', 'konewki', 'konewek') + '.' : 'Beczka stoi w ogródku i jest pełna wody!',
+          can: 'Duża konewka: +' + upV('can') + ' godz. przy każdym podlaniu!', comp: 'Lepszy kompost: +' + upV('comp') + ' godz.!',
+          plot: 'Nowa grządka! Posadź coś.', bee: 'Pszczoły zamieszkały w ogródku!', stall: 'Większy stragan: więcej zamówień!' }[U.k]);
+        updateBar(); render();
       }
       function plant(i, P, paid) {
         st.plots[i] = { k: P.k, t: Date.now(), paid: paid };
@@ -1686,7 +1840,7 @@
             b.disabled = !ok;
             b.onclick = function () { fillOrder(o); render(); };
           });
-          if (st.orders.length < MAX_ORDERS) addEl(body, 'p', 'og-muted', ('Następne zamówienie za ' + hoursText(Math.max(60000, st.orderT - now)) + '.').replace('..', '.'));
+          if (st.orders.length < maxOrders()) addEl(body, 'p', 'og-muted', ('Następne zamówienie za ' + hoursText(Math.max(60000, st.orderT - now)) + '.').replace('..', '.'));
           addEl(body, 'p', 'og-muted', 'Zebrane plony czekają w spiżarni. Oddaj je zwierzątkom, a dostaniesz gwiazdki.');
         }
         sh.render = render;
@@ -1701,6 +1855,7 @@
         modal.innerHTML = '<div class="ng-card"><div style="display:flex;justify-content:center">' + svgCan(false).replace('<svg', '<svg style="width:90px;height:76px"') + '</div>' +
           '<h2>Konewka jest pusta</h2><p>Ukończ zestaw w nauce, a konewka się napełni.</p>' +
           '<p class="muted">Każdy zestaw to jedna pełna konewka.' + (wetToday() ? ' Dziś już podlane, rośliny rosną.' : '') + '</p>' +
+          '<p class="muted">' + (tankCap() ? 'Beczka na deszczówkę jest pusta. Następna konewka deszczu za ' + hoursText(Math.max(60000, st.tank.t + RAIN - Date.now())) + '.' : 'Beczka na deszczówkę (Sklep, Ulepszenia) zbiera wodę z deszczu.') + '</p>' +
           '<button type="button" class="ng-btn">Dobrze</button></div>';
         modal.querySelector('button.ng-btn').onclick = closeModal;
         modal.addEventListener('pointerdown', function (e) { if (e.target === modal) closeModal(); });
@@ -1708,20 +1863,22 @@
       }
       function useCan() {
         if (watering) return;
-        if (!cansLeft()) { emptyCanModal(); return; }
+        tankFill(Date.now());
+        if (!waterLeft()) { emptyCanModal(); return; }
         var now = Date.now(), list = [], growing = 0;
         for (var i = 0; i < plotCount(); i++) if (st.plots[i]) { list.push(i); if (progress(st.plots[i], now) < 1) growing++; }
         if (!list.length) { toast('Najpierw posadź nasionko.'); return; }
         if (!growing) { toast('Wszystko już urosło. Zbierz plony!'); return; }
-        var td = today();
-        if (st.cans.d !== td) st.cans = { d: td, used: 0 };
-        st.cans.used++;
+        var td = today(), fromTank = !cansLeft();
+        if (fromTank) { if (st.tank.n >= tankCap()) st.tank.t = now; st.tank.n--; }
+        else { if (st.cans.d !== td) st.cans = { d: td, used: 0 }; st.cans.used++; }
         st.wateredDay = td;
         if (st.wet.indexOf(td) < 0) st.wet.push(td);
-        list.forEach(function (j) { var pl = st.plots[j]; if (progress(pl, now) < 1) pl.extra = (pl.extra || 0) + CAN_BOOST; });
+        var boost = canBoost();
+        list.forEach(function (j) { var pl = st.plots[j]; if (progress(pl, now) < 1) pl.extra = (pl.extra || 0) + boost; });
         save();
         ctx.sfx('water');
-        watering = { start: performance.now(), per: Math.min(550, 3500 / list.length), list: list };
+        watering = { start: performance.now(), per: Math.min(550, 3500 / list.length), list: list, boost: boost, tank: fromTank };
         updateBar();
         ctx.stat('water', 1);
       }
@@ -1734,6 +1891,8 @@
         st.book[P.k] = (st.book[P.k] || 0) + 1;
         var pt = st.pantry[P.k] = st.pantry[P.k] || { b: 0, f: 0 };
         if (pl.paid > 0) pt.b = (pt.b || 0) + 1; else pt.f = (pt.f || 0) + 1;
+        var bee = upV('bee') && Math.random() * 100 < upV('bee');   // the bees helped: one more of the same, as a free-seed crop
+        if (bee) { pt.f = (pt.f || 0) + 1; st.book[P.k]++; }
         var back = Math.round((pl.paid || 0) * HARVEST_BACK);
         if (back > 0) ctx.refund(back, 'zbiór: ' + P.n);
         save();
@@ -1742,7 +1901,7 @@
         var br = bBook.getBoundingClientRect(), cr = cvWrap.getBoundingClientRect();
         flyers.push({ img: thumbCanvas(P, 96, false), x0: c.baseX, y0: c.baseY - c.k * 40, x1: br.left + br.width / 2 - cr.left, y1: Math.min(H - 10, br.top - cr.top), s: Math.max(60, c.k * 90), start: performance.now(), btn: bBook });
         var wanted = st.orders.some(function (o) { return o.items[P.k]; });
-        toast((first ? 'Nowość w zielniku: ' : 'Zebrane: ') + P.n + '!' + (back ? ' +' + back + ' ★' : '') + (wanted ? ' Ktoś na to czeka przy bramie.' : ''));
+        toast((first ? 'Nowość w zielniku: ' : 'Zebrane: ') + P.n + '!' + (bee ? ' Pszczoły pomogły: podwójny plon!' : '') + (back ? ' +' + back + ' ★' : '') + (wanted ? ' Ktoś na to czeka przy bramie.' : ''));
         ctx.stat('harvest', 1);
         if (P.fast) ctx.sticker('fast');
         updateBar();
@@ -1781,6 +1940,11 @@
         var gs = guestAt(p.x, p.y);
         if (gs) { tapGuest(gs); return; }
         if (gateHit(p.x, p.y)) { openOrders(); return; }
+        if (barrelHit(p.x, p.y)) {
+          tankFill(Date.now()); var cap = tankCap(), n = st.tank.n;
+          toast('Beczka: ' + n + ' z ' + cap + ' ' + plural(cap, 'konewki', 'konewek', 'konewek') + ' wody.' + (n < cap ? ' Następna za ' + hoursText(Math.max(60000, st.tank.t + RAIN - Date.now())) + '.' : ' Pełna!'));
+          ctx.sfx('water'); return;
+        }
         for (var i = 0; i < cells.length; i++) {
           var c = cells[i];
           if (p.x >= c.x && p.x < c.x + c.w && p.y >= c.y && p.y < c.y + c.h) { tapPlot(i); return; }
@@ -1803,7 +1967,7 @@
       }
       function tapPlot(i) {
         var c = cells[i];
-        if (c.locked) { toast('Nowa grządka na poziomie ' + nextPlotLevel() + '.'); return; }
+        if (c.locked) { if (nextPlotLevel()) toast('Nowa grządka na poziomie ' + nextPlotLevel() + '. Albo kup ją w Sklepie, w Ulepszeniach.'); openShop(-1, 'up'); return; }
         var pl = st.plots[i];
         if (!pl) { openShop(i, 'seeds'); return; }
         var p = progress(pl, Date.now());
@@ -1849,17 +2013,20 @@
       ro.observe(cvWrap);
       var offS = S.on(function () { if (running) tick(); });
       var iv = setInterval(function () { if (running) tick(); }, 20000);
-      spawnGuests(Date.now()); spawnOrders(Date.now()); save();
+      spawnGuests(Date.now()); spawnOrders(Date.now()); tankFill(Date.now()); save();
       layout();
       takeInbox();
       updateBar();
       start();
       if (!st.seenHelp) {
-        st.seenHelp = true; st.newsV2 = false; save();
+        st.seenHelp = true; st.newsV2 = false; st.newsUp = true; save();
         ctx.panel({ title: 'Ogródek', lines: ['Dotknij grządki i posadź nasionko.', 'Każdy zestaw w nauce to pełna konewka. Podlewaj, a rośliny urosną.', 'Zwierzątka przy bramie proszą o plony.', { text: 'Rzeżucha rośnie tylko 20 minut!', muted: true }], button: 'Do ogródka', closable: false });
       } else if (st.newsV2) {
         st.newsV2 = false; save();
         ctx.panel({ title: 'Nowości w ogródku!', lines: ['Każdy zestaw w nauce to pełna konewka.', 'Szybkie roślinki: rzeżucha, szczypiorek, rzodkiewka.', 'Goście, ozdoby i zamówienia od zwierzątek.'], button: 'Do ogródka', closable: false });
+      } else if (!st.newsUp) {
+        st.newsUp = true; save();
+        ctx.panel({ title: 'Nowość: Ulepszenia!', lines: ['W Sklepie jest nowa zakładka Ulepszenia.', 'Beczka na deszczówkę, duża konewka, ul z pszczołami, nowe grządki i więcej.', { text: 'Ulepszenia zostają na zawsze.', muted: true }], button: 'Super!', closable: false });
       }
 
       return {
