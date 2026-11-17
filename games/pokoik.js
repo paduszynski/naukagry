@@ -5,6 +5,7 @@
  * small toolbar (flip, forward, back, put away). Owned items that are not in a room wait in the box (Pudło).
  * Wallpapers and floors are bought once and picked per room. A second room (Pokój zabaw) can be bought from
  * level 5. "Zrób zdjęcie" only celebrates (no download).
+ * A guest from Zwierzątko (NG.petArt, the next pet in the family each visit) walks around the room; tap it.
  */
 (function () {
   'use strict';
@@ -1022,6 +1023,85 @@
         return it;
       }
 
+      // ---------- a guest: one pet from Zwierzątko comes to visit and walks around the room ----------
+      // Each time the room opens the next pet in the family visits (st.guest remembers who came last).
+      // It wanders on the floor, sniffs at furniture, now and then sits or naps; a tap makes it happy.
+      var guest = null;
+      function pickGuest() {
+        var A = NG.petArt, list = A ? A.pets() : [];
+        if (!list.length) return null;
+        var i = 0;
+        for (var j = 0; j < list.length; j++) if (list[j].id === st.guest) { i = (j + 1) % list.length; break; }
+        st.guest = list[i].id; save();
+        return { pet: list[i], x: -0.12, k: 0.55, tx: rnd(0.25, 0.45), tk: rnd(0.35, 0.7), face: 1, legs: 0, walking: false, wait: 0, hop: -1, happy: 0, nap: 0, seed: Math.random() * 10 };
+      }
+      function guestY(gs) { return floorTop + (H - floorTop) * (0.18 + 0.72 * gs.k); }
+      function guestScale(gs) { return u * 1.15 * NG.petArt.size(gs.pet) * (0.9 + 0.15 * gs.k); }
+      function guestBox(gs) {
+        var Gm = NG.petArt.geo(gs.pet, gs.nap > 0 ? 'sleep' : 'stand'), s = guestScale(gs), x = gs.x * W, y = guestY(gs);
+        var x0 = gs.face > 0 ? Gm.x0 : -Gm.x1, x1 = gs.face > 0 ? Gm.x1 : -Gm.x0;
+        return { l: x + x0 * s - 6, r: x + x1 * s + 6, t: y + Gm.top * s - 6, b: y + 8 };
+      }
+      function guestSay(text) { fx = fx.filter(function (f) { return f.kind !== 'label'; }); var b = guestBox(guest); fx.push({ kind: 'label', x: (b.l + b.r) / 2, y: b.t - 4, text: text, life: 2.4 }); }
+      function guestHello() {
+        if (!guest) return;
+        var n = guest.pet.name, f = NG.petArt.fem(guest.pet);
+        guestSay(n + (f ? ' przyszła' : ' przyszedł') + ' w odwiedziny!');
+      }
+      function petGuest() {
+        var gs = guest; if (!gs) return;
+        gs.nap = 0; gs.happy = 1.8; gs.hop = 0; gs.walking = false; gs.wait = rnd(1.5, 2.5); gs.tx = gs.x; gs.tk = gs.k;
+        var b = guestBox(gs);
+        for (var i = 0; i < 3; i++) fx.push({ kind: 'heart', x: (b.l + b.r) / 2 + rnd(-14, 14) * u, y: b.t + 6 + i * 6, life: 0.9 + i * 0.2 });
+        ctx.sfx('pop');
+        var lines = ['Ale tu ładnie!', 'Fajny pokój!', 'Lubię tu być!', 'Pobawimy się?', 'Hej!', 'Ale przytulnie!'];
+        guestSay(lines[Math.floor(Math.random() * lines.length)]);
+        ctx.stat('guest', 1);
+      }
+      function updateGuest(dt) {
+        var gs = guest; if (!gs) return;
+        if (gs.hop >= 0) { gs.hop += dt / 0.45; if (gs.hop >= 1) gs.hop = -1; }
+        if (gs.happy > 0) gs.happy -= dt;
+        if (gs.nap > 0) { gs.nap -= dt; if (gs.nap <= 0) gs.wait = rnd(0.5, 1.5); return; }
+        var dx = gs.tx - gs.x, dk = gs.tk - gs.k, dist = Math.hypot(dx * W, dk * (H - floorTop));
+        if (dist > 2) {
+          gs.walking = true; if (Math.abs(dx * W) > 1) gs.face = dx > 0 ? 1 : -1;
+          var step = Math.min(dist, 46 * u * dt), m = step / dist;
+          gs.x += dx * m; gs.k += dk * m; gs.legs += dt * 9;
+          if (dist - step <= 2) gs.wait = rnd(1.5, 4);
+          return;
+        }
+        gs.walking = false;
+        gs.wait -= dt;
+        if (gs.wait > 0) return;
+        var r = Math.random(), floorItems = room().items.filter(function (it) { return IB[it.k].L === 2 && IB[it.k].at === 'floor'; });
+        if (r < 0.12 && !REDUCED) { gs.nap = rnd(4, 7); }
+        else if (r < 0.24) { gs.hop = 0; gs.wait = rnd(1, 2); }
+        else if (r < 0.55 && floorItems.length) {
+          // go and sniff at something in the room, standing beside it
+          var it = floorItems[Math.floor(Math.random() * floorItems.length)], ip = pos(it), side = Math.random() < 0.5 ? -1 : 1;
+          var x = ip.x + side * (IB[it.k].w * u / 2 + 26 * u);
+          if (x < 24 * u || x > W - 24 * u) x = ip.x - side * (IB[it.k].w * u / 2 + 26 * u);
+          gs.tx = clamp(x / W, 0.06, 0.94); gs.tk = clamp((((ip.y + 6 * u) - floorTop) / Math.max(1, H - floorTop) - 0.18) / 0.72, 0, 1);
+        } else { gs.tx = rnd(0.1, 0.9); gs.tk = rnd(0, 1); }
+      }
+      function drawGuest() {
+        var gs = guest; if (!gs || !NG.petArt) return;
+        var s = guestScale(gs), x = gs.x * W, y = guestY(gs), nap = gs.nap > 0, Gm = NG.petArt.geo(gs.pet, nap ? 'sleep' : 'stand');
+        g.fillStyle = 'rgba(29,47,111,.13)'; g.beginPath(); g.ellipse(x, y - 1, (Gm.x1 - Gm.x0) * s * 0.42, 5 * u, 0, 0, 7); g.fill();
+        var lift = gs.hop >= 0 ? Math.sin(Math.PI * gs.hop) * 16 * u : (gs.walking && NG.petArt.hops(gs.pet) && !REDUCED ? Math.abs(Math.sin(gs.legs * 0.55)) * 6 * u : 0);
+        var br = 1 + Math.sin(T * (nap ? 1.4 : 2.2) + gs.seed) * (nap ? 0.03 : 0.015);
+        g.save(); g.translate(x, y - lift); g.scale(s * gs.face, s * br);
+        NG.petArt.draw(g, gs.pet, { t: T, legs: gs.walking ? gs.legs : 0, pose: nap ? 'sleep' : 'stand', eye: nap ? 'closed' : gs.happy > 0 ? 'happy' : 'open', mouth: nap ? 'chew' : gs.happy > 0.8 ? 'open' : 'smile', wag: gs.happy > 0 ? 1 : 0, seed: gs.seed });
+        g.restore();
+        if (nap && !REDUCED) {
+          g.save(); g.font = Math.round(18 * clamp(u, 0.9, 1.3)) + 'px ' + FONT; g.fillStyle = '#7a4fc4'; g.textAlign = 'center';
+          for (var i = 0; i < 2; i++) { var ph = (T * 0.6 + i * 0.5) % 1; g.globalAlpha = 1 - ph; g.fillText('z', x + (Gm.hx || 10) * s * gs.face + ph * 14 * u, y + Gm.top * s - ph * 26 * u); }
+          g.restore();
+        }
+      }
+      function hitGuest(x, y) { if (!guest) return false; var b = guestBox(guest); return x >= b.l && x <= b.r && y >= b.t && y <= b.b; }
+
       // ---------- frame ----------
       function drawOne(it, lifted) {
         var I = IB[it.k], p = pos(it);
@@ -1038,8 +1118,14 @@
       function drawFrame(dt) {
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
         if (bgCache) g.drawImage(bgCache, 0, 0, W, H);
-        var dragged = drag && drag.moving ? drag.it : null;
-        ordered().forEach(function (it) { if (it !== dragged) drawOne(it, false); });
+        var dragged = drag && drag.moving ? drag.it : null, gy = guest ? guestY(guest) : 0, gDone = !guest;
+        ordered().forEach(function (it) {
+          if (it === dragged) return;
+          // the guest walks in front of things standing behind it and behind things in front of it
+          if (!gDone && IB[it.k].L === 2 && pos(it).y > gy) { drawGuest(); gDone = true; }
+          drawOne(it, false);
+        });
+        if (!gDone) drawGuest();
         if (dragged) drawOne(dragged, true);
         if (sel) {
           var b = box(sel);
@@ -1074,6 +1160,7 @@
         raf = 0; if (!running) return;
         raf = requestAnimationFrame(frame);
         var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now; T += dt;
+        updateGuest(dt);
         // 30 fps is plenty for a calm room; full rate while dragging
         if (!drag && !fx.length && (tick++ % 2)) return;
         if (W) drawFrame(dt);
@@ -1347,6 +1434,7 @@
         if (down) return;
         var p = ptr(e);
         down = { x: p.x, y: p.y, id: e.pointerId };
+        if (hitGuest(p.x, p.y)) { down.guest = true; try { cv.setPointerCapture(e.pointerId); } catch (er) {} return; }
         var it = hitAt(p.x, p.y);
         if (it) { var ip = pos(it); drag = { it: it, ox: p.x - ip.x, oy: p.y - ip.y, moving: false }; }
         try { cv.setPointerCapture(e.pointerId); } catch (er) {}
@@ -1368,8 +1456,9 @@
       }
       function onUp(e) {
         if (!down || down.id !== e.pointerId) return;
-        var p = ptr(e), moved = Math.hypot(p.x - down.x, p.y - down.y);
+        var p = ptr(e), moved = Math.hypot(p.x - down.x, p.y - down.y), wasGuest = down.guest;
         down = null;
+        if (wasGuest) { if (moved < 16) { if (sel) deselect(); petGuest(); } return; }
         bBox.classList.remove('drop');
         if (drag) {
           var it = drag.it, was = drag.moving; drag = null;
@@ -1410,6 +1499,8 @@
       if (ownedTotal()) ctx.stat('owned', ownedTotal(), 'max');
       var offS = window.Skarbonka.on(function () { lvl = ctx.level(); if (sheet) sheet.render(); });
       start();
+      guest = pickGuest();
+      if (guest) later(guestHello, 900);
       if (!st.seenHelp) {
         st.seenHelp = true; save();
         ctx.panel({ title: 'Pokoik', lines: ['Kup meble i zabawki w sklepie.', 'Przesuwaj je palcem po pokoju.', { text: 'Dotknij rzeczy, żeby ją obrócić albo schować do pudła.', muted: true }], button: 'Do pokoju', closable: false });

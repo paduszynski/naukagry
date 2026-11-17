@@ -1,5 +1,5 @@
 /*
- * Zwierzątko: up to three pets in a little house (hedgehog, red fox, fennec, squirrel, badger, hamster,
+ * Zwierzątko: up to four pets in a little house (hedgehog, red fox, fennec, squirrel, badger, hamster,
  * guinea pig). Each pet has its own four needs (brzuszek, humor, czystość, sen) that drop slowly in real
  * time, from timestamps, also while the app is closed. Nothing bad ever happens: at worst a pet looks a bit
  * sad and says it missed you.
@@ -8,7 +8,7 @@
  * Pets grow from care (Maluch -> Młode -> Dorosłe): care actions give growth points, capped per day, so
  * growing takes days and never goes back. Pets that are not at home live on "Leśna Polana" (a happy
  * meadow; they don't grow there) and can come back to a free home slot any time for free.
- * Feed (food 10-25 ★, a free apple basket every day), bath (drag the sponge), sleep, stroke (zones; a good
+ * Feed (food 10-25 ★, a free apple basket every day, produce from the Ogródek pantry for free), bath (drag the sponge), sleep, stroke (zones; a good
  * petting session makes the pet roll over and show its belly), tickle (quick taps), dress up with the
  * items the child owns in Jeżyk w biegu (read-only), and seven mini-games for 30 ★ that fill "humor".
  * Now and then (every 25-60 s, when nothing else happens) two awake pets at home play on their own: toss a ball,
@@ -22,7 +22,7 @@
   var INK = '#1d2f6f', GOLD = '#e3a008', PURPLE = '#7a4fc4', MUTED = '#5a6690';
   var FONT = '"Patrick Hand", "Comic Sans MS", cursive';
   var GAME_PRICE = 30, BASKET = 3, MIN_NEED = 5, ROUNDS = 5;
-  var ADOPT_PRICE = 50, SLOT_PRICE = [0, 100, 150], MAX_PETS = 10;
+  var ADOPT_PRICE = 50, SLOT_PRICE = [0, 100, 150, 200], MAX_PETS = 30;
   var NEEDS = ['food', 'fun', 'clean', 'sleep'];
   var RATES = { food: 2, fun: 2.5, clean: 1.5, sleep: 2 };   // points lost per hour (100 = full)
   var SLEEP_GAIN_H = 60, SLEEP_GAIN_S = 4;                  // asleep: per hour while away, per second on screen
@@ -296,6 +296,100 @@
     g.beginPath(); g.moveTo(-r * 0.55, r * 0.3); g.quadraticCurveTo(0, r * 0.45, r * 0.55, r * 0.3); g.strokeStyle = '#fff'; g.lineWidth = Math.max(1, r * 0.1); g.stroke();
     heart(g, 0, r * 0.33, r * 0.16, '#ff7eb6');
   };
+
+  // ---------- produce from Ogródek (the child grows it there; fed for free) ----------
+  function lw(r, k) { return Math.max(0.8, r * (k || 0.13)); }
+  function gloss(g, x, y, rx, ry, rot) { g.beginPath(); g.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,.6)'; g.fill(); }
+  function sepals(g, x, y, r, n, col) {
+    g.beginPath();
+    for (var i = 0; i < n; i++) { var a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.75; g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a - 0.4) * r * 0.6, y + Math.sin(a - 0.4) * r * 0.25 - r * 0.1, x + Math.cos(a) * r, y + Math.abs(Math.sin(a)) * r * 0.15 - r * 0.08); }
+    g.strokeStyle = INK; g.lineWidth = lw(r, 0.42); g.lineCap = 'round'; g.stroke(); g.strokeStyle = col || '#3fae5f'; g.lineWidth = lw(r, 0.22); g.stroke();
+  }
+  THING.rzezucha = function (g, r) {
+    for (var i = -3; i <= 3; i++) {
+      var x = i * r * 0.22, h = r * (0.9 + (i % 2 ? 0.25 : 0));
+      g.beginPath(); g.moveTo(x, r * 0.3); g.lineTo(x + i * r * 0.04, r * 0.3 - h); g.strokeStyle = '#c9e9a8'; g.lineWidth = lw(r, 0.08); g.stroke();
+      g.save(); g.translate(x + i * r * 0.04, r * 0.3 - h);
+      [-1, 1].forEach(function (sd) { g.beginPath(); g.ellipse(sd * r * 0.13, 0, r * 0.15, r * 0.09, sd * 0.4, 0, Math.PI * 2); g.fillStyle = '#6cc04a'; g.fill(); g.lineWidth = lw(r, 0.05); g.strokeStyle = INK; g.stroke(); });
+      g.restore();
+    }
+    rr(g, -r * 0.9, r * 0.25, r * 1.8, r * 0.65, r * 0.2); g.fillStyle = '#fff'; g.fill(); outline(g, lw(r));
+    g.beginPath(); g.moveTo(-r * 0.6, r * 0.55); g.lineTo(r * 0.6, r * 0.55); g.strokeStyle = '#f4c542'; g.lineWidth = lw(r, 0.1); g.stroke();
+  };
+  THING.szczypiorek = function (g, r) {
+    [[-0.35, -0.25], [-0.12, -0.1], [0.12, 0.08], [0.35, 0.22]].forEach(function (b, i) {
+      g.beginPath(); g.moveTo(b[0] * r, r * 0.6); g.quadraticCurveTo(b[0] * r * 1.4, -r * 0.2, b[0] * r * 2 + b[1] * r, -r * (1.1 - (i % 2) * 0.15));
+      g.strokeStyle = INK; g.lineWidth = lw(r, 0.24); g.lineCap = 'round'; g.stroke(); g.strokeStyle = '#4fb64a'; g.lineWidth = lw(r, 0.14); g.stroke();
+    });
+    g.beginPath(); g.ellipse(0, r * 0.62, r * 0.42, r * 0.16, 0, 0, Math.PI * 2); g.fillStyle = '#c58ae0'; g.fill(); outline(g, lw(r, 0.1));
+  };
+  THING.rzodkiewka = function (g, r) {
+    [[-0.3, -0.5], [0.05, 0], [0.4, 0.45]].forEach(function (l) { g.save(); g.translate(0, -r * 0.55); g.rotate(l[1]); g.beginPath(); g.ellipse(0, -r * 0.45, r * 0.2, r * 0.45, 0, 0, Math.PI * 2); g.fillStyle = '#4fb64a'; g.fill(); outline(g, lw(r, 0.08)); g.restore(); });
+    g.beginPath(); g.moveTo(0, -r * 0.6); g.bezierCurveTo(r * 0.85, -r * 0.6, r * 0.85, r * 0.45, 0, r * 0.75); g.bezierCurveTo(-r * 0.85, r * 0.45, -r * 0.85, -r * 0.6, 0, -r * 0.6);
+    g.fillStyle = '#e2405a'; g.fill(); outline(g, lw(r));
+    g.beginPath(); g.moveTo(0, r * 0.72); g.lineTo(r * 0.05, r * 1.05); outline(g, lw(r, 0.08));
+    g.beginPath(); g.ellipse(0, r * 0.45, r * 0.3, r * 0.2, 0, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
+    gloss(g, -r * 0.3, -r * 0.2, r * 0.12, r * 0.2, 0.3);
+  };
+  THING.pomidor = function (g, r) {
+    g.beginPath(); g.ellipse(0, r * 0.1, r * 0.95, r * 0.82, 0, 0, Math.PI * 2); g.fillStyle = '#e2402f'; g.fill(); outline(g, lw(r));
+    gloss(g, -r * 0.4, -r * 0.15, r * 0.15, r * 0.25, 0.4);
+    sepals(g, 0, -r * 0.62, r * 0.55, 5);
+  };
+  THING.truskawka = function (g, r) {
+    g.beginPath(); g.moveTo(0, r * 1.0); g.bezierCurveTo(-r * 0.9, r * 0.2, -r * 1.0, -r * 0.65, 0, -r * 0.6); g.bezierCurveTo(r * 1.0, -r * 0.65, r * 0.9, r * 0.2, 0, r * 1.0);
+    g.fillStyle = '#e8344a'; g.fill(); outline(g, lw(r));
+    g.fillStyle = '#ffe27a'; [[-0.4, -0.2], [0, -0.25], [0.4, -0.2], [-0.25, 0.15], [0.2, 0.15], [0, 0.5], [-0.5, 0.05], [0.5, 0.05]].forEach(function (q) { g.beginPath(); g.ellipse(q[0] * r, q[1] * r, r * 0.05, r * 0.08, 0, 0, Math.PI * 2); g.fill(); });
+    sepals(g, 0, -r * 0.62, r * 0.55, 5);
+  };
+  THING.kukurydza = function (g, r) {
+    g.save(); g.rotate(0.5);
+    g.beginPath(); g.ellipse(0, 0, r * 0.45, r * 1.05, 0, 0, Math.PI * 2); g.fillStyle = '#f6cf3a'; g.fill(); outline(g, lw(r));
+    g.save(); g.beginPath(); g.ellipse(0, 0, r * 0.45, r * 1.05, 0, 0, Math.PI * 2); g.clip();
+    g.strokeStyle = '#d9a514'; g.lineWidth = lw(r, 0.06);
+    for (var y = -r; y < r; y += r * 0.24) { g.beginPath(); g.moveTo(-r * 0.5, y); g.lineTo(r * 0.5, y); g.stroke(); }
+    [-0.15, 0.15].forEach(function (x) { g.beginPath(); g.moveTo(x * r, -r * 1.1); g.lineTo(x * r, r * 1.1); g.stroke(); });
+    g.restore();
+    [-1, 1].forEach(function (sd) { g.beginPath(); g.moveTo(0, r * 1.1); g.quadraticCurveTo(sd * r * 0.8, r * 0.4, sd * r * 0.35, -r * 0.35); g.quadraticCurveTo(sd * r * 0.25, r * 0.5, 0, r * 1.1); g.fillStyle = '#7fcf5a'; g.fill(); outline(g, lw(r, 0.1)); });
+    g.restore();
+  };
+  THING.groszek = function (g, r) {
+    g.save(); g.rotate(-0.35);
+    g.beginPath(); g.moveTo(-r * 1.1, 0); g.quadraticCurveTo(0, -r * 0.85, r * 1.1, 0); g.quadraticCurveTo(0, r * 0.75, -r * 1.1, 0); g.fillStyle = '#74c94e'; g.fill(); outline(g, lw(r));
+    [-0.55, -0.05, 0.45].forEach(function (x) { g.beginPath(); g.arc(x * r, -r * 0.02, r * 0.25, 0, Math.PI * 2); g.fillStyle = '#a5e07a'; g.fill(); outline(g, lw(r, 0.07)); gloss(g, x * r - r * 0.08, -r * 0.1, r * 0.06, r * 0.06); });
+    g.beginPath(); g.moveTo(r * 1.05, 0); g.quadraticCurveTo(r * 1.3, -r * 0.1, r * 1.35, -r * 0.35); outline(g, lw(r, 0.1));
+    g.restore();
+  };
+  THING.dynia = function (g, r) {
+    [[-0.5, 0.5, '#e57a1c'], [0.5, 0.5, '#e57a1c'], [0, 0.55, '#f08a24']].forEach(function (q) { g.beginPath(); g.ellipse(q[0] * r, r * 0.15, q[1] * r, r * 0.75, 0, 0, Math.PI * 2); g.fillStyle = q[2]; g.fill(); outline(g, lw(r)); });
+    gloss(g, -r * 0.15, -r * 0.1, r * 0.08, r * 0.22);
+    rr(g, -r * 0.12, -r * 0.85, r * 0.24, r * 0.32, r * 0.08); g.fillStyle = '#7a5a2e'; g.fill(); outline(g, lw(r, 0.1));
+    g.beginPath(); g.ellipse(r * 0.38, -r * 0.72, r * 0.3, r * 0.14, -0.4, 0, Math.PI * 2); g.fillStyle = '#3fae5f'; g.fill(); outline(g, lw(r, 0.08));
+  };
+  THING.papryka = function (g, r) {
+    g.beginPath(); g.moveTo(-r * 0.75, -r * 0.45); g.bezierCurveTo(-r * 1.0, r * 0.4, -r * 0.6, r * 0.95, -r * 0.2, r * 0.85); g.quadraticCurveTo(0, r * 0.7, r * 0.2, r * 0.85);
+    g.bezierCurveTo(r * 0.6, r * 0.95, r * 1.0, r * 0.4, r * 0.75, -r * 0.45); g.quadraticCurveTo(0, -r * 0.75, -r * 0.75, -r * 0.45); g.closePath();
+    g.fillStyle = '#f6c21b'; g.fill(); outline(g, lw(r));
+    g.beginPath(); g.moveTo(0, -r * 0.55); g.quadraticCurveTo(-r * 0.05, r * 0.2, 0, r * 0.7); g.strokeStyle = 'rgba(180,120,0,.5)'; g.lineWidth = lw(r, 0.07); g.stroke();
+    gloss(g, -r * 0.45, -r * 0.05, r * 0.1, r * 0.25, 0.1);
+    g.beginPath(); g.moveTo(0, -r * 0.6); g.quadraticCurveTo(r * 0.05, -r * 0.95, r * 0.35, -r * 1.05); g.strokeStyle = INK; g.lineWidth = lw(r, 0.3); g.lineCap = 'round'; g.stroke(); g.strokeStyle = '#3fae5f'; g.lineWidth = lw(r, 0.16); g.stroke();
+  };
+  THING.ogorek = function (g, r) {
+    g.save(); g.rotate(-0.5);
+    rr(g, -r * 1.1, -r * 0.42, r * 2.2, r * 0.84, r * 0.42); g.fillStyle = '#3f9a45'; g.fill(); outline(g, lw(r));
+    g.fillStyle = '#a8dc8a'; [[-0.6, -0.12], [-0.2, 0.15], [0.2, -0.12], [0.6, 0.15], [-0.85, 0.1], [0.85, -0.05]].forEach(function (q) { g.beginPath(); g.arc(q[0] * r, q[1] * r, r * 0.07, 0, Math.PI * 2); g.fill(); });
+    g.beginPath(); g.ellipse(-r * 0.2, -r * 0.24, r * 0.5, r * 0.06, 0, 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,.45)'; g.fill();
+    g.restore();
+  };
+  THING.baklazan = function (g, r) {
+    g.save(); g.rotate(0.45);
+    g.beginPath(); g.moveTo(0, -r * 0.55); g.bezierCurveTo(r * 0.5, -r * 0.55, r * 0.45, -r * 0.1, r * 0.6, r * 0.35); g.bezierCurveTo(r * 0.75, r * 1.05, -r * 0.75, r * 1.05, -r * 0.6, r * 0.35); g.bezierCurveTo(-r * 0.45, -r * 0.1, -r * 0.5, -r * 0.55, 0, -r * 0.55);
+    g.fillStyle = '#6a3d9a'; g.fill(); outline(g, lw(r));
+    gloss(g, -r * 0.25, r * 0.25, r * 0.1, r * 0.28, 0.2);
+    sepals(g, 0, -r * 0.5, r * 0.5, 4, '#5aa84a');
+    g.beginPath(); g.moveTo(0, -r * 0.55); g.lineTo(0, -r * 0.95); g.strokeStyle = INK; g.lineWidth = lw(r, 0.26); g.lineCap = 'round'; g.stroke(); g.strokeStyle = '#5aa84a'; g.lineWidth = lw(r, 0.13); g.stroke();
+    g.restore();
+  };
   THING.pilka = function (g, r) {
     g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.fillStyle = '#f5d84a'; g.fill(); outline(g, Math.max(1, r * 0.16));
     g.save(); g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.clip();
@@ -386,8 +480,18 @@
     tail: { c: [[-9, -2], [-21, -3], [-22, -27]], r: 3.5, shape: 'thin', flat: 34, col: '#f39a3a', n: 14, rings: '#c25e17' },
     eye: { x: 0.32, y: -0.14, r: 2.8 }, iris: '#5cbc4b', low: '#ffd29e', whisk: true, mark: 'tabby', dark: '#c25e17'
   };
-  var SP_ORDER = ['jez', 'lis', 'fenek', 'wiew', 'borsuk', 'chomik', 'swinka', 'krolik', 'kotsz', 'kotr'];
-  var SP_STICKER = { jez: '🦔', lis: '🦊', fenek: '🏜️', wiew: '🐿️', borsuk: '🦡', chomik: '🐹', swinka: '🥕', krolik: '🐰', kotsz: '🐈', kotr: '🐱' };
+  // a brave forest she-cat after Piaskowa Burza (Sandstorm) from "Wojownicy": pale sandy ginger with faint darker
+  // stripes, cream chest, green eyes, lean and long-legged, a medium tail with soft rings
+  SP.kotp = {
+    n: 'Kotka piaskowa', names: ['Piaskowa Burza', 'Piaskunia', 'Burzyczka', 'Wydma'], fav: ['jajko', 'jagody'], game: 'catch', cat: true,
+    col: '#e9bf86', head: '#e9bf86', leg: '#e9bf86', pad: '#f6bcc4', belly: '#fbe9cc', bl: 43, bh: 19, legH: 12.5, legW: 4.4, bx: 0,
+    nk: [0.64, -0.45], hdx: 5, hdy: -9.5, hr: 10.8, hw: 1, snout: { t: 'round', l: 3.9, h: 4.6, y: 3 }, nose: '#e58a95', nr: 1.6,
+    ear: { t: 'point', x: -3, y: -6.5, w: 9.5, h: 11.5, ang: -0.14, farX: 6.5, farA: 0.3, col: '#e9bf86', inner: '#f6bcc4' },
+    tail: { c: [[-9, -2], [-21, -5], [-26, -24]], r: 4.6, shape: 'thin', flat: 34, col: '#e9bf86', n: 14, rings: '#d39a5a' },
+    eye: { x: 0.32, y: -0.14, r: 2.8 }, iris: '#4fb35a', low: '#fbe9cc', whisk: true, mark: 'tabby', dark: '#d6a062'
+  };
+  var SP_ORDER = ['jez', 'lis', 'fenek', 'wiew', 'borsuk', 'chomik', 'swinka', 'krolik', 'kotsz', 'kotr', 'kotp'];
+  var SP_STICKER = { jez: '🦔', lis: '🦊', fenek: '🏜️', wiew: '🐿️', borsuk: '🦡', chomik: '🐹', swinka: '🥕', krolik: '🐰', kotsz: '🐈', kotr: '🐱', kotp: '🌪️' };
 
   // big animals (a fox with its tail) are drawn a bit smaller at home and on the meadow, so three fit in the room
   var sizeKs = {};
@@ -1056,6 +1160,35 @@
     { k: 'babeczka',  n: 'Babeczka',   price: 25, food: 55, fun: 10 }
   ];
   var FOOD_BY = {}; FOODS.forEach(function (f) { FOOD_BY[f.k] = f; });
+  // produce from the Ogródek pantry: g = plant key there, k = drawing (and favourite) key here; costs no stars
+  var GARDEN = [
+    { g: 'rzezucha', k: 'rzezucha', n: 'Rzeżucha', food: 15 },
+    { g: 'szczypiorek', k: 'szczypiorek', n: 'Szczypiorek', food: 15 },
+    { g: 'rzodkiewka', k: 'rzodkiewka', n: 'Rzodkiewka', food: 18 },
+    { g: 'slonecznik', k: 'ziarenka', n: 'Pestki słonecznika', food: 22 },
+    { g: 'marchewka', k: 'marchewka', n: 'Marchewka', food: 22 },
+    { g: 'salata', k: 'salata', n: 'Sałata', food: 24 },
+    { g: 'pomidor', k: 'pomidor', n: 'Pomidor', food: 28 },
+    { g: 'truskawka', k: 'truskawka', n: 'Truskawka', food: 28, fun: 5 },
+    { g: 'kukurydza', k: 'kukurydza', n: 'Kukurydza', food: 30 },
+    { g: 'groszek', k: 'groszek', n: 'Groszek', food: 28 },
+    { g: 'winogrono', k: 'winogrona', n: 'Winogrona', food: 30 },
+    { g: 'dynia', k: 'dynia', n: 'Dynia', food: 40, fun: 5 },
+    { g: 'papryka', k: 'papryka', n: 'Papryka', food: 28 },
+    { g: 'ogorek', k: 'ogorek', n: 'Ogórek', food: 28 },
+    { g: 'baklazan', k: 'baklazan', n: 'Bakłażan', food: 30 }
+  ];
+  var GARDEN_KEY = 'naukagry.ogrodek';
+  function gardenRead() { try { var o = JSON.parse(localStorage.getItem(GARDEN_KEY)); return o && typeof o === 'object' && o.pantry && typeof o.pantry === 'object' ? o : null; } catch (e) { return null; } }
+  function pantryCount(o, gk) { var p = o && o.pantry[gk]; return p ? Math.max(0, (+p.f || 0) + (+p.b || 0)) : 0; }
+  // takes one piece out of the garden pantry (grown from free seeds first: those pay less in garden orders)
+  function pantryTake(gk) {
+    var o = gardenRead(), p = o && o.pantry[gk];
+    if (!p || pantryCount(o, gk) <= 0) return false;
+    if ((+p.f || 0) > 0) p.f = +p.f - 1; else p.b = +p.b - 1;
+    if (!((+p.f || 0) > 0) && !((+p.b || 0) > 0)) delete o.pantry[gk];
+    try { localStorage.setItem(GARDEN_KEY, JSON.stringify(o)); return true; } catch (e) { return false; }
+  }
   var FAV_FUN = 8;                                 // a favourite snack also cheers the pet up
   // same ids/slots as Jeżyk w biegu (the child buys them there)
   var ITEMS = [
@@ -1244,6 +1377,29 @@
     return thumb('p' + sp + stage + w + 'x' + h + wk, w, h, function (cg) { fitPet(cg, sp, stage, w, h, { wear: wear || {} }); });
   }
 
+  // ---------- visiting pets (Pokoik draws one of them walking around the room) ----------
+  NG.petArt = {
+    // the saved pets: [{ id, sp, stage, name, home, wear }], wear limited to what the child owns in Jeżyk w biegu
+    pets: function () {
+      var z, j;
+      try { z = JSON.parse(localStorage.getItem('naukagry.zwierzak')); } catch (e) { z = null; }
+      try { j = JSON.parse(localStorage.getItem('naukagry.jezyk')); } catch (e) { j = null; }
+      var own = j && j.owned && typeof j.owned === 'object' ? j.owned : {};
+      if (!z || !Array.isArray(z.pets)) return [];
+      return z.pets.filter(function (p) { return p && typeof p === 'object' && SP[p.sp]; }).map(function (p) {
+        var w = {}, pw = p.wear && typeof p.wear === 'object' ? p.wear : {};
+        ITEMS.forEach(function (it) { if (pw[it.slot] === it.id && own[it.id]) w[it.slot] = it.id; });
+        return { id: p.id, sp: p.sp, stage: clamp(p.stage | 0, 0, 2), name: String(p.name || SP[p.sp].n), home: !!p.home, wear: w };
+      });
+    },
+    // drawn side view facing right, feet at (0,0), in pet units; st: { t, legs, eye, mouth, wear, pose: 'stand'|'sleep' }
+    draw: function (g, pet, st) { var o = { t: 0, stage: pet.stage, eye: 'open', mouth: 'smile', wear: pet.wear }; for (var k in st) o[k] = st[k]; drawCritter(g, pet.sp, o); },
+    geo: function (pet, pose) { return geo(pet.sp, pet.stage, pose); },
+    size: function (pet) { return sizeK(pet.sp); },
+    hops: function (pet) { return !!SP[pet.sp].hops; },
+    fem: function (pet) { return fem(pet.name); }
+  };
+
   NG.register('zwierzak', {
     meta: { name: 'Zwierzątko', price: 'jedzenie od 10 ★', bg: '#fdeedd', pic: PIC, music: 'cozy' },
     ownMusic: true,
@@ -1293,7 +1449,7 @@
         save.seenV2 = false; save.wearInit = true;
       }
       if (typeof save.best !== 'object' || !save.best) save.best = {};
-      save.slots = clamp(Math.round(+save.slots || 1), 1, 3);
+      save.slots = clamp(Math.round(+save.slots || 1), 1, SLOT_PRICE.length);
       save.diff = save.diff ? 1 : 0;
       save.pets = save.pets.filter(function (p) { return p && typeof p === 'object'; });
       var maxId = 0;
@@ -1460,7 +1616,7 @@
 
       // ---------- layout ----------
       function floorY(k) { return FY + (LH - FY) * (0.3 + 0.48 * k); }
-      function crowd() { var n = homePets().length; return n <= 1 ? 1 : n === 2 ? 0.86 : 0.76; }
+      function crowd() { var n = homePets().length; return n <= 1 ? 1 : n === 2 ? 0.86 : n === 3 ? 0.76 : 0.68; }
       function petScale(p) {
         var r = R(p), k = clamp((r.y - floorY(0)) / Math.max(1, floorY(1) - floorY(0)), 0, 1);
         return HS * crowd() * (0.9 + 0.12 * k) * sizeK(p.sp);
@@ -1746,6 +1902,21 @@
               if (p.needs.food >= 95) { S2.msg = { text: 'Brzuszek pełny! Może później.', cls: 'ok' }; S2.render(); return; }
               save.basketLeft--; persist(); closeSheet(); feed(p, FOODS[0], true);
             }, 'pick', !left || full));
+          var garden = gardenRead(), crops = GARDEN.filter(function (c) { return pantryCount(garden, c.g) > 0; });
+          if (crops.length) {
+            h4(body, 'Z Twojego ogródka (za darmo)');
+            crops.sort(function (a, b) { return (isFav(p, b.k) ? 1 : 0) - (isFav(p, a.k) ? 1 : 0); }).forEach(function (c) {
+              var fav = isFav(p, c.k), n = pantryCount(garden, c.g);
+              row(body, thingThumb(c.k), (fav ? '♥ ' : '') + c.n, 'Masz ' + n + ' · +' + c.food + ' do brzuszka' + (fav ? ' i humor' : c.fun ? ' · + humor' : ''),
+                btn('Daj', function () {
+                  if (!live(S2) || food || mode !== 'home') return;
+                  if (p.needs.food >= 95) { S2.msg = { text: 'Brzuszek pełny! Może później.', cls: 'ok' }; S2.render(); return; }
+                  if (!pantryTake(c.g)) { S2.render(); return; }
+                  closeSheet(); feed(p, { k: c.k, n: c.n, food: c.food, fun: c.fun, garden: true }, true);
+                }, 'pick', full), fav ? 'cur' : '', fav ? 'fav' : '');
+            });
+            h4(body, 'Ze sklepiku');
+          } else note(body, 'Warzywa i owoce z Ogródka (ze Spiżarni) też można tu dawać za darmo.');
           var bal = ctx.balance();
           var list = FOODS.slice().sort(function (a, b) { return (isFav(p, b.k) ? 1 : 0) - (isFav(p, a.k) ? 1 : 0); });
           list.forEach(function (f) {
@@ -1786,7 +1957,7 @@
           ctx.stat('feeds', 1); cared(); ctx.sticker('feed'); grow(p, 'feed');
           r.happy = fav ? 2.2 : 1.6; r.hop = 0; if (fav) r.wagT = 2;
           burst('heart', r.x + r.face * 10 * s, r.y - 40 * s, fav ? 9 : 4);
-          say(p, fav ? pick(['Moje ulubione!', 'Mniam! Uwielbiam to!']) : pick(['Mniam!', 'Pyszne!', 'Dziękuję!', 'Mniam, mniam!']), 1.9);
+          say(p, fav ? pick(['Moje ulubione!', 'Mniam! Uwielbiam to!']) : F.f.garden ? pick(['Prosto z ogródka! Mniam!', 'Ale świeże!', 'Pyszne z ogródka!']) : pick(['Mniam!', 'Pyszne!', 'Dziękuję!', 'Mniam, mniam!']), 1.9);
           persist(); updateHud(); syncBusy();
         }
       }
@@ -1845,7 +2016,7 @@
       // ---------- sleep ----------
       function sleepSpot(p) {
         var zs = homePets().filter(function (q) { return q.asleep; }), i = Math.max(0, zs.indexOf(p)), n = Math.max(1, zs.length);
-        return { x: LW * (0.5 + (i - (n - 1) / 2) * 0.27), y: floorY(0.42) };
+        return { x: LW * (0.5 + (i - (n - 1) / 2) * (n > 3 ? 0.21 : 0.27)), y: floorY(0.42) };
       }
       function startSleep() {
         var p = sel();
@@ -1959,11 +2130,11 @@
               }, 'pick', hp.length < 2), p.id === save.sel ? 'cur' : '');
           });
           for (var s = hp.length; s < save.slots; s++) row(body, slotThumb(true), 'Wolne miejsce', mp.length ? 'Adoptuj albo zaproś kogoś z polany.' : 'Adoptuj nowe zwierzątko.', null);
-          if (save.slots < 3) {
+          if (save.slots < SLOT_PRICE.length) {
             var price = SLOT_PRICE[save.slots];
             row(body, slotThumb(false), 'Miejsce nr ' + (save.slots + 1) + ' w domku', 'Wtedy w domku zmieszczą się ' + (save.slots + 1) + ' zwierzątka naraz.',
               btn(price + ' ★', function () {
-                if (!live(S2) || save.slots >= 3 || SLOT_PRICE[save.slots] !== price) return;
+                if (!live(S2) || save.slots >= SLOT_PRICE.length || SLOT_PRICE[save.slots] !== price) return;
                 if (!ctx.spend(price, 'miejsce w domku')) { poor(S2); return; }
                 save.slots++; ctx.sfx('buy'); persist();
                 S2.msg = { text: 'Hura! W domku jest nowe miejsce.', cls: 'ok' }; S2.render();
@@ -2143,7 +2314,7 @@
           r.y = meadowY(r.k);
         });
       }
-      function meadowScale(p) { var r = MR(p); return HS * 0.62 * (0.85 + 0.25 * r.k) * sizeK(p.sp); }
+      function meadowScale(p) { var r = MR(p), n = meadowPets().length; return HS * 0.62 * (n > 9 ? Math.max(0.62, Math.sqrt(9 / n)) : 1) * (0.85 + 0.25 * r.k) * sizeK(p.sp); }   // a crowded meadow draws everyone smaller
 
       // ---------- play sheet + mini-game frame ----------
       function openPlay() {
