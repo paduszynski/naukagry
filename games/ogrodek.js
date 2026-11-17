@@ -29,18 +29,18 @@
   // v: the value at each level (index 0 = not bought yet), price[i]: the cost of level i+1, lv[i]: player level needed
   var RAIN = 6 * HOUR;   // the rain barrel collects one can of water every 6 hours, up to its size
   var UPS = [
-    { k: 'tank', n: 'Beczka na deszczówkę', v: [0, 2, 3, 4, 6], price: [80, 150, 250, 400], lv: [1, 3, 6, 10],
+    { k: 'tank', n: 'Beczka na deszczówkę', v: [0, 2, 3, 4, 6], price: [400, 750, 1250, 2000], lv: [1, 3, 6, 10],
       say: function (v) { return v ? 'Mieści ' + v + ' ' + plural(v, 'konewkę', 'konewki', 'konewek') + ' wody z deszczu' : 'Zbiera deszcz: konewka co 6 godzin'; },
       more: 'Woda z beczki podlewa, gdy konewka z nauki jest pusta.' },
-    { k: 'can', n: 'Duża konewka', v: [3, 4, 5, 6], price: [100, 200, 320], lv: [2, 5, 9],
+    { k: 'can', n: 'Duża konewka', v: [3, 4, 5, 6], price: [500, 1000, 1600], lv: [2, 5, 9],
       say: function (v) { return 'Podlewanie: +' + v + ' godz. wzrostu'; } },
-    { k: 'comp', n: 'Kompostownik', v: [2, 3, 4], price: [60, 140], lv: [1, 4],
+    { k: 'comp', n: 'Kompostownik', v: [2, 3, 4], price: [300, 700], lv: [1, 4],
       say: function (v) { return 'Kompost: +' + v + ' godz. wzrostu'; } },
-    { k: 'plot', n: 'Nowa grządka', v: [0, 1, 2, 3], price: [150, 250, 400], lv: [2, 6, 12],
+    { k: 'plot', n: 'Nowa grządka', v: [0, 1, 2, 3], price: [750, 1250, 2000], lv: [2, 6, 12],
       say: function (v) { return v ? 'Dodatkowe grządki: ' + v : 'Jeszcze jedna grządka do sadzenia'; } },
-    { k: 'bee', n: 'Ul z pszczołami', v: [0, 20, 35, 50], price: [120, 220, 350], lv: [3, 7, 12],
+    { k: 'bee', n: 'Ul z pszczołami', v: [0, 20, 35, 50], price: [600, 1100, 1750], lv: [3, 7, 12],
       say: function (v) { return v ? 'Szansa na podwójny plon: ' + v + '%' : 'Pszczoły czasem dają podwójny plon'; } },
-    { k: 'stall', n: 'Stragan przy bramie', v: [3, 4, 5], price: [100, 220], lv: [4, 8],
+    { k: 'stall', n: 'Stragan przy bramie', v: [3, 4, 5], price: [500, 1100], lv: [4, 8],
       say: function (v) { return 'Zamówienia naraz: ' + v; } }
   ];
   var UB = {}; UPS.forEach(function (U) { UB[U.k] = U; });
