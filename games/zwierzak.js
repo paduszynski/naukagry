@@ -9,7 +9,7 @@
  * growing takes days and never goes back. Pets that are not at home live on "Leśna Polana" (a happy
  * meadow; they don't grow there) and can come back to a free home slot any time for free.
  * Home upgrades (Rodzina -> Ulepszenia domku: basket, bed, bubble bath, toy box), each can be switched off.
- * Feed (food 10-25 ★, a free apple basket every day, produce from the Ogródek pantry for free), bath (drag the sponge), sleep, stroke (zones; a good
+ * Feed (food 10-25 ★ for 30-60, a free apple basket every day, produce from the Ogródek pantry for free and +50%), bath (3 steps: sponge off the mud, shower off the foam, towel dry), sleep, stroke (zones; a good
  * petting session makes the pet roll over and show its belly), tickle (quick taps), dress up with the
  * items the child owns in Jeżyk w biegu (read-only), and seven mini-games for 30 ★ that fill "humor".
  * Now and then (every 25-60 s, when nothing else happens) two awake pets at home play on their own: toss a ball,
@@ -1159,41 +1159,43 @@
 
   // ---------- food, wardrobe, mini-games ----------
   var FOODS = [
-    { k: 'jablko',    n: 'Jabłko',     price: 10, food: 20 },
-    { k: 'marchewka', n: 'Marchewka',  price: 10, food: 20 },
-    { k: 'salata',    n: 'Sałata',     price: 12, food: 22 },
-    { k: 'mleko',     n: 'Miseczka mleka', price: 12, food: 24 },
-    { k: 'ziarenka',  n: 'Ziarenka',   price: 12, food: 22 },
-    { k: 'szyszka',   n: 'Szyszka',    price: 12, food: 22 },
-    { k: 'gruszka',   n: 'Gruszka',    price: 12, food: 25 },
-    { k: 'orzechy',   n: 'Orzechy',    price: 15, food: 30 },
-    { k: 'jagody',    n: 'Jagody',     price: 15, food: 30 },
-    { k: 'winogrona', n: 'Winogrona',  price: 15, food: 30 },
-    { k: 'jajko',     n: 'Jajko',      price: 18, food: 35 },
-    { k: 'grzybek',   n: 'Grzybek',    price: 18, food: 35 },
-    { k: 'miod',      n: 'Miód',       price: 20, food: 40, fun: 5 },
-    { k: 'ciastko',   n: 'Ciasteczko', price: 20, food: 40, fun: 5 },
-    { k: 'babeczka',  n: 'Babeczka',   price: 25, food: 55, fun: 10 }
+    { k: 'jablko',    n: 'Jabłko',     price: 10, food: 30 },
+    { k: 'marchewka', n: 'Marchewka',  price: 10, food: 30 },
+    { k: 'salata',    n: 'Sałata',     price: 12, food: 32 },
+    { k: 'mleko',     n: 'Miseczka mleka', price: 12, food: 34 },
+    { k: 'ziarenka',  n: 'Ziarenka',   price: 12, food: 32 },
+    { k: 'szyszka',   n: 'Szyszka',    price: 12, food: 32 },
+    { k: 'gruszka',   n: 'Gruszka',    price: 12, food: 35 },
+    { k: 'orzechy',   n: 'Orzechy',    price: 15, food: 40 },
+    { k: 'jagody',    n: 'Jagody',     price: 15, food: 40 },
+    { k: 'winogrona', n: 'Winogrona',  price: 15, food: 40 },
+    { k: 'jajko',     n: 'Jajko',      price: 18, food: 45 },
+    { k: 'grzybek',   n: 'Grzybek',    price: 18, food: 45 },
+    { k: 'miod',      n: 'Miód',       price: 20, food: 50, fun: 5 },
+    { k: 'ciastko',   n: 'Ciasteczko', price: 20, food: 50, fun: 5 },
+    { k: 'babeczka',  n: 'Babeczka',   price: 25, food: 60, fun: 10 }
   ];
   var FOOD_BY = {}; FOODS.forEach(function (f) { FOOD_BY[f.k] = f; });
   // produce from the Ogródek pantry: g = plant key there, k = drawing (and favourite) key here; costs no stars
   var GARDEN = [
-    { g: 'rzezucha', k: 'rzezucha', n: 'Rzeżucha', food: 15 },
-    { g: 'szczypiorek', k: 'szczypiorek', n: 'Szczypiorek', food: 15 },
-    { g: 'rzodkiewka', k: 'rzodkiewka', n: 'Rzodkiewka', food: 18 },
-    { g: 'slonecznik', k: 'ziarenka', n: 'Pestki słonecznika', food: 22 },
-    { g: 'marchewka', k: 'marchewka', n: 'Marchewka', food: 22 },
-    { g: 'salata', k: 'salata', n: 'Sałata', food: 24 },
-    { g: 'pomidor', k: 'pomidor', n: 'Pomidor', food: 28 },
-    { g: 'truskawka', k: 'truskawka', n: 'Truskawka', food: 28, fun: 5 },
-    { g: 'kukurydza', k: 'kukurydza', n: 'Kukurydza', food: 30 },
-    { g: 'groszek', k: 'groszek', n: 'Groszek', food: 28 },
-    { g: 'winogrono', k: 'winogrona', n: 'Winogrona', food: 30 },
-    { g: 'dynia', k: 'dynia', n: 'Dynia', food: 40, fun: 5 },
-    { g: 'papryka', k: 'papryka', n: 'Papryka', food: 28 },
-    { g: 'ogorek', k: 'ogorek', n: 'Ogórek', food: 28 },
-    { g: 'baklazan', k: 'baklazan', n: 'Bakłażan', food: 30 }
+    { g: 'rzezucha', k: 'rzezucha', n: 'Rzeżucha', food: 30 },
+    { g: 'szczypiorek', k: 'szczypiorek', n: 'Szczypiorek', food: 30 },
+    { g: 'rzodkiewka', k: 'rzodkiewka', n: 'Rzodkiewka', food: 32 },
+    { g: 'slonecznik', k: 'ziarenka', n: 'Pestki słonecznika', food: 32 },
+    { g: 'marchewka', k: 'marchewka', n: 'Marchewka', food: 30 },
+    { g: 'salata', k: 'salata', n: 'Sałata', food: 32 },
+    { g: 'pomidor', k: 'pomidor', n: 'Pomidor', food: 36 },
+    { g: 'truskawka', k: 'truskawka', n: 'Truskawka', food: 36, fun: 5 },
+    { g: 'kukurydza', k: 'kukurydza', n: 'Kukurydza', food: 38 },
+    { g: 'groszek', k: 'groszek', n: 'Groszek', food: 36 },
+    { g: 'winogrono', k: 'winogrona', n: 'Winogrona', food: 40 },
+    { g: 'dynia', k: 'dynia', n: 'Dynia', food: 50, fun: 5 },
+    { g: 'papryka', k: 'papryka', n: 'Papryka', food: 36 },
+    { g: 'ogorek', k: 'ogorek', n: 'Ogórek', food: 36 },
+    { g: 'baklazan', k: 'baklazan', n: 'Bakłażan', food: 38 }
   ];
+  var GARDEN_BONUS = 1.5;   // home-grown food fills the tummy 50% more than its base value
+  function gardenFood(c) { return Math.round(c.food * GARDEN_BONUS); }
   var GARDEN_KEY = 'naukagry.ogrodek';
   function gardenRead() { try { var o = JSON.parse(localStorage.getItem(GARDEN_KEY)); return o && typeof o === 'object' && o.pantry && typeof o.pantry === 'object' ? o : null; } catch (e) { return null; } }
   function pantryCount(o, gk) { var p = o && o.pantry[gk]; return p ? Math.max(0, (+p.f || 0) + (+p.b || 0)) : 0; }
@@ -2125,7 +2127,7 @@
         if (!barMsg) return;
         var s = '', p = sel();
         if (mode === 'home' && p) s = 'Cii... ' + p.name + ' śpi.';
-        else if (mode === 'bath') s = bath && bath.rinse > 0 ? 'Płuczemy!' : 'Szoruj gąbką! ' + Math.round((bath ? Math.min(1, bath.prog) : 0) * 100) + '%';
+        else if (mode === 'bath' && bath) s = bath.step >= 3 ? 'Otrzepuje się! Brrr!' : ['1. Namydl gąbką i zetrzyj błoto', '2. Spłucz pianę prysznicem', '3. Wytrzyj ręcznikiem'][bath.step] + ' · ' + Math.round(stepFrac() * 100) + '%';
         else if (mode === 'polana') s = meadowPets().length ? 'Leśna Polana. Dotknij zwierzątka.' : 'Leśna Polana';
         else if (GS && MG[mode] && MG[mode].msg) s = MG[mode].msg();
         barMsg.textContent = s;
@@ -2290,12 +2292,12 @@
             h4(body, 'Z Twojego ogródka (za darmo)');
             crops.sort(function (a, b) { return (isFav(p, b.k) ? 1 : 0) - (isFav(p, a.k) ? 1 : 0); }).forEach(function (c) {
               var fav = isFav(p, c.k), n = pantryCount(garden, c.g);
-              row(body, thingThumb(c.k), (fav ? '♥ ' : '') + c.n, 'Masz ' + n + ' · +' + c.food + ' do brzuszka' + (fav ? ' i humor' : c.fun ? ' · + humor' : ''),
+              row(body, thingThumb(c.k), (fav ? '♥ ' : '') + c.n, 'Masz ' + n + ' · +' + gardenFood(c) + ' do brzuszka' + (fav ? ' i humor' : c.fun ? ' · + humor' : '') + ' · z ogródka +50%',
                 btn('Daj', function () {
                   if (!live(S2) || food || mode !== 'home') return;
                   if (p.needs.food >= 95) { S2.msg = { text: 'Brzuszek pełny! Może później.', cls: 'ok' }; S2.render(); return; }
                   if (!pantryTake(c.g)) { S2.render(); return; }
-                  closeSheet(); feed(p, { k: c.k, n: c.n, food: c.food, fun: c.fun, garden: true }, true);
+                  closeSheet(); feed(p, { k: c.k, n: c.n, food: gardenFood(c), fun: c.fun, garden: true }, true);
                 }, 'pick', full), fav ? 'cur' : '', fav ? 'fav' : '');
             });
             h4(body, 'Ze sklepiku');
@@ -2346,45 +2348,172 @@
       }
 
       // ---------- bath ----------
+      // three steps, all done by the child: 0 soap (scrub the mud off with the sponge), 1 rinse (drag the shower over
+      // the foam), 2 dry (rub the drops off with the towel); then 3: the pet shakes itself and the bath ends.
+      // Mud, foam and drops live in pet units (feet at 0,0, facing right) so they stick to the pet.
+      var BATH_STEPS = ['sponge', 'shower', 'towel'];
       function bathPos() { return { x: LW / 2, y: floorY(0.55) }; }
+      // where everything in the bathroom is (screen units)
+      function bathGeo() {
+        var p = byId(bath.id), G = geo(p.sp, p.stage), pw = G.x1 - G.x0;
+        var s = Math.min(petScale(p) * 1.55, LW * 0.66 / pw);
+        var w = Math.min(LW * 0.96, Math.max(pw * s * 1.45, Math.min(LW * 0.66, 110 * HS))), bot = floorY(0.6) + 14 * HS;
+        // the water reaches the tummy but never the face
+        var sink = Math.max(4, Math.min(-G.cy * 0.7, -(G.hy + G.hr * 0.75))) * s, h = Math.max(w * 0.34, sink + 22), top = bot - h, ry = w * 0.085;
+        var cx = LW / 2, x = cx - (G.x0 + G.x1) / 2 * s;
+        return { p: p, G: G, s: s, x: x, feet: top + sink, cx: cx, top: top, bot: bot, w: w, ry: ry, wl: -sink / s };
+      }
+      function bathSpots(G, wl, n, r0, r1) {
+        var out = [], tries = 0;
+        while (out.length < n && tries++ < 200) {
+          var head = out.length % 3 === 2, x, y;
+          if (head) { x = G.hx + G.hr * rnd(-0.55, 0.15); y = G.hy + G.hr * rnd(-0.75, -0.3); }
+          else { x = G.cx + G.rx * rnd(-0.75, 0.6); y = G.cy + G.ry * rnd(-0.85, 0.3); }
+          if (y > wl - 3) continue;
+          if (out.some(function (q) { return Math.hypot(q.x - x, q.y - y) < r1 * 1.6; })) continue;
+          out.push({ x: x, y: y, r: rnd(r0, r1), a: 1 });
+        }
+        return out;
+      }
       function startBath() {
         var p = sel();
         if (mode !== 'home' || food || !p || p.asleep) return;
         var r = R(p), bp = bathPos(); r.x = bp.x; r.y = bp.y; r.tx = r.x; r.ty = r.y; r.face = 1; r.walking = false; r.belly = 0; r.roll = 0;
         duo = null;
-        bath = { id: p.id, prog: 0, foam: [], sx: LW * 0.85, sy: bp.y + 10 * HS, rinse: 0, sndT: 0 };
+        var dirty = clamp((100 - p.needs.clean) / 100, 0, 1);
+        bath = { id: p.id, step: 0, mud: [], foam: [], wet: [], n0: 1, sx: 0, sy: 0, sndT: 0, wT: 0, shakeT: 0, idle: 0, duck: { hop: 0, t: 0 } };
+        var b = bathGeo();
+        bath.mud = bathSpots(b.G, b.wl, 3 + Math.round(dirty * 4), 2.6, 3.8);
+        bath.n0 = bath.mud.length;
+        var rest = bathRest(); bath.sx = rest.x; bath.sy = rest.y;
         setMode('bath');
         ctx.sfx('splash');
-        say(p, 'Szoruj gąbką!', 2);
+        say(p, 'Namydl mnie gąbką!', 2);
       }
-      function scrub(px, py, d) {
-        var p = byId(bath.id), r = R(p), s = petScale(p), G = geo(p.sp, p.stage);
-        var lx = (px - r.x) / s, ly = (py - (r.y - 9 * HS)) / s;
-        if (lx < G.x0 - 4 || lx > G.x1 + 4 || ly < G.top - 4 || ly > 2) return;
-        bath.prog += d / 1100;
-        if (bath.foam.length < 34 && Math.random() < 0.5) bath.foam.push({ x: lx + rnd(-4, 4), y: ly + rnd(-4, 4), r: rnd(3, 6) });
-        if (Math.random() < 0.35) parts.push({ kind: 'bubble', x: px, y: py, vx: rnd(-20, 20), vy: rnd(-70, -35), t: 0, life: rnd(0.9, 1.6), r: rnd(4, 9) });
-        if (T - bath.sndT > 0.14) { bath.sndT = T; ctx.sfx('bubble'); }
-        if (bath.prog >= 1 && bath.rinse === 0) {
-          bath.rinse = 0.0001; ctx.sfx('splash'); later(function () { ctx.sfx('water'); }, 250);
-          say(p, 'Płuczemy!', 1.4); updateBarMsg();
+      // the tool waits on the floor beside the tub (or on the rim when there is no room)
+      function bathRest() {
+        var b = bathGeo(), x = b.cx + b.w / 2 + 16 * HS;
+        if (x < LW - 14 * HS) return { x: x, y: b.bot - 4 * HS };
+        return { x: Math.min(LW - 13 * HS, b.cx + b.w * 0.42), y: b.top - 10 * HS };
+      }
+      function bathTool() { return BATH_STEPS[Math.min(bath.step, 2)]; }
+      // how far the bath got, 0..1 (also what an early "Gotowe" pays)
+      function bathProg() {
+        var st = bath.step;
+        if (st >= 3) return 1;
+        var list = st === 0 ? bath.mud : st === 1 ? bath.foam : bath.wet, left = 0;
+        list.forEach(function (q) { left += q.a; });
+        var f = clamp(1 - left / Math.max(1, bath.n0), 0, 1);
+        return [0, 0.4, 0.75][st] + [0.4, 0.35, 0.25][st] * f;
+      }
+      function stepFrac() { return clamp((bathProg() - [0, 0.4, 0.75, 1][Math.min(bath.step, 3)]) / [0.4, 0.35, 0.25, 1][Math.min(bath.step, 3)], 0, 1); }
+      function nextBathStep() {
+        var b = bathGeo(), p = b.p;
+        bath.step++; bath.idle = 0;
+        ctx.sfx('clear');
+        burst('spark', b.x + (b.G.cx) * b.s, b.feet + b.G.top * b.s, 5);
+        if (bath.step === 1) {
+          // there is always enough foam to rinse
+          if (bath.foam.length < 6) bathSpots(b.G, b.wl, 6 - bath.foam.length, 3, 5).forEach(function (q) { bath.foam.push(q); });
+          bath.foam.forEach(function (q) { q.a = 1; });
+          bath.n0 = bath.foam.length;
+          say(p, 'Teraz spłucz pianę!', 1.8);
+        } else if (bath.step === 2) {
+          bath.wet = bathSpots(b.G, b.wl, 7, 2.2, 3);
+          bath.n0 = bath.wet.length;
+          say(p, 'Brr! Wytrzyj mnie!', 1.8);
+        } else {
+          bath.shakeT = 1.1; R(p).wig = 1.1; ctx.sfx('whoosh');
+          for (var i = 0; i < (reduce ? 6 : 16); i++) parts.push({ kind: 'drop', x: b.x + b.G.cx * b.s, y: b.feet + b.G.cy * b.s, vx: rnd(-260, 260), vy: rnd(-220, 40), t: 0, life: rnd(0.4, 0.7), r: 3 });
+          drag = null;
+        }
+        updateBarMsg();
+      }
+      // the tool at (px, py) moved by d: works on whatever the current step needs
+      function bathRub(px, py, d) {
+        var b = bathGeo(), p = b.p, r = R(p), reach = 9 * HS, tool = bathTool();
+        var lx = (px - b.x) / b.s, ly = (py - b.feet) / b.s;
+        var onPet = lx > b.G.x0 - 4 && lx < b.G.x1 + 4 && ly > b.G.top - 4 && ly < b.wl;
+        if (tool === 'sponge') {
+          var hit = false;
+          bath.mud.forEach(function (q) {
+            if (q.a <= 0 || Math.hypot(b.x + q.x * b.s - px, b.feet + q.y * b.s - py) > reach + q.r * b.s) return;
+            q.a -= d / (36 * HS); hit = true;
+            if (q.a <= 0) { q.a = 0; bath.foam.push({ x: q.x, y: q.y, r: q.r * 1.3, a: 1 }); ctx.sfx('pop'); }
+          });
+          if (onPet && bath.foam.length < 36 && Math.random() < d / 30) bath.foam.push({ x: lx + rnd(-3, 3), y: Math.min(b.wl - 2, ly + rnd(-3, 3)), r: rnd(2.6, 4.6), a: 1 });
+          if (onPet || hit) {
+            r.wig = Math.max(r.wig, 0.25);
+            if (Math.random() < 0.3) parts.push({ kind: 'bubble', x: px, y: py, vx: rnd(-20, 20), vy: rnd(-70, -35), t: 0, life: rnd(0.9, 1.6), r: rnd(4, 9) });
+            if (T - bath.sndT > 0.14) { bath.sndT = T; ctx.sfx('bubble'); }
+          }
+          if (bath.mud.every(function (q) { return q.a <= 0; })) nextBathStep();
+        } else if (tool === 'towel') {
+          var got = false;
+          bath.wet.forEach(function (q) {
+            if (q.a <= 0 || Math.hypot(b.x + q.x * b.s - px, b.feet + q.y * b.s - py) > reach + 4 * b.s) return;
+            q.a -= d / (26 * HS); got = true; if (q.a < 0) q.a = 0;
+          });
+          if (got || onPet) { r.wig = Math.max(r.wig, 0.2); if (T - bath.sndT > 0.2) { bath.sndT = T; ctx.sfx('paint'); } }
+          if (bath.wet.every(function (q) { return q.a <= 0; })) nextBathStep();
         }
       }
       function updateBath(dt) {
-        var p = byId(bath.id), r = R(p), s = petScale(p), G = geo(p.sp, p.stage);
-        if (bath.rinse > 0) {
-          bath.rinse += dt;
-          for (var i = 0; i < (reduce ? 1 : 3); i++) parts.push({ kind: 'drop', x: r.x + rnd(G.x0, G.x1) * s, y: Math.max(20, r.y + G.top * s - 40) + 10, vx: 0, vy: rnd(300, 400), t: 0, life: Math.min(0.9, (40 - G.top * s * 0.8) / 330), r: 3 });
-          if (bath.foam.length && Math.random() < 0.4) { var f = bath.foam.pop(); parts.push({ kind: 'bubble', x: r.x + f.x * s, y: r.y - 9 * HS + f.y * s, vx: 0, vy: -40, t: 0, life: 0.5, r: f.r * s * 0.6 }); }
-          if (bath.rinse > 1.5) endBath(true);
-        } else if (!drag) {
-          bath.sx += (LW * 0.85 - bath.sx) * Math.min(1, dt * 4);
-          bath.sy += (r.y + 10 * HS - bath.sy) * Math.min(1, dt * 4);
+        var b = bathGeo(), p = b.p, du = bath.duck;
+        du.t += dt; if (du.hop > 0) du.hop = Math.max(0, du.hop - dt);
+        if (upV('tub') && Math.random() < dt * 2.5) parts.push({ kind: 'bubble', x: b.cx + rnd(-0.4, 0.4) * b.w, y: b.top, vx: rnd(-8, 8), vy: rnd(-50, -25), t: 0, life: rnd(1, 1.8), r: rnd(3, 7) });
+        if (bath.step >= 3) {
+          bath.shakeT -= dt;
+          if (bath.shakeT <= 0) endBath(true);
+          return;
         }
+        var held = drag && drag.kind === 'tool';
+        if (bathTool() === 'shower' && held) {
+          // spray: drops fall to the water, foam under the stream melts away
+          var sw = 7 * HS, sy0 = bath.sy + 8 * HS / 2;
+          for (var i = 0; i < (reduce ? 1 : 3); i++) { var vy = rnd(320, 420); parts.push({ kind: 'drop', x: bath.sx + rnd(-sw, sw), y: sy0, vx: 0, vy: vy, t: 0, life: Math.max(0.05, (b.top - sy0) / vy), r: 3 }); }
+          var any = false;
+          bath.foam.forEach(function (q) {
+            if (q.a <= 0) return;
+            var fx = b.x + q.x * b.s, fy = b.feet + q.y * b.s;
+            if (Math.abs(fx - bath.sx) < sw + q.r * b.s && fy > sy0 - 6) {
+              q.a -= dt * 1.6; any = true;
+              if (q.a <= 0) { q.a = 0; parts.push({ kind: 'bubble', x: fx, y: fy, vx: 0, vy: -40, t: 0, life: 0.5, r: q.r * b.s * 0.6 }); }
+            }
+          });
+          if (any) R(p).wig = Math.max(R(p).wig, 0.15);
+          if (T - bath.wT > 0.55) { bath.wT = T; ctx.sfx('water'); }
+          if (bath.foam.every(function (q) { return q.a <= 0; })) nextBathStep();
+        }
+        if (!held) {
+          var rest = bathRest();
+          bath.sx += (rest.x - bath.sx) * Math.min(1, dt * 4);
+          bath.sy += (rest.y - bath.sy) * Math.min(1, dt * 4);
+          bath.idle += dt;
+        } else bath.idle = 0;
+      }
+      // the rubber duck: tap it and it squeaks
+      function duckPos() { var b = bathGeo(); return { x: b.cx - b.w * 0.33, y: b.top + b.ry * 0.25 - (bath.duck.hop > 0 ? Math.sin(bath.duck.hop / 0.5 * Math.PI) * 14 : Math.sin(bath.duck.t * 2) * 1.5) }; }
+      function bathDown(q) {
+        var dp = duckPos();
+        if (Math.hypot(q.x - dp.x, q.y - dp.y) < 9 * HS) {
+          bath.duck.hop = 0.5; ctx.sfx('jump'); ctx.sfx('bubble');
+          if (!speech) say(byId(bath.id), pick(['Kwa kwa!', 'Kaczuszka!', 'Hi hi!']), 1.2);
+          return false;
+        }
+        if (bath.step >= 3) return false;
+        drag = { kind: 'tool', x: q.x, y: q.y }; bath.sx = q.x; bath.sy = q.y;
+        return true;
+      }
+      function bathMove(q) {
+        var d = Math.hypot(q.x - drag.x, q.y - drag.y);
+        drag.x = q.x; drag.y = q.y; bath.sx = q.x; bath.sy = q.y;
+        if (bath.step < 3) bathRub(q.x, q.y, d);
+        updateBarMsg();
       }
       function endBath(full) {
         if (mode !== 'bath' || !bath) return;
-        var p = byId(bath.id), pr = full ? 1 : Math.min(1, bath.prog);
+        var p = byId(bath.id), pr = full ? 1 : bathProg();
         addNeed(p, 'clean', (100 - p.needs.clean) * pr);
         if (full) { ctx.stat('baths', 1); ctx.sticker('bath'); ctx.sfx('clear'); grow(p, 'bath'); if (upV('tub')) addNeed(p, 'fun', upV('tub')); }
         if (pr >= 0.3) cared();
@@ -3984,8 +4113,7 @@
             else { drag = { kind: 'stroke', id: p.id, x: q.x, y: q.y }; if (R(p).belly > 0) bellyRub(p, 20, q.x, q.y); else if (!(R(p).roll > 0)) petTap(p); }
           }
         } else if (mode === 'bath' && bath) {
-          if (bath.rinse > 0) return;
-          drag = { kind: 'sponge', x: q.x, y: q.y }; bath.sx = q.x; bath.sy = q.y; capture(e);
+          if (bathDown(q)) capture(e);
         } else if (mode === 'polana') {
           var list = meadowPets().slice().sort(function (a, b) { return MR(b).y - MR(a).y; });
           for (var i = 0; i < list.length; i++) {
@@ -4006,11 +4134,7 @@
           var p = byId(drag.id), d = Math.hypot(q.x - drag.x, q.y - drag.y);
           drag.x = q.x; drag.y = q.y;
           if (p && p.home && !p.asleep && mode === 'home' && petAt(q.x, q.y) === p) stroke(p, d, q.x, q.y);
-        } else if (drag.kind === 'sponge' && bath && bath.rinse === 0) {
-          var d2 = Math.hypot(q.x - drag.x, q.y - drag.y);
-          drag.x = q.x; drag.y = q.y; bath.sx = q.x; bath.sy = q.y;
-          scrub(q.x, q.y, d2); updateBarMsg();
-        } else if (GS && MG[mode] && MG[mode].move) MG[mode].move(q);
+        } else if (drag.kind === 'tool' && bath) bathMove(q); else if (GS && MG[mode] && MG[mode].move) MG[mode].move(q);
       }
       function onUp() { if (drag && drag.kind === 'item') { decoUp(); return; } if (GS && MG[mode] && MG[mode].up) MG[mode].up(); drag = null; }
       function onKey(e) { if (GS && MG[mode] && MG[mode].key) MG[mode].key(e); }
@@ -4419,7 +4543,8 @@
       function drawSpeech() {
         if (!speech) return;
         var p = byId(speech.id); if (!p || !p.home) return;
-        var r = R(p), s = petScale(p), G = geo(p.sp, p.stage, poseOf(p));
+        var r = R(p), s = petScale(p), G = geo(p.sp, p.stage, poseOf(p)), py = petY(p), hx = r.x;
+        if (mode === 'bath' && bath && bath.id === p.id) { var bb = bathGeo(); s = bb.s; py = bb.feet; hx = bb.x; G = bb.G; }
         var a = Math.min(1, speech.t * 4);
         g.save(); g.globalAlpha = a;
         g.font = '22px ' + FONT;
@@ -4428,7 +4553,7 @@
         if (cur) lines.push(cur);
         var bw = 0; lines.forEach(function (l) { bw = Math.max(bw, g.measureText(l).width); });
         bw += 24; var bh = lines.length * 24 + 14;
-        var ax = r.x + r.face * (G.hx || 10) * s, ay = petY(p) + G.top * s - 4;
+        var ax = hx + r.face * (G.hx || 10) * s, ay = py + G.top * s - 4;
         var bx = clamp(ax - bw / 2, 8, LW - bw - 8), by = Math.max(8, ay - bh - 12);
         rr(g, bx, by, bw, bh, 14); g.fillStyle = '#fff'; g.fill(); outline(g, 2.5);
         var tx = clamp(ax, bx + 18, bx + bw - 18);
@@ -4463,48 +4588,151 @@
           g.restore();
         });
       }
-      function drawTub(front, cx, y, w) {
-        var top = y - 14 * HS, bot = y + 14 * HS;
-        if (!front) { g.beginPath(); g.ellipse(cx, top, w / 2, 9 * HS, 0, 0, Math.PI * 2); g.fillStyle = '#5aa8ea'; g.fill(); outline(g, 2.5); return; }
-        g.beginPath(); g.moveTo(cx - w / 2, top); g.quadraticCurveTo(cx - w / 2, bot, cx - w * 0.3, bot); g.lineTo(cx + w * 0.3, bot); g.quadraticCurveTo(cx + w / 2, bot, cx + w / 2, top);
-        g.ellipse(cx, top, w / 2, 9 * HS, 0, 0, Math.PI, false); g.closePath();
-        g.fillStyle = '#ffffff'; g.fill(); outline(g, 3);
-        g.beginPath(); g.moveTo(cx - w * 0.36, top + 9 * HS); g.quadraticCurveTo(cx, top + 14 * HS, cx + w * 0.36, top + 9 * HS); g.strokeStyle = '#9fd4f5'; g.lineWidth = 3 * HS / 2; g.stroke();
-        [-0.3, 0.3].forEach(function (f) { g.beginPath(); g.ellipse(cx + w * f, bot + 3 * HS, 5 * HS, 3 * HS, 0, 0, Math.PI * 2); g.fillStyle = '#f5c330'; g.fill(); outline(g, 2); });
-        g.fillStyle = '#fff';
-        for (var i = -5; i <= 5; i++) { g.beginPath(); g.arc(cx + i * w * 0.085, top - 1 + (i % 2) * 2, 4 * HS, Math.PI, 0); g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(63,134,216,.5)'; g.stroke(); }
+      // ---------- bathroom ----------
+      function drawBathroom() {
+        var t = Math.max(18, 11 * HS), x, y, i;
+        g.fillStyle = '#d6eef8'; g.fillRect(0, 0, LW + 2, FY);
+        g.beginPath();
+        for (x = t; x < LW + t; x += t) { g.moveTo(x, 0); g.lineTo(x, FY); }
+        for (y = FY - 12 - t; y > 0; y -= t) { g.moveTo(0, y); g.lineTo(LW + 2, y); }
+        g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 2; g.stroke();
+        // floor: big checked tiles
+        var ft = t * 1.6;
+        g.fillStyle = '#f6f1e7'; g.fillRect(0, FY, LW + 2, LH - FY + 2);
+        for (y = FY, i = 0; y < LH + ft; y += ft, i++) for (x = (i % 2) * ft - ft; x < LW + ft; x += ft * 2) { g.fillStyle = '#e1ecf3'; g.fillRect(x, y, ft, ft); }
+        g.fillStyle = '#7fc3e6'; g.fillRect(0, FY - 12, LW + 2, 14);
+        g.beginPath(); g.moveTo(0, FY - 12); g.lineTo(LW, FY - 12); g.moveTo(0, FY + 2); g.lineTo(LW, FY + 2); outline(g, 2);
+        // shelf with bottles (left) and a towel on a hook (right)
+        var sx = LW * 0.15, sy = FY * 0.42, u = IS;
+        [['#f47fb0', -16, 22, 9], ['#5aa8ea', 0, 30, 9], ['#ffd84a', 15, 12, 8]].forEach(function (bt) {
+          var bw = bt[3] * u * 1.4, bh = bt[2] * u * 1.4, bx = sx + bt[1] * u * 1.4 - bw / 2;
+          rr(g, bx, sy - bh, bw, bh, Math.min(bw, bh) * 0.3); g.fillStyle = bt[0]; g.fill(); outline(g, 2);
+          if (bt[2] > 14) { rr(g, bx + bw * 0.25, sy - bh - 5 * u, bw * 0.5, 5 * u, 2); g.fillStyle = '#fff'; g.fill(); outline(g, 1.6); }
+        });
+        rr(g, sx - 32 * u, sy, 64 * u, 6 * u, 3); g.fillStyle = '#b07f52'; g.fill(); outline(g, 2);
+        var hx = LW * 0.86, hy = FY * 0.3;
+        g.beginPath(); g.arc(hx, hy, 4 * u, 0, Math.PI * 2); g.fillStyle = '#c7d3e8'; g.fill(); outline(g, 2);
+        g.save(); g.translate(hx, hy + 4 * u); g.scale(u * 1.2, u * 1.2);
+        rr(g, -14, 0, 28, 44, 5); g.fillStyle = '#f7a8c4'; g.fill(); outline(g, 2);
+        g.fillStyle = '#fff'; g.fillRect(-13, 32, 26, 3); g.fillRect(-13, 37, 26, 2);
+        g.restore();
+        plate = { x: -99, y: -99, w: 0, h: 0 };
       }
-      function drawSponge() {
-        var s = HS / 2;
-        g.save(); g.translate(bath.sx, bath.sy); g.rotate(-0.2); g.scale(s, s);
-        rr(g, -18, -12, 36, 24, 7); g.fillStyle = '#ffd84a'; g.fill(); outline(g, 2.5);
-        rr(g, -18, 4, 36, 8, 4); g.fillStyle = '#5cbc4b'; g.fill(); outline(g, 2);
-        g.fillStyle = '#e3a008'; [[-9, -5, 2.5], [2, -6, 2], [10, -2, 2.6], [-2, 0, 1.6]].forEach(function (h) { g.beginPath(); g.arc(h[0], h[1], h[2], 0, Math.PI * 2); g.fill(); });
+      // the three tools (centre 0,0, about 36 x 26 at k = 1)
+      function drawToolIcon(kind, x, y, k, rot) {
+        g.save(); g.translate(x, y); g.rotate(rot || 0); g.scale(k, k);
+        if (kind === 'sponge') {
+          g.rotate(-0.2);
+          rr(g, -18, -12, 36, 24, 7); g.fillStyle = '#ffd84a'; g.fill(); outline(g, 2.5);
+          rr(g, -18, 4, 36, 8, 4); g.fillStyle = '#5cbc4b'; g.fill(); outline(g, 2);
+          g.fillStyle = '#e3a008'; [[-9, -5, 2.5], [2, -6, 2], [10, -2, 2.6], [-2, 0, 1.6]].forEach(function (h) { g.beginPath(); g.arc(h[0], h[1], h[2], 0, Math.PI * 2); g.fill(); });
+        } else if (kind === 'shower') {
+          g.beginPath(); g.moveTo(6, -4); g.lineTo(20, -20); g.lineCap = 'round'; g.lineWidth = 9; g.strokeStyle = INK; g.stroke(); g.lineWidth = 5; g.strokeStyle = '#c7d3e8'; g.stroke();
+          g.beginPath(); g.moveTo(-15, 2); g.quadraticCurveTo(0, -18, 15, 2); g.closePath(); g.fillStyle = '#c7d3e8'; g.fill(); outline(g, 2.5);
+          g.fillStyle = INK; for (var h = -2; h <= 2; h++) { g.beginPath(); g.arc(h * 5, -1, 1.3, 0, Math.PI * 2); g.fill(); }
+        } else {
+          rr(g, -18, -13, 36, 26, 5); g.fillStyle = '#f7a8c4'; g.fill(); outline(g, 2.5);
+          g.beginPath(); g.moveTo(-17, -5); g.lineTo(17, -5); g.strokeStyle = 'rgba(29,47,111,.35)'; g.lineWidth = 1.5; g.stroke();
+          g.fillStyle = '#fff'; g.fillRect(-17, 3, 34, 3); g.fillRect(-17, 8, 34, 2);
+        }
         g.restore();
       }
+      function drawRubberDuck(x, y, k) {
+        g.save(); g.translate(x, y); g.scale(k, k);
+        g.beginPath(); g.ellipse(0, 0, 12, 7, 0, 0, Math.PI * 2); g.fillStyle = '#ffd84a'; g.fill(); outline(g, 2);
+        g.beginPath(); g.arc(6, -9, 6, 0, Math.PI * 2); g.fillStyle = '#ffd84a'; g.fill(); outline(g, 2);
+        g.beginPath(); g.moveTo(11, -10); g.lineTo(17, -8); g.lineTo(11, -6); g.closePath(); g.fillStyle = '#f08a24'; g.fill(); outline(g, 1.5);
+        g.beginPath(); g.arc(7.5, -10.5, 1.4, 0, Math.PI * 2); g.fillStyle = INK; g.fill();
+        g.beginPath(); g.moveTo(-6, -2); g.quadraticCurveTo(-1, 2, 3, -2); g.strokeStyle = 'rgba(29,47,111,.5)'; g.lineWidth = 1.4; g.stroke();
+        g.restore();
+      }
+      function drawBathScene(hp) {
+        var b = bathGeo(), bp = b.p, s = b.s, cx = b.cx, top = b.top, bot = b.bot, w = b.w, ry = b.ry;
+        hp.filter(function (q) { return q !== bp; }).forEach(function (q, i) { var left = i === 0; drawPetHome(q, LW * (left ? 0.1 : 0.9), floorY(0.05), HS * 0.5, left ? 1 : -1); });
+        // bath mat
+        g.save(); g.beginPath(); g.ellipse(cx, bot + 4 * HS, w * 0.42, 6 * HS, 0, 0, Math.PI * 2); g.fillStyle = '#9fd4b0'; g.fill(); outline(g, 2.5);
+        g.setLineDash([6, 6]); g.beginPath(); g.ellipse(cx, bot + 4 * HS, w * 0.42 - 6, 6 * HS - 5, 0, 0, Math.PI * 2); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); g.restore();
+        // back of the tub: the rim and the water
+        g.beginPath(); g.ellipse(cx, top, w / 2, ry, 0, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill(); outline(g, 3);
+        var iw = w / 2 - 7, ir = Math.max(4, ry - 5);
+        g.beginPath(); g.ellipse(cx, top + 1, iw, ir, 0, 0, Math.PI * 2); g.fillStyle = '#7cc4f0'; g.fill(); g.lineWidth = 1.5; g.strokeStyle = 'rgba(29,47,111,.4)'; g.stroke();
+        // the tap on the right end
+        var fx = cx + w / 2 - 10 * HS / 2, fy = top - ry * 0.4;
+        g.beginPath(); g.moveTo(fx, fy); g.lineTo(fx, fy - 16 * HS / 2); g.quadraticCurveTo(fx, fy - 24 * HS / 2, fx - 9 * HS / 2, fy - 22 * HS / 2);
+        g.lineCap = 'round'; g.lineWidth = 9; g.strokeStyle = INK; g.stroke(); g.lineWidth = 5; g.strokeStyle = '#c7d3e8'; g.stroke();
+        // the pet with mud, foam and drops on it
+        drawPetHome(bp, b.x, b.feet, s, 1);
+        var px = function (q) { return b.x + q.x * s; }, py = function (q) { return b.feet + q.y * s; };
+        bath.mud.forEach(function (q) { if (q.a <= 0) return; g.beginPath(); g.ellipse(px(q), py(q), q.r * 1.3 * s * (0.5 + 0.5 * q.a), q.r * s * (0.5 + 0.5 * q.a), 0.4, 0, Math.PI * 2); g.globalAlpha = Math.min(1, q.a * 1.5); g.fillStyle = '#7a5a2e'; g.fill(); g.lineWidth = 1.6; g.strokeStyle = '#4a3418'; g.stroke();
+          g.beginPath(); g.arc(px(q) + q.r * s * 0.9, py(q) - q.r * s * 0.7, q.r * s * 0.25, 0, Math.PI * 2); g.arc(px(q) - q.r * s * 1.1, py(q) + q.r * s * 0.5, q.r * s * 0.18, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1; });
+        bath.foam.forEach(function (q) {
+          if (q.a <= 0) return;
+          g.beginPath(); g.arc(px(q), py(q), q.r * s * 0.6 * (0.4 + 0.6 * q.a), 0, Math.PI * 2);
+          g.fillStyle = 'rgba(255,255,255,.95)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(63,134,216,.55)'; g.stroke();
+        });
+        bath.wet.forEach(function (q) {
+          if (q.a <= 0) return;
+          var x = px(q), y = py(q), k = q.r * s * 0.5 * (0.5 + 0.5 * q.a);
+          g.beginPath(); g.moveTo(x, y - k * 1.8); g.quadraticCurveTo(x + k, y - k * 0.3, x + k, y + k * 0.2); g.arc(x, y + k * 0.2, k, 0, Math.PI); g.quadraticCurveTo(x - k, y - k * 0.3, x, y - k * 1.8);
+          g.fillStyle = '#7cc4f0'; g.fill(); g.lineWidth = 1.4; g.strokeStyle = '#3f86d8'; g.stroke();
+        });
+        // the near half of the water covers the tummy, with bubbly foam on top
+        g.beginPath(); g.ellipse(cx, top + 1, iw, ir, 0, 0, Math.PI); g.closePath(); g.fillStyle = 'rgba(124,196,240,.85)'; g.fill();
+        var foamy = bath.step === 0 ? 0.5 + 0.5 * (1 - bath.mud.filter(function (q) { return q.a > 0; }).length / Math.max(1, bath.n0)) : bath.step === 1 ? 0.5 + 0.5 * (1 - stepFrac()) : 0.3;
+        var nb = Math.round((upV('tub') ? 14 : 9) * foamy);
+        for (var i = 0; i < nb; i++) {
+          var a = (i + 0.5) / nb * Math.PI, rad = (2.6 + (i % 3) * 0.9) * HS * 0.6;
+          var bx = cx + Math.cos(a) * iw * 0.9, by = top + 1 + Math.sin(a) * ir * 0.75;
+          g.beginPath(); g.arc(bx, by, rad, Math.PI, 0); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(63,134,216,.5)'; g.stroke();
+        }
+        var dp = duckPos(); drawRubberDuck(dp.x, dp.y, HS * 0.42);
+        // front of the tub
+        g.beginPath(); g.moveTo(cx - w / 2, top); g.quadraticCurveTo(cx - w / 2, bot, cx - w * 0.3, bot); g.lineTo(cx + w * 0.3, bot); g.quadraticCurveTo(cx + w / 2, bot, cx + w / 2, top);
+        g.ellipse(cx, top, w / 2, ry, 0, 0, Math.PI, false); g.closePath();
+        g.fillStyle = '#ffffff'; g.fill(); outline(g, 3);
+        g.beginPath(); g.moveTo(cx - w * 0.36, top + ry + 4 * HS); g.quadraticCurveTo(cx, top + ry + 8 * HS, cx + w * 0.36, top + ry + 4 * HS); g.strokeStyle = '#9fd4f5'; g.lineWidth = 3 * HS / 2; g.lineCap = 'round'; g.stroke();
+        [-0.3, 0.3].forEach(function (f) { g.beginPath(); g.ellipse(cx + w * f, bot + 3 * HS, 5 * HS, 3 * HS, 0, 0, Math.PI * 2); g.fillStyle = '#f5c330'; g.fill(); outline(g, 2); });
+        // a hint for an idle child: a ring around the next spot to clean
+        if (bath.step < 3 && bath.idle > 2.5) {
+          var list = bath.step === 0 ? bath.mud : bath.step === 1 ? bath.foam : bath.wet, tg = null;
+          for (var j = 0; j < list.length; j++) if (list[j].a > 0) { tg = list[j]; break; }
+          if (tg) {
+            var rr2 = (tg.r * s + 8) * (1 + 0.15 * Math.sin(T * 6));
+            g.save(); g.setLineDash([5, 5]); g.beginPath(); g.arc(px(tg), py(tg), rr2, 0, Math.PI * 2); g.strokeStyle = '#e8559a'; g.lineWidth = 3; g.stroke(); g.restore();
+          }
+        }
+        // the tool (the shower hangs on its hose from the tap)
+        if (bath.step < 3) {
+          var tool = bathTool(), tk = HS * 0.55, bob = !drag && !reduce ? Math.sin(T * 4) * 3 : 0;
+          if (tool === 'shower') {
+            var ex = bath.sx + 20 * tk, ey = bath.sy - 20 * tk + bob;
+            g.beginPath(); g.moveTo(fx, fy); g.quadraticCurveTo((fx + ex) / 2 + 10, Math.max(fy, ey) + 50, ex, ey);
+            g.lineCap = 'round'; g.lineWidth = 6; g.strokeStyle = INK; g.stroke(); g.lineWidth = 3; g.strokeStyle = '#9aa8c2'; g.stroke();
+          }
+          drawToolIcon(tool, bath.sx, bath.sy + bob, tk);
+        }
+        drawBathSteps();
+      }
+      // 1 sponge, 2 shower, 3 towel: done ones get a tick
+      function drawBathSteps() {
+        var bs = 42, gap = 14, x0 = LW / 2 - (bs * 3 + gap * 2) / 2, y0 = Math.max(16, FY * 0.08);
+        BATH_STEPS.forEach(function (k, i) {
+          var x = x0 + i * (bs + gap), done = bath.step > i, cur = bath.step === i;
+          g.save(); g.globalAlpha = done || cur ? 1 : 0.6;
+          rr(g, x, y0, bs, bs, 10); g.fillStyle = done ? '#bfe8a8' : cur ? '#fff4c4' : '#fff'; g.fill(); outline(g, cur ? 3.5 : 2);
+          drawToolIcon(k, x + bs / 2, y0 + bs / 2 + 2, 0.8);
+          if (done) { g.beginPath(); g.moveTo(x + bs - 15, y0 + bs - 9); g.lineTo(x + bs - 10, y0 + bs - 4); g.lineTo(x + bs - 1, y0 + bs - 16); g.lineWidth = 6; g.strokeStyle = '#fff'; g.stroke(); g.lineWidth = 3; g.strokeStyle = '#2f9a4a'; g.stroke(); }
+          g.restore();
+          if (i < 2) text('›', x + bs + gap / 2, y0 + bs / 2, 22, INK);
+        });
+      }
       function drawHome() {
-        drawRoom();
         var hp = homePets();
         if (mode === 'bath' && bath) {
-          var bp = byId(bath.id), r = R(bp), s = petScale(bp), G = geo(bp.sp, bp.stage);
-          var others = hp.filter(function (q) { return q !== bp; });
-          standing().forEach(function (e) { drawItemAt(e.it, e.ip, 0, false); });
-          others.forEach(function (q, i) { var left = i === 0; drawPetHome(q, LW * (left ? 0.12 : 0.88), floorY(0.05), HS * 0.5, left ? 1 : -1); });
-          var tw = Math.max(70 * HS, (G.x1 - G.x0) * s * 1.2);
-          drawTub(false, r.x + (G.x0 + G.x1) / 2 * s * 0.5, r.y, tw);
-          drawPetHome(bp, r.x, r.y - 9 * HS, s, 1);
-          bath.foam.forEach(function (f) {
-            g.beginPath(); g.arc(r.x + f.x * s, r.y - 9 * HS + f.y * s, f.r * s * 0.55, 0, Math.PI * 2);
-            g.fillStyle = 'rgba(255,255,255,.92)'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = 'rgba(63,134,216,.55)'; g.stroke();
-          });
-          drawTub(true, r.x + (G.x0 + G.x1) / 2 * s * 0.5, r.y, tw);
-          if (bath.rinse > 0) {
-            var sx = r.x + (G.x0 + G.x1) / 2 * s * 0.5, sy = Math.max(30, r.y + G.top * s - 50);
-            g.beginPath(); g.moveTo(LW + 6, sy - 44); g.lineTo(sx + 16, sy - 44); g.quadraticCurveTo(sx, sy - 44, sx, sy - 28); g.lineTo(sx, sy - 14); g.lineWidth = 9; g.strokeStyle = INK; g.stroke(); g.lineWidth = 5; g.strokeStyle = '#c7d3e8'; g.stroke();
-            g.beginPath(); g.moveTo(sx - 30 * HS, sy); g.quadraticCurveTo(sx, sy - 30, sx + 30 * HS, sy); g.closePath(); g.fillStyle = '#c7d3e8'; g.fill(); outline(g, 2.5);
-            g.fillStyle = INK; for (var hh = -3; hh <= 3; hh++) { g.beginPath(); g.arc(sx + hh * 7 * HS, sy - 3, 1.6, 0, Math.PI * 2); g.fill(); }
-          } else drawSponge();
+          drawBathroom();
+          drawBathScene(hp);
         } else {
+          drawRoom();
           // pets and standing things by depth (a pet asleep in a bed: bed, pet, then the bed's front rim)
           var ents = standing(), byItem = {};
           ents.forEach(function (e) { byItem[e.it.id] = e; });
@@ -4653,7 +4881,9 @@
           }),
           deco: JSON.parse(JSON.stringify(save.deco)), IS: IS, decoSel: decoSel ? decoSel.id : 0, tools: !tools.hidden,
           items: decoItems().map(function (it) { var p = ipos(it); return { id: it.id, k: it.k, x: p.x, y: p.y, w: p.d.w, h: p.d.h, key: ikey(it, p), L: DI(it.k).L }; }),
-          gs: GS ? JSON.parse(JSON.stringify(GS, function (k, v) { return k === 'btns' ? undefined : v; })) : null
+          gs: GS ? JSON.parse(JSON.stringify(GS, function (k, v) { return k === 'btns' ? undefined : v; })) : null,
+          bath: bath ? (function () { var b = bathGeo(), sp = function (q) { return { x: b.x + q.x * b.s, y: b.feet + q.y * b.s, a: q.a }; };
+            return { step: bath.step, prog: bathProg(), mud: bath.mud.map(sp), foam: bath.foam.map(sp), wet: bath.wet.map(sp), duck: duckPos() }; })() : null
         };
       };
 

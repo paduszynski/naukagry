@@ -116,16 +116,16 @@
     { k: 'rzezucha', n: 'rzeżucha', lv: 1, price: 15, h: 1 / 3, type: 'cress', fast: 1 },
     { k: 'szczypiorek', n: 'szczypiorek', lv: 1, price: 20, h: 1, type: 'chives', pc: '#c58ae0', fast: 1 },
     { k: 'rzodkiewka', n: 'rzodkiewka', lv: 1, price: 25, h: 2, type: 'root', shape: 'round', fc: '#e2405a', fast: 1 },
-    { k: 'slonecznik', n: 'słonecznik', lv: 1, price: 30, h: 24, type: 'flower', head: 'sun', tall: 1, pc: '#f7c51e', cc: '#8a5428' },
-    { k: 'marchewka', n: 'marchewka', lv: 2, price: 30, h: 24, type: 'root', shape: 'long', fc: '#f08a24' },
+    { k: 'slonecznik', n: 'słonecznik', lv: 1, price: 5, pet: 1, h: 24, type: 'flower', head: 'sun', tall: 1, pc: '#f7c51e', cc: '#8a5428' },
+    { k: 'marchewka', n: 'marchewka', lv: 2, price: 5, pet: 1, h: 24, type: 'root', shape: 'long', fc: '#f08a24' },
     { k: 'kwiatek', n: 'kwiatek', lv: 3, price: 35, h: 30, type: 'flower', head: 'round', tall: 0.55, pc: '#f47fb0', cc: '#f7d23a' },
-    { k: 'salata', n: 'sałata', lv: 4, price: 35, h: 30, type: 'leafy' },
+    { k: 'salata', n: 'sałata', lv: 4, price: 5, pet: 1, h: 30, type: 'leafy' },
     { k: 'pomidor', n: 'pomidor', lv: 5, price: 45, h: 48, type: 'bush', fruit: 'round', fc: '#e2402f', fl: '#f7d23a' },
     { k: 'truskawka', n: 'truskawka', lv: 6, price: 45, h: 40, type: 'low', fc: '#e8344a' },
     { k: 'tulipan', n: 'tulipan', lv: 7, price: 40, h: 36, type: 'flower', head: 'cup', tall: 0.7, pc: '#ec4f7a' },
     { k: 'kukurydza', n: 'kukurydza', lv: 8, price: 50, h: 54, type: 'corn' },
     { k: 'groszek', n: 'groszek', lv: 9, price: 45, h: 42, type: 'bush', fruit: 'pod', fc: '#74c94e', fl: '#ffffff' },
-    { k: 'winogrono', n: 'winogrono', lv: 10, price: 55, h: 60, type: 'vine', fruit: 'grapes', fc: '#8657c9', fl: '#c8e07a' },
+    { k: 'winogrono', n: 'winogrono', lv: 10, price: 5, pet: 1, h: 60, type: 'vine', fruit: 'grapes', fc: '#8657c9', fl: '#c8e07a' },
     { k: 'dynia', n: 'dynia', lv: 11, price: 60, h: 60, type: 'pumpkin', fc: '#f08a24' },
     { k: 'papryka', n: 'papryka', lv: 12, price: 55, h: 48, type: 'bush', fruit: 'pepper', fc: '#f6c21b', fl: '#ffffff' },
     { k: 'lawenda', n: 'lawenda', lv: 13, price: 55, h: 42, type: 'spike', pc: '#9a72d8' },
@@ -977,7 +977,7 @@
   }
 
   NG.register('ogrodek', {
-    meta: { name: 'Ogródek', price: 'nasiona od 15 ★', bg: '#dff3d2', music: 'meadow' },
+    meta: { name: 'Ogródek', price: 'nasiona od 5 ★', bg: '#dff3d2', music: 'meadow' },
     medals: [
       { id: 'h10', stat: 'harvest', at: 10, tier: 1, text: '10 plonów' },
       { id: 'h50', stat: 'harvest', at: 50, tier: 2, text: '50 plonów' },
@@ -1698,8 +1698,8 @@
           var locked = !free && P.lv > lvl;
           var r = document.createElement('div'); r.className = 'og-row' + (locked ? ' lock' : '') + (free ? ' gift' : P.fast ? ' fast' : '');
           r.innerHTML = '<img alt="" src="' + thumbUrl(P, 112, locked) + '"><div class="tx"><b></b><small></small></div>';
-          r.querySelector('b').textContent = P.n + (free ? ' ×' + st.pouch[P.k] : '') + (P.rare ? ' ✦' : '') + (P.fast && !free ? ' ⚡' : '');
-          r.querySelector('small').textContent = growText(P) + (st.book[P.k] ? ' · zebrane ' + st.book[P.k] + '×' : '');
+          r.querySelector('b').textContent = P.n + (free ? ' ×' + st.pouch[P.k] : '') + (P.rare ? ' ✦' : '') + (P.fast && !free ? ' ⚡' : '') + (P.pet ? ' ♥' : '');
+          r.querySelector('small').textContent = growText(P) + (P.pet ? ' · przysmak zwierzątek' : '') + (st.book[P.k] ? ' · zebrane ' + st.book[P.k] + '×' : '');
           if (locked) {
             addEl(r, 'span', 'og-lockt', 'od poziomu ' + P.lv);
           } else {
