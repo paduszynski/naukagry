@@ -24,6 +24,7 @@
   // economy: harvest refunds 30% of what the seed cost; an order pays 80% of the seed price per item grown from
   // bought seeds (30% for free seeds). Produce that goes to an order returns 110% of its seed cost in total.
   var HARVEST_BACK = 0.3, ORDER_PAY = 0.8, ORDER_PAY_FREE = 0.3;
+  var ORDER_TARGET = [80, 120];   // stars an order is worth (from bought seeds), capped by the number of beds
 
   // ---------- upgrades (Sklep -> Ulepszenia): bought once per level with stars, kept forever ----------
   // v: the value at each level (index 0 = not bought yet), price[i]: the cost of level i+1, lv[i]: player level needed
@@ -933,11 +934,11 @@
     { e: '🐭', n: 'Pani Myszka' }, { e: '🐻', n: 'Pan Miś' }, { e: '🐸', n: 'Pan Żabka' }, { e: '🦊', n: 'Pani Lisica' }
   ];
   var FORMS = {
-    rzezucha: ['rzeżuchę', 'rzeżuchy'], szczypiorek: ['szczypiorek', 'szczypiorki'], rzodkiewka: ['rzodkiewkę', 'rzodkiewki'],
-    slonecznik: ['słonecznik', 'słoneczniki'], marchewka: ['marchewkę', 'marchewki'], kwiatek: ['kwiatek', 'kwiatki'],
-    salata: ['sałatę', 'sałaty'], pomidor: ['pomidora', 'pomidory'], truskawka: ['truskawkę', 'truskawki'], tulipan: ['tulipana', 'tulipany'],
-    kukurydza: ['kukurydzę', 'kukurydze'], groszek: ['groszek', 'groszki'], winogrono: ['winogrono', 'winogrona'], dynia: ['dynię', 'dynie'],
-    papryka: ['paprykę', 'papryki'], lawenda: ['lawendę', 'lawendy'], ogorek: ['ogórka', 'ogórki'], mak: ['mak', 'maki'], baklazan: ['bakłażana', 'bakłażany']
+    rzezucha: ['rzeżuchę', 'rzeżuchy', 'rzeżuch'], szczypiorek: ['szczypiorek', 'szczypiorki', 'szczypiorków'], rzodkiewka: ['rzodkiewkę', 'rzodkiewki', 'rzodkiewek'],
+    slonecznik: ['słonecznik', 'słoneczniki', 'słoneczników'], marchewka: ['marchewkę', 'marchewki', 'marchewek'], kwiatek: ['kwiatek', 'kwiatki', 'kwiatków'],
+    salata: ['sałatę', 'sałaty', 'sałat'], pomidor: ['pomidora', 'pomidory', 'pomidorów'], truskawka: ['truskawkę', 'truskawki', 'truskawek'], tulipan: ['tulipana', 'tulipany', 'tulipanów'],
+    kukurydza: ['kukurydzę', 'kukurydze', 'kukurydz'], groszek: ['groszek', 'groszki', 'groszków'], winogrono: ['winogrono', 'winogrona', 'winogron'], dynia: ['dynię', 'dynie', 'dyń'],
+    papryka: ['paprykę', 'papryki', 'papryk'], lawenda: ['lawendę', 'lawendy', 'lawend'], ogorek: ['ogórka', 'ogórki', 'ogórków'], mak: ['mak', 'maki', 'maków'], baklazan: ['bakłażana', 'bakłażany', 'bakłażanów']
   };
 
   // thumbnails for decorations and butterflies
@@ -1035,7 +1036,7 @@
         if (!Array.isArray(st.deco)) st.deco = [];
         st.deco = st.deco.filter(function (d) { return d && DB[d.k]; });
         st.guests = st.guests.filter(function (gs) { return gs && /^(snail|weed|butterfly|bird)$/.test(gs.k); });
-        st.orders = st.orders.filter(function (o) { return o && isObj(o.items) && Object.keys(o.items).every(function (k) { return BY[k]; }); });
+        st.orders = st.orders.filter(function (o) { return o && isObj(o.items) && Object.keys(o.items).every(function (k) { return BY[k] && !BY[k].pet; }); });   // pet treats are no longer ordered
         if (typeof st.guestT !== 'number') st.guestT = 0;
         if (typeof st.orderT !== 'number') st.orderT = 0;
         if (!(st.nextId > 0)) st.nextId = 1;
@@ -1142,11 +1143,16 @@
       }
       function canFill(o) { for (var k in o.items) if (pantryN(k) < o.items[k]) return false; return true; }
       function itemsText(o) {
-        var parts = Object.keys(o.items).map(function (k) { var n = o.items[k], f = FORMS[k] || [BY[k].n, BY[k].n]; return n === 1 ? f[0] : n + ' ' + f[1]; });
+        var parts = Object.keys(o.items).map(function (k) {
+          var n = o.items[k], f = FORMS[k] || [BY[k].n, BY[k].n, BY[k].n], few = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14);
+          return n === 1 ? f[0] : n + ' ' + (few ? f[1] : f[2] || f[1]);
+        });
         return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' i ' + parts[parts.length - 1] : parts[0];
       }
+      // an order is worth about ORDER_TARGET stars (more cheap things or fewer dear ones), never more pieces than
+      // there are beds, so one round of planting can fill it. Pet treats (P.pet, 5 ★ seeds) are not ordered.
       function makeOrder() {
-        var pool = PLANTS.filter(function (P) { return P.lv <= lvl && !P.rare && P.h <= 48 && FORMS[P.k]; });
+        var pool = PLANTS.filter(function (P) { return P.lv <= lvl && !P.rare && !P.pet && P.h <= 48 && FORMS[P.k]; });
         if (!pool.length) pool = [BY.rzezucha];
         // often ask for something the child already has or is growing, so orders feel doable
         var near = pool.filter(function (P) { return pantryN(P.k) > 0 || st.plots.some(function (pl) { return pl && pl.k === P.k; }); });
@@ -1158,10 +1164,16 @@
         var used = st.orders.map(function (o) { return o.a; }), free = [];
         for (var a = 0; a < ANIMALS.length; a++) if (used.indexOf(a) < 0) free.push(a);
         var who = free.length ? free[Math.floor(Math.random() * free.length)] : Math.floor(Math.random() * ANIMALS.length);
-        var items = {}, A = pick(), B = pool.length > 1 && Math.random() < 0.4 ? pick(A.k) : null;
-        if (B) { items[A.k] = Math.random() < 0.4 ? 2 : 1; items[B.k] = 1; }
-        else items[A.k] = 1 + Math.floor(Math.random() * 3);
-        for (var k in items) if (BY[k].h > 24 && items[k] > 2) items[k] = 2;
+        var beds = Math.max(1, plotCount()), target = ORDER_TARGET[0] + Math.random() * (ORDER_TARGET[1] - ORDER_TARGET[0]);
+        var items = {}, A = pick(), B = pool.length > 1 && beds > 1 && Math.random() < 0.4 ? pick(A.k) : null;
+        var list = B ? [A, B] : [A], share = B ? [0.4 + Math.random() * 0.2] : [1];
+        if (B) share.push(1 - share[0]);
+        var left = beds;
+        list.forEach(function (P, i) {
+          var n = Math.round(target * share[i] / unitPay(P, true));
+          n = Math.max(1, Math.min(n, left - (list.length - 1 - i)));
+          items[P.k] = n; left -= n;
+        });
         return { id: st.nextId++, a: who, items: items };
       }
       function spawnOrders(now) {
