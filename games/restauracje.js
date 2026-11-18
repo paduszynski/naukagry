@@ -986,7 +986,7 @@
     '.rs-tab .bd.soft{background:#fff;color:' + INK + ';animation:none}',
     '.rs-tab .here{position:absolute;top:-8px;left:-6px;width:24px;height:24px;display:none}',
     '.rs-tab .here.on{display:block}',
-    '.rs-score{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:10px;background:rgba(29,47,111,.3);overflow:auto}',
+    '.rs-score{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(29,47,111,.3);overflow:auto;overscroll-behavior:contain}',
     '.rs-sc{background:#fff;border:3px solid ' + INK + ';border-radius:22px;padding:14px 18px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;align-items:center;box-shadow:0 6px 0 rgba(29,47,111,.25);animation:rspin .4s cubic-bezier(.2,1.5,.4,1);margin:auto}',
     '.rs-sc h3{margin:0;font-weight:400;font-size:1.6rem;line-height:1;text-align:center}',
     '.rs-hearts{display:flex;gap:10px}',
@@ -1005,6 +1005,7 @@
     '@keyframes rspulse{50%{transform:scale(1.07)}}',
     '@keyframes rsbob{50%{transform:translateY(-3px)}}',
     '@media (max-width:520px){.rs-act{flex-wrap:wrap;gap:4px 8px;padding:4px 8px}.rs-hint{flex-basis:100%;text-align:center;font-size:1.05rem}.rs-b{min-height:44px;font-size:1.05rem;padding:2px 10px}.rs-b.main{font-size:1.25rem;padding:2px 14px}.rs-tab span{font-size:.9rem}.rs-tab svg{width:30px;height:30px}.rs-tab{min-height:56px;border-radius:14px}.rs-tabs{gap:4px;padding:5px 5px calc(5px + env(safe-area-inset-bottom,0px))}.rs-rail{gap:6px;padding:6px 6px 8px;min-height:90px}.rs-tix{gap:6px}.rs-dots i{width:12px;height:12px}.rs-jarl{font-size:1.05rem;padding:0 6px}}',
+    '@media (max-height:760px){.rs-sc{gap:5px;padding:10px 14px}.rs-hearts svg{width:42px;height:39px}.rs-rows{gap:2px 10px}.rs-rows svg.ic{width:28px;height:28px}.rs-rows .st svg{width:21px;height:21px}.rs-tip{font-size:1.35rem}.rs-tip canvas{width:50px!important;height:55px!important}}',
     '@media (min-width:1800px) and (min-height:800px){.rs-tab{max-width:300px;min-height:84px}.rs-tab svg{width:46px;height:46px}.rs-tab span{font-size:1.35rem}.rs-act{min-height:80px}.rs-hint{font-size:1.55rem}.rs-b{min-height:60px;font-size:1.45rem;padding:4px 20px}.rs-b.main{font-size:1.75rem;padding:4px 28px}.rs-jarl{font-size:1.6rem}.rs-dots i{width:22px;height:22px}.rs-tk .chip{font-size:1.15rem}.rs-sc{max-width:520px}}',
     '@media (prefers-reduced-motion:reduce){.rs *{animation:none!important;transition:none!important}}'
   ].join('\n');
@@ -1362,7 +1363,7 @@
         var b = el('button', 'rs-b main', S.done >= SHIFT_N ? 'Koniec zmiany' : 'Dalej'); b.type = 'button';
         b.onclick = function () { ctx.sfx('tap'); closeScore(c); };
         sc.appendChild(b);
-        mainEl.appendChild(scoreEl);
+        shiftEl.appendChild(scoreEl);   // over the whole shift (not just the kitchen) so the button fits on phones
         // coins dropping into the jar
         var shown = Math.max(0, S.tips - tip), drawJar = function () {
           var jg = jar.g; jg.clearRect(0, 0, 64, 70);
