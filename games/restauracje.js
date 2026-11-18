@@ -1297,6 +1297,7 @@
         S.ticket = t || null; S.drag = null;
         if (t && t.at == null) t.at = S.t;
         if (t && S.R.onTicket) S.R.onTicket(S);
+        var stn = S.R[S.view]; if (stn && stn.layout && cv) stn.layout(S);   // a station may lay itself out for the dish
         renderRail(true); S.sig = '';
       }
       function callPickup() {
