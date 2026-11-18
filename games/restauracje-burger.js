@@ -14,7 +14,7 @@
   var clamp = H.clamp, rnd = H.rnd, rint = H.rint, pick = H.pick, lerp = H.lerp, shuffle = H.shuffle, mix = H.mix;
   var rr = H.rr, ink = H.ink, circle = H.circle, flame = H.flame, txt = H.txt;
 
-  var GRILL_S = 11, ZONE = 0.1, POUR_S = 1.9, FRY_S = 9, FRY_C = 0.6, FRY_Z = 0.13, FRIES_AT = 3, MAX_STACK = 8;
+  var GRILL_S = 11, BUSY_S = 5, ZONE = 0.1, POUR_S = 1.9, FRY_S = 9, FRY_C = 0.6, FRY_Z = 0.13, FRIES_AT = 3, MAX_STACK = 8;
   var DONE = [{ n: 'lekko', c: 0.3, f: 1 }, { n: 'średnio', c: 0.55, f: 2 }, { n: 'mocno', c: 0.8, f: 3 }];
   var ING = [
     { k: 'salata', n: 'sałata', at: 0 }, { k: 'ser', n: 'ser', at: 0 }, { k: 'pomidor', n: 'pomidor', at: 0 },
@@ -161,8 +161,11 @@
     var newest = layersFor(shifts).sort(function (a, b) { return b.at - a.at; })[0];
     var extra = shuffle(ings.slice()).slice(0, Math.min(nx, ings.length));
     if (newest && newest.at > 0 && shifts - newest.at < 3 && extra.indexOf(newest.k) < 0 && Math.random() < 0.45) extra[0] = newest.k;
-    var layers = shifts < 2 ? ['kotlet'].concat(extra) : (function () { var a = extra.slice(); a.splice(rint(0, Math.min(1, a.length)), 0, 'kotlet'); return a; })();
-    if (shifts >= 2 && Math.random() < (shifts >= 5 ? 0.45 : 0.25)) layers.splice(rint(2, layers.length), 0, 'kotlet');
+    var layers = extra.slice();
+    layers.splice(shifts < 1 || Math.random() < 0.55 ? 0 : 1, 0, 'kotlet');
+    if (shifts >= 1 && Math.random() < (shifts >= 4 ? 0.45 : 0.3)) layers.splice(rint(layers.indexOf('kotlet') + 1, layers.length), 0, 'kotlet');   // a double burger
+    var si = layers.indexOf('ser');
+    if (shifts >= 1 && si > layers.indexOf('kotlet') && Math.random() < 0.35) { layers.splice(si, 1); layers.splice(layers.indexOf('kotlet'), 0, 'ser'); }   // cheese under the patty
     return { layers: layers, done: shifts < 1 ? 1 : rint(0, 2), drink: pick(DRINKS).k, size: shifts < 1 ? 1 : rint(0, 1), fries: shifts >= FRIES_AT && Math.random() < 0.6 };
   }
   function pattyCount(o) { return o.layers.filter(function (k) { return k === 'kotlet'; }).length; }
@@ -171,6 +174,7 @@
     return { patties: p, stack: [], stackDone: false, topT0: null, drink: { k: null, fill: 0 }, fries: { st: 'raw', cook: 0 }, sideDone: false, spill: false };
   }
   function grillDone(it) { return it.patties.every(function (p) { return p.st === 'off'; }); }
+  function lastSide(p) { return p.face === 1 || !!p.re; }   // re-fried patties come off after one side
   function pattyCook(p) { return (p.s[0] + p.s[1]) / 2; }
   function freePatties(it) { return it.patties.filter(function (p) { return p.st === 'off'; }).length - it.stack.filter(function (l) { return l.k === 'kotlet'; }).length; }
   function stackMatch(o, it) { var n = Math.max(o.layers.length, it.stack.length), ok = 0; for (var i = 0; i < n; i++) if (it.stack[i] && it.stack[i].k === o.layers[i]) ok++; return n ? ok / n : 0; }
@@ -265,15 +269,15 @@
     },
     update: function (dt, S) {
       S.tickets.forEach(function (t) {
-        var it = t.item, c = DONE[t.order.done].c, cur = t === S.ticket;
+        var it = t.item, c = DONE[t.order.done].c, cur = t === S.ticket, busy = S.tickets.length > 1;   // with two orders the grill and the fries need 5 s more to be done
         it.patties.forEach(function (p) {
           if (p.flipT < 1) p.flipT = Math.min(1, p.flipT + dt / 0.3);
           if (p.st !== 'grill') return;
-          var was = p.s[p.face]; p.s[p.face] = Math.min(1, was + dt / GRILL_S);
-          if (was < c - ZONE && p.s[p.face] >= c - ZONE) { S.sfx('tick'); S.flash('grill'); if (S.view !== 'grill' || !cur) S.say(p.face ? 'Kotlet gotowy!' : 'Czas przewrócić kotlet!'); }
+          var was = p.s[p.face]; p.s[p.face] = Math.min(1, was + dt / (GRILL_S + (busy ? BUSY_S / c : 0)));
+          if (was < c - ZONE && p.s[p.face] >= c - ZONE) { S.sfx('tick'); S.flash('grill'); if (S.view !== 'grill' || !cur) S.say(lastSide(p) ? 'Kotlet gotowy!' : 'Czas przewrócić kotlet!'); }
         });
         if (it.fries.st === 'oil') {
-          var wf = it.fries.cook; it.fries.cook = Math.min(1, wf + dt / FRY_S);
+          var wf = it.fries.cook; it.fries.cook = Math.min(1, wf + dt / (FRY_S + (busy ? BUSY_S / FRY_C : 0)));
           if (wf < FRY_C - FRY_Z && it.fries.cook >= FRY_C - FRY_Z) { S.sfx('tick'); S.flash('napoje'); if (S.view !== 'napoje' || !cur) S.say('Frytki są złote!'); }
         }
       });
@@ -364,7 +368,7 @@
         g.globalAlpha = p.st === 'grill' ? 1 : 0.45;
         gauge(g, gx, gy, gw, gh, p.st === 'raw' ? 0 : v, c, ZONE, pattyCol, inZ);
         g.globalAlpha = 1;
-        txt(g, p.st === 'off' ? 'gotowy' : p.st === 'raw' ? 'połóż kotlet' : inZ ? (p.face ? 'Zdejmij!' : 'Przewróć!') : 'strona ' + (p.face + 1) + ' z 2', sl.x, gy + gh + 17, 20, inZ ? GREEN : MUTED);
+        txt(g, p.st === 'off' ? (Math.min(p.s[0], p.s[1]) < c - ZONE ? 'blady' : 'gotowy') : p.st === 'raw' ? 'połóż kotlet' : inZ ? (lastSide(p) ? 'Zdejmij!' : 'Przewróć!') : p.re ? 'dosmażanie' : 'strona ' + (p.face + 1) + ' z 2', sl.x, gy + gh + 17, 20, inZ ? GREEN : MUTED);
       });
     },
     act: function (S, i) {
@@ -373,14 +377,26 @@
       if (p.st === 'raw') { p.st = 'grill'; p.face = 0; p.flipT = 1; S.sfx('place'); S.say('Ssss…'); return; }
       if (p.st !== 'grill') return;
       var d = p.s[p.face] - c, good = Math.abs(d) <= ZONE;
-      if (p.face === 0) { p.face = 1; p.flipT = 0; S.sfx('whoosh'); S.say(good ? 'Idealnie! Teraz druga strona.' : d < 0 ? 'Trochę za wcześnie. Druga strona!' : 'Mocno przypieczony. Druga strona!'); }
+      if (!lastSide(p)) { p.face = 1; p.flipT = 0; S.sfx('whoosh'); S.say(good ? 'Idealnie! Teraz druga strona.' : d < 0 ? 'Trochę za wcześnie. Druga strona!' : 'Mocno przypieczony. Druga strona!'); }
+      else if (!p.re && p.s[1] < 0.08) { S.sfx('tap'); S.say('Najpierw usmaż drugą stronę!'); return; }
       else { p.st = 'off'; S.sfx('pop'); S.say(good ? 'Idealny kotlet!' : d < 0 ? 'Trochę blady, ale zjadliwy!' : 'Mocno przypieczony!'); }
       if (good) { S.sfx('star'); S.sparkle(S.L.slots[i].x, S.L.slots[i].y); }
     },
     down: function (S, x, y) {
       var it = S.item, L = S.L; if (!it) return;
       for (var i = 0; i < it.patties.length; i++) if (Math.hypot(x - L.slots[i].x, y - L.slots[i].y) < L.pr * 1.15) { this.act(S, i); return; }
-      if (Math.hypot(x - L.tray.x, y - L.tray.y) < L.sr * 1.4) { var r = this.firstRaw(it); if (r >= 0) this.act(S, r); }
+      if (Math.hypot(x - L.tray.x, y - L.tray.y) < L.sr * 1.4) { var r = this.firstRaw(it); if (r >= 0) this.act(S, r); return; }
+      if (Math.hypot(x - L.plate.x, y - L.plate.y) < L.sr * 1.4) { var pl = this.pale(S); if (pl >= 0) this.again(S, pl); }
+    },
+    // a patty taken off too early goes back on its paler side (only while it is still on the plate, not in the bun)
+    pale: function (S) {
+      var it = S.item, c = DONE[S.ticket.order.done].c; if (!it || freePatties(it) <= 0) return -1;
+      for (var i = 0; i < it.patties.length; i++) { var p = it.patties[i]; if (p.st === 'off' && Math.min(p.s[0], p.s[1]) < c - ZONE) return i; }
+      return -1;
+    },
+    again: function (S, i) {
+      var p = S.item.patties[i]; p.st = 'grill'; p.face = p.s[0] < p.s[1] ? 0 : 1; p.flipT = 1; p.re = true;
+      S.sfx('place'); S.say('Dosmażamy!');
     },
     firstRaw: function (it) { for (var i = 0; i < it.patties.length; i++) if (it.patties[i].st === 'raw') return i; return -1; },
     // the patty that needs attention first
@@ -391,17 +407,18 @@
     },
     hint: function (S) {
       var it = S.item; if (!it) return 'Najpierw przyjmij zamówienie przy ladzie.';
-      if (grillDone(it)) return 'Kotlety gotowe! Teraz składanie.';
+      if (grillDone(it)) return this.pale(S) >= 0 ? 'Kotlet trochę blady. Możesz go dosmażyć.' : 'Kotlety gotowe! Teraz składanie.';
       if (this.firstRaw(it) >= 0) return 'Połóż kotlet na grillu: dotknij go.';
       return 'Dotknij kotleta, gdy wskazówka będzie w ramce: przewróć, potem zdejmij. W tym czasie możesz nalać napój.';
     },
     buttons: function (S) {
       var it = S.item, me = this; if (!it) return noItem(S);
-      if (grillDone(it)) return [nextBtn(S, true)];
+      var pl = this.pale(S);
+      if (grillDone(it)) return pl >= 0 ? [{ id: 'again', label: 'Dosmaż', on: function () { me.again(S, pl); } }, nextBtn(S, false)] : [nextBtn(S, true)];
       var r = this.firstRaw(it), b = [];
       if (r >= 0) b.push({ id: 'put', label: 'Połóż kotlet', main: this.due(S) < 0, pulse: this.due(S) < 0, on: function () { me.act(S, r); } });
       var dq = this.due(S);
-      if (dq >= 0) { var p = it.patties[dq], inZ = Math.abs(p.s[p.face] - DONE[S.ticket.order.done].c) <= ZONE; b.push({ id: 'act' + p.face, label: p.face ? 'Zdejmij!' : 'Przewróć!', main: true, pulse: inZ, on: function () { me.act(S, dq); } }); }
+      if (dq >= 0) { var p = it.patties[dq], inZ = Math.abs(p.s[p.face] - DONE[S.ticket.order.done].c) <= ZONE; b.push({ id: 'act' + (lastSide(p) ? 1 : 0), label: lastSide(p) ? 'Zdejmij!' : 'Przewróć!', main: true, pulse: inZ, on: function () { me.act(S, dq); } }); }
       return b;
     }
   };
