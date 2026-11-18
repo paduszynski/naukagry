@@ -393,7 +393,7 @@
 
   /*
    * A restaurant module (PIZZERIA here, the others through NG.restauracje.add):
-   *   id, name, sign, colours (signCol wall wall2 trim counter counter2 floor1 floor2 curtain cloth), req: { id, shifts }
+   *   id, name, loc (locative: "w Pizzerii"), sign, colours (signCol wall wall2 trim counter counter2 floor1 floor2 curtain cloth), req: { id, shifts }
    *   stat (ctx.stat key for a served dish), madeLabel, fastS / okS (seconds for 3 / 2 time stars)
    *   hi[], bye{3,2,1}[]: what guests say; tx: { make, serve, first } hints
    *   stations: [{ k, n, icon }] and for each a view R[k]: { layout, enter, draw, down, move, up, hint, buttons }
@@ -406,7 +406,7 @@
    */
   // ---------- Pizzeria module ----------
   var PIZZERIA = {
-    id: 'pizzeria', name: 'Pizzeria', sign: 'Pizzeria Okruszek', signCol: '#c8432d',
+    id: 'pizzeria', name: 'Pizzeria', loc: 'Pizzerii', sign: 'Pizzeria Okruszek', signCol: '#c8432d',
     wall: '#fbe3c4', wall2: '#f6d3a8', trim: '#e07a4f', counter: '#d4553b', counter2: '#b8432d', floor1: '#f3d6ad', floor2: '#e8c393', curtain: '#e2533f', cloth: '#f39cab',
     stat: 'pizzas', madeLabel: 'Upieczone', fastS: 100, okS: 160,
     hi: SAY_HI, bye: SAY_BYE,
@@ -918,7 +918,7 @@
     '.rs-hd{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}',
     '.rs-hd h2{margin:0;font-weight:400;font-size:2.2rem;line-height:1}',
     '.rs-hd p{margin:0;color:' + MUTED + ';font-size:1.15rem}',
-    '.rs-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,420px));gap:18px;justify-content:center}',
+    '.rs-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,380px));gap:18px;justify-content:center}',
     '.rs-card{position:relative;background:#fff;border:3px solid ' + INK + ';border-radius:20px;padding:0;overflow:hidden;text-align:left;display:flex;flex-direction:column;box-shadow:0 5px 0 rgba(29,47,111,.22);transition:transform .12s}',
     '.rs-card:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(29,47,111,.22)}',
     '.rs-card .pic{flex:none;position:relative;width:100%;aspect-ratio:16/10;border-bottom:3px solid ' + INK + '}',
@@ -1098,10 +1098,10 @@
           var bd = el('div', 'bd'); b.appendChild(bd);
           bd.appendChild(el('div', 'nm', R.name));
           if (lock) {
-            bd.appendChild(el('div', 'ln', 'Otworzy się po ' + lock.need + ' ' + pl(lock.need, 'zmianie', 'zmianach', 'zmianach') + ' w: ' + lock.R.name + '.'));
+            bd.appendChild(el('div', 'ln', 'Otworzy się po ' + lock.need + ' ' + pl(lock.need, 'zmianie', 'zmianach', 'zmianach') + ' w ' + lock.R.loc + '.'));
             bd.appendChild(el('div', 'ln', 'Jeszcze <b>' + lock.left + '</b> ' + pl(lock.left, 'zmiana', 'zmiany', 'zmian') + '!'));
             b.appendChild(el('div', 'soonb', 'Wkrótce!'));
-            b.onclick = function () { ctx.sfx('tap'); ctx.toast(R.name + ': jeszcze ' + lock.left + ' ' + pl(lock.left, 'zmiana', 'zmiany', 'zmian') + ' w: ' + lock.R.name + '.'); };
+            b.onclick = function () { ctx.sfx('tap'); ctx.toast(R.name + ': jeszcze ' + lock.left + ' ' + pl(lock.left, 'zmiana', 'zmiany', 'zmian') + ' w ' + lock.R.loc + '.'); };
           } else {
             bd.appendChild(el('div', 'ln', d.open ? 'Zmiana trwa: gość ' + (d.open.done + 1) + ' z ' + SHIFT_N : 'Zmiana: <b>' + SHIFT_PRICE + ' ★</b> · ' + SHIFT_N + ' gości'));
             bd.appendChild(el('div', 'ln', R.madeLabel + ': ' + d.made + ' · zmiany: ' + d.shifts));
@@ -1151,7 +1151,7 @@
           return;
         }
         ctx.panel({
-          title: R.name, medals: true,
+          title: R.name, medals: R.stat,
           lines: [SHIFT_N + ' gości na zmianę. Napiwki wracają do skarbonki: do ' + SHIFT_N * TIP_MAX + ' ★.'],
           price: SHIFT_PRICE, button: 'Otwórz zmianę', note: 'zmiana',
           onPlay: function () { d.open = { done: 0, hearts: 0, tips: 0 }; save(); startShift(R); },
@@ -1403,7 +1403,7 @@
         var hearts = S.hearts;
         later(function () {
           ctx.panel({
-            title: 'Koniec zmiany!', big: '❤ ' + hearts + ' / ' + SHIFT_N * 3, medals: true, lines: lines,
+            title: 'Koniec zmiany!', big: '❤ ' + hearts + ' / ' + SHIFT_N * 3, medals: R.stat, lines: lines,
             price: SHIFT_PRICE, button: 'Następna zmiana', note: 'zmiana',
             onPlay: function () { st.r[R.id].open = { done: 0, hearts: 0, tips: 0 }; save(); startShift(R); },
             secondary: [{ label: 'Restauracje', onClick: function () { showHub(); } }]

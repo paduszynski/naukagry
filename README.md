@@ -54,7 +54,7 @@ NG.register('<id>', {
 | `ctx.music(theme)` | muzyka w tle: `meadow`, `calm`, `water`, `sky`, `play`, `cozy`; `null` wyłącza |
 | `ctx.stat(key, n, mode)` | statystyka gry: `'add'` dodaje (domyślnie), `'max'` zapamiętuje najlepszy wynik; z niej liczą się medale i zadania dnia |
 | `ctx.sticker(id)` | naklejka do albumu (zadeklarowana w `stickers`) |
-| `ctx.medals()` | stan medali tej gry; `ctx.panel({ medals: true })` pokazuje je na karcie |
+| `ctx.medals()` | stan medali tej gry; `ctx.panel({ medals: true })` pokazuje je na karcie (`medals: '<stat>'` tylko medale z tej statystyki) |
 
 Gra może podać w `NG.register` także:
 

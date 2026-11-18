@@ -197,7 +197,7 @@
   // The module
   // =====================================================================
   var BURGER = {
-    id: 'burger', name: 'Burgerownia', sign: 'Burgerownia Bułeczka', signCol: '#2f6cb5', req: { id: 'pizzeria', shifts: 3 },
+    id: 'burger', name: 'Burgerownia', loc: 'Burgerowni', sign: 'Burgerownia Bułeczka', signCol: '#2f6cb5', req: { id: 'pizzeria', shifts: 3 },
     wall: '#e5f0ff', wall2: '#d3e4fb', trim: '#3f86d8', counter: '#3f86d8', counter2: '#2f6cb5', floor1: '#f4f6fa', floor2: '#dfe5ee', curtain: '#f2b51d', cloth: '#ffd95a',
     stat: 'burgers', madeLabel: 'Zrobione', fastS: 130, okS: 200,
     hi: ['Dzień dobry! Poproszę taki zestaw:', 'Cześć! Mam ochotę na taki zestaw:', 'Poproszę taki zestaw, dziękuję!', 'Mniam! Chcę taki zestaw:'],

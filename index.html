@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Gry za gwiazdki</title>
-<meta name="version" content="2.11">
+<meta name="version" content="2.12">
 <meta name="description" content="Gry dla dzieci za gwiazdki zdobyte w Matmie, Angielskim i Polskim.">
 <meta name="theme-color" content="#3f86d8">
 <link rel="manifest" href="manifest.webmanifest">
@@ -146,7 +146,7 @@ h1{margin:0;font-weight:400;font-size:2.1rem;line-height:1}
 <div id="hub">
   <div class="wrap hub-top">
     <div class="title-row">
-      <h1>Gry za gwiazdki <span class="ver" title="Wersja 2.11">2.11</span></h1>
+      <h1>Gry za gwiazdki <span class="ver" title="Wersja 2.12">2.12</span></h1>
       <span class="snd" id="snd-hub"></span>
     </div>
     <div class="wallet" id="wallet" aria-live="polite">
@@ -239,6 +239,7 @@ var GAMES = [
 <script src="games/zwierzak.js"></script>
 <script src="games/restauracje.js"></script>
 <script src="games/restauracje-burger.js"></script>
+<script src="games/restauracje-lody.js"></script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
@@ -293,9 +294,10 @@ var GAMES = [
     setTimeout(function () { t.remove(); }, 2100);
   }
 
-  function medalRow(gid) {
+  // stat: show only the medals counted from this statistic (a game with several parts, e.g. Restauracje)
+  function medalRow(gid, stat) {
     var row = document.createElement('div'); row.className = 'medal-row';
-    NG.meta.medals(gid).forEach(function (md) {
+    NG.meta.medals(gid).filter(function (md) { return !stat || md.stat === stat; }).forEach(function (md) {
       var sp = document.createElement('span'); if (md.got) sp.className = 'got';
       sp.innerHTML = '<i>' + NG.meta.TIER[md.tier].e + '</i>';
       sp.appendChild(document.createTextNode(md.text));
@@ -350,7 +352,7 @@ var GAMES = [
           card.innerHTML = '';
           if (o.big) { var bg = document.createElement('div'); bg.className = 'big'; bg.textContent = o.big; card.appendChild(bg); }
           if (o.title) { var h = document.createElement('h2'); h.textContent = o.title; card.appendChild(h); }
-          if (o.medals) card.appendChild(medalRow(g.id));
+          if (o.medals) card.appendChild(medalRow(g.id, typeof o.medals === 'string' ? o.medals : null));
           (o.lines || []).forEach(function (l) { var pp = document.createElement('p'); if (typeof l === 'object') { pp.textContent = l.text; if (l.muted) pp.className = 'muted'; } else pp.textContent = l; card.appendChild(pp); });
           if (o.button !== false) {
             var b = document.createElement('button');
