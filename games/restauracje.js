@@ -1,6 +1,6 @@
 /*
  * Restauracje: a hub of little restaurants where animals (the pets from Zwierzątko, NG.petArt) come to eat.
- * The hub is a RESTAURANTS table; each restaurant is a module object with its own kitchen stations, orders,
+ * The hub lists rests(); each restaurant is a module object with its own kitchen stations, orders,
  * tickets and scoring. The shared engine does the rest: the paid shift (50 ★, 5 guests), the dining room with
  * the counter (Lada) and serving (Podaj), the queue, the ticket rail, hearts, tips (refunded ★), the summary,
  * stats, stickers and saving.
@@ -9,6 +9,10 @@
  * timer that punishes: a slow pizza only misses a small bonus.
  * Economy: a shift costs 50 ★; every guest tips 2–6 ★ (ctx.refund), a perfect shift returns 30 ★.
  * Toppings unlock with shifts played (see TOPS[].at), orders grow slowly (pizzaOrder).
+ * Every ticket has its own dish (ticket.item), so a second order can be started while the first one bakes:
+ * tap a ticket on the rail, or just walk to a station (go() picks the ticket that has work there).
+ * Other restaurants live in their own files (restauracje-burger.js, restauracje-lody.js) and join through
+ * NG.restauracje.add(module); the module contract is described above PIZZERIA.
  * Coordinates: canvas css px; scenes scale with u = min(W/420, H/520).
  */
 (function () {
@@ -19,7 +23,7 @@
   var FONT = '"Patrick Hand","Comic Sans MS",cursive';
   var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var SHIFT_PRICE = 50, SHIFT_N = 5, MAX_IN = 2, NEXT_GAP = 16;
-  var TIP_MIN = 2, TIP_MAX = 6, FAST_S = 100, OK_S = 160;
+  var TIP_MIN = 2, TIP_MAX = 6;
 
   // ---------- helpers ----------
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -68,6 +72,10 @@
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
   function smallCanvas(w, h) { var dpr = Math.min(3, window.devicePixelRatio || 1), c = document.createElement('canvas'); c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.width = w + 'px'; c.style.height = h + 'px'; var g = c.getContext('2d'); g.scale(dpr, dpr); return { c: c, g: g }; }
 
+  // shared with the other restaurant files
+  var H = { INK: INK, MUTED: MUTED, GOLD: GOLD, GREEN: GREEN, FONT: FONT, REDUCED: REDUCED, clamp: clamp, rnd: rnd, rint: rint, pick: pick, lerp: lerp, shuffle: shuffle, pl: pl, mix: mix, rr: rr, ink: ink, circle: circle, heartPath: heartPath, starPath: starPath, flame: flame, coin: coin, txt: txt, tiles: tiles, kitchenBg: kitchenBg, shopCard: shopCard };
+  NG.restauracje = { H: H, mods: [], add: function (m) { this.mods.push(m); } };
+
   // =====================================================================
   // Guests (animals from Zwierzątko). [name, feminine]
   // =====================================================================
@@ -96,7 +104,7 @@
   // =====================================================================
   // Pizzeria: drawing
   // =====================================================================
-  var INNER = 0.84, GRID = 16, LAYER = 320, TOP_R = 0.13, BAKE_S = 10, ZONE = 0.09;
+  var INNER = 0.84, GRID = 16, LAYER = 320, TOP_R = 0.13, BAKE_S = 14, ZONE = 0.09;
   var SAUCE = '#d9412e';
   // at: shifts played before this topping appears
   var TOPS = [
@@ -181,7 +189,6 @@
     g.closePath(); g.fillStyle = mix('#ffd95a', '#e2a24a', b * 0.6); g.fill();
     var list = []; o.tops.forEach(function (t) { for (var j = 0; j < t.n; j++) list.push(t.k); });
     // interleave kinds, sunflower layout
-    list.sort(function (a, c) { return 0; });
     var n = list.length, mixed = [], buckets = {};
     list.forEach(function (k) { (buckets[k] = buckets[k] || []).push(k); });
     var keys = Object.keys(buckets); while (mixed.length < n) keys.forEach(function (k) { if (buckets[k].length) mixed.push(buckets[k].pop()); });
@@ -312,7 +319,7 @@
     nk = Math.min(nk, tops.length);
     var kinds = shuffle(tops.slice()).slice(0, nk);
     var newest = unlockedTops(shifts).sort(function (a, b) { return b.at - a.at; })[0];
-    if (newest && newest.at > 0 && kinds.indexOf(newest.k) < 0 && Math.random() < 0.45) kinds[0] = newest.k;
+    if (newest && newest.at > 0 && shifts - newest.at < 3 && kinds.indexOf(newest.k) < 0 && Math.random() < 0.45) kinds[0] = newest.k;
     var list = kinds.map(function (k) {
       var n = shifts < 1 ? rint(3, 4) : nk === 1 ? rint(3, 6) : nk === 2 ? rint(2, 4) : rint(2, 3);
       return { k: k, n: n };
@@ -343,7 +350,12 @@
     var bake = d <= ZONE ? 1 : clamp(1 - (d - ZONE) / 0.3, 0.1, 1);
     var n = it.cuts.length, slices = n ? n * 2 : 1, even = cutEvenness(it.cuts);
     var cut = slices === o.slices ? 0.55 + 0.45 * even : Math.abs(slices - o.slices) === 2 ? 0.35 + 0.15 * even : n ? 0.2 : 0.1;
-    return [{ k: 'top', v: top }, { k: 'bake', v: bake }, { k: 'cut', v: cut }];
+    var st = PIZZERIA.stations;
+    return [
+      { k: 'top', n: 'Dodatki', icon: st[0].icon, v: top, tip: kinds < 1 ? 'Policz dodatki: ma być tyle, ile na karteczce.' : wrong ? 'Kładź tylko dodatki z karteczki.' : sS < 1 || sC < 1 ? 'Posmaruj sosem i posyp serem całą pizzę.' : 'Rozłóż dodatki równo po całej pizzy.' },
+      { k: 'bake', n: 'Pieczenie', icon: st[1].icon, v: bake, tip: b < DONE[o.done].c ? 'Potrzymaj pizzę w piecu trochę dłużej.' : 'Wyjmij pizzę z pieca trochę wcześniej.' },
+      { k: 'cut', n: 'Krojenie', icon: st[2].icon, v: cut, tip: slices !== o.slices ? 'Policz kawałki: ma być tyle, ile na karteczce.' : 'Krój przez sam środek, na równe kawałki.' }
+    ];
   }
 
   // ---------- kitchen backgrounds ----------
@@ -360,16 +372,80 @@
     g.fillStyle = 'rgba(29,47,111,.08)'; g.fillRect(0, fy, W, 4);
   }
 
+  // a storefront for the hub card: wall, sign, awning, door; returns the shop window box for the dish picture
+  function shopCard(g, w, h, o) {
+    g.fillStyle = '#bfe3ff'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#8fd06b'; g.fillRect(0, h * 0.86, w, h * 0.14);
+    var x0 = w * 0.14, x1 = w * 0.86, y0 = h * 0.22, y1 = h * 0.88;
+    rr(g, x0, y0, x1 - x0, y1 - y0, 6); g.fillStyle = o.wall; g.fill(); ink(g, 3);
+    rr(g, x0 + 10, h * 0.06, x1 - x0 - 20, h * 0.15, 10); g.fillStyle = '#fff'; g.fill(); ink(g, 3);
+    txt(g, o.sign, w / 2, h * 0.137, h * 0.11, o.signCol);
+    var n = 8, aw = (x1 - x0 + 16) / n;
+    for (var i = 0; i < n; i++) {
+      g.beginPath(); g.moveTo(x0 - 8 + i * aw, y0 + 4); g.lineTo(x0 - 8 + (i + 1) * aw, y0 + 4); g.lineTo(x0 - 8 + (i + 1) * aw, y0 + h * 0.12); g.arc(x0 - 8 + (i + 0.5) * aw, y0 + h * 0.12, aw / 2, 0, Math.PI); g.closePath();
+      g.fillStyle = i % 2 ? '#fff' : o.awning; g.fill(); ink(g, 2);
+    }
+    rr(g, w * 0.6, h * 0.48, w * 0.15, y1 - h * 0.48, 6); g.fillStyle = o.door; g.fill(); ink(g, 2.5);
+    rr(g, w * 0.62, h * 0.52, w * 0.11, h * 0.14, 4); g.fillStyle = '#d6efff'; g.fill(); ink(g, 2);
+    rr(g, w * 0.2, h * 0.46, w * 0.34, h * 0.3, 6); g.fillStyle = '#d6efff'; g.fill(); ink(g, 2.5);
+    return { x: w * 0.37, y: h * 0.61, s: h * 0.12 };
+  }
+
+  /*
+   * A restaurant module (PIZZERIA here, the others through NG.restauracje.add):
+   *   id, name, sign, colours (signCol wall wall2 trim counter counter2 floor1 floor2 curtain cloth), req: { id, shifts }
+   *   stat (ctx.stat key for a served dish), madeLabel, fastS / okS (seconds for 3 / 2 time stars)
+   *   hi[], bye{3,2,1}[]: what guests say; tx: { make, serve, first } hints
+   *   stations: [{ k, n, icon }] and for each a view R[k]: { layout, enter, draw, down, move, up, hint, buttons }
+   *   newOrder(shifts), newItem(order), drawOrder(g, order, w, h), drawServe(g, item, x, y, R, order)
+   *   score(order, item) -> three parts { n, icon, v: 0..1, tip }
+   *   where(item) -> station that has the next work ('podaj' when ready), at(item, k) optional, ready(item)
+   *   whereText{}, back(item) -> { label, k } (undo "ready"), update(dt, S), hud(S) -> tab badges, badge(item, order) -> ticket chip
+   *   init(S), onTicket(S), started(item), onServe(order, item, ctx)
+   *   unlockN, unlockWord, unlockRow(g, w, h, shifts), nextUnlock(shifts), newUnlocks(shifts), board(g, x, y, s), card(g, w, h)
+   */
   // ---------- Pizzeria module ----------
   var PIZZERIA = {
-    id: 'pizzeria', name: 'Pizzeria', sign: 'Pizzeria Okruszek', noun: ['pizzę', 'pizze', 'pizz'],
-    wall: '#fbe3c4', wall2: '#f6d3a8', trim: '#e07a4f', counter: '#d4553b', counter2: '#b8432d', floor1: '#f3d6ad', floor2: '#e8c393',
+    id: 'pizzeria', name: 'Pizzeria', sign: 'Pizzeria Okruszek', signCol: '#c8432d',
+    wall: '#fbe3c4', wall2: '#f6d3a8', trim: '#e07a4f', counter: '#d4553b', counter2: '#b8432d', floor1: '#f3d6ad', floor2: '#e8c393', curtain: '#e2533f', cloth: '#f39cab',
+    stat: 'pizzas', madeLabel: 'Upieczone', fastS: 100, okS: 160,
+    hi: SAY_HI, bye: SAY_BYE,
+    tx: { make: 'Zrób pizzę w kuchni.', serve: 'Podaj pizzę', first: 'Najpierw zrób pizzę.' },
+    hereIcon: '<circle cx="12" cy="12" r="10" fill="#efc57e" stroke="#1d2f6f" stroke-width="2"/><circle cx="12" cy="12" r="7" fill="#d9412e"/><circle cx="9" cy="10" r="2" fill="#ffd95a"/><circle cx="14" cy="14" r="2" fill="#ffd95a"/>',
+    podajIcon: '<ellipse cx="20" cy="27" rx="16" ry="6" fill="#fff" stroke="#1d2f6f" stroke-width="2.5"/><path d="M12 24 l8 -14 l8 14 z" fill="#ffd95a" stroke="#1d2f6f" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 24 h16" stroke="#efc57e" stroke-width="3"/><circle cx="20" cy="18" r="2" fill="#d8433b"/>',
+    init: function (S) { S.tool = 'sauce'; S.guides = S.shifts < 3; },
+    onTicket: function (S) { PIZZERIA.dodatki.enter(S); },
+    started: function (it) { return it.tops.length > 0 || it.stage !== 'top'; },
+    back: function (it) { it.stage = 'cut'; return { label: '← Krojenie', k: 'krojenie' }; },
+    backLabel: '← Krojenie',
+    onServe: function (o, it, ctx) { if (o.slices === 8 && it.cuts.length === 4) ctx.sticker('eight'); },
+    badge: function (it, o) {
+      if (it.stage === 'top') return null;
+      if (it.stage === 'oven') return Math.abs(it.bake - DONE[o.done].c) <= ZONE ? 'Wyjmij!' : 'Piec ' + Math.round(it.bake * 100) + '%';
+      return it.stage === 'plate' ? 'Gotowa' : it.stage === 'cut' ? 'Krojenie' : 'Upieczona';
+    },
+    unlockN: TOPS.length, unlockWord: 'Nowy dodatek',
+    unlockRow: function (g, w, h, shifts) {
+      var n = TOPS.length, s = Math.min(h * 0.36, w / n / 2.4);
+      TOPS.forEach(function (t, i) {
+        var x = (i + 0.5) * w / n, y = h / 2, ok = shifts >= t.at;
+        g.save(); g.globalAlpha = ok ? 1 : 0.22; g.translate(x, y); drawTop(g, t.k, s); g.restore();
+        if (!ok) { rr(g, x - 5, y - 2, 10, 8, 2); g.fillStyle = MUTED; g.fill(); g.beginPath(); g.arc(x, y - 2, 3.5, Math.PI, 0); g.strokeStyle = MUTED; g.lineWidth = 2; g.stroke(); }
+      });
+    },
+    nextUnlock: function (shifts) { var t = TOPS.filter(function (x) { return x.at > shifts; })[0]; return t ? t.at - shifts : 0; },
+    newUnlocks: function (shifts) { return TOPS.filter(function (t) { return t.at === shifts; }).map(function (t) { return t.n; }); },
+    unlocked: function (shifts) { return unlockedTops(shifts).length; },
+    board: function (g, x, y, s) {
+      g.beginPath(); g.moveTo(x - s, y - s * 0.7); g.lineTo(x + s, y - s * 0.7); g.lineTo(x, y + s); g.closePath(); g.fillStyle = '#ffd95a'; g.fill(); ink(g, 2);
+      g.beginPath(); g.moveTo(x - s, y - s * 0.7); g.lineTo(x + s, y - s * 0.7); g.strokeStyle = '#efc57e'; g.lineWidth = s * 0.3; g.stroke();
+      circle(g, x - s * 0.2, y - s * 0.2, s * 0.2); g.fillStyle = '#d8433b'; g.fill(); circle(g, x + s * 0.25, y, s * 0.17); g.fill(); circle(g, x, y + s * 0.4, s * 0.14); g.fill();
+    },
     stations: [
       { k: 'dodatki', n: 'Dodatki', icon: '<circle cx="20" cy="21" r="15" fill="#efc57e" stroke="#1d2f6f" stroke-width="2.5"/><circle cx="20" cy="21" r="11" fill="#d9412e"/><circle cx="15" cy="17" r="3.5" fill="#f3e4c8" stroke="#1d2f6f" stroke-width="1.5"/><circle cx="25" cy="19" r="3.5" fill="#a8322a" stroke="#1d2f6f" stroke-width="1.5"/><circle cx="19" cy="26" r="3.5" fill="#a8322a" stroke="#1d2f6f" stroke-width="1.5"/>' },
       { k: 'piec', n: 'Piec', icon: '<path d="M5 34 v-12 a15 13 0 0 1 30 0 v12 z" fill="#d4553b" stroke="#1d2f6f" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 34 v-7 a8 7 0 0 1 16 0 v7 z" fill="#3a1f1a"/><path d="M20 33 q-5 -3 -1 -9 q1 3 3 3 q2 3 -2 6z" fill="#f39a2a"/>' },
       { k: 'krojenie', n: 'Krojenie', icon: '<circle cx="17" cy="23" r="11" fill="#c9d6ea" stroke="#1d2f6f" stroke-width="2.5"/><circle cx="17" cy="23" r="3" fill="#1d2f6f"/><path d="M24 16 l10 -10" stroke="#1d2f6f" stroke-width="7" stroke-linecap="round"/><path d="M24 16 l10 -10" stroke="#f2b51d" stroke-width="3.5" stroke-linecap="round"/>' }
     ],
-    unlocks: function (shifts) { return unlockedTops(shifts).length; },
     newOrder: pizzaOrder,
     newItem: newPizza,
     drawOrder: drawOrder,
@@ -379,7 +455,7 @@
     whereText: { dodatki: 'Pizza czeka przy dodatkach.', piec: 'Pizza jest w piecu.', krojenie: 'Pizza czeka na krojenie.', podaj: 'Pizza czeka na podanie.' },
     // the finished pizza on the counter
     drawServe: function (g, it, x, y, R) {
-      g.save(); g.translate(x, y); g.scale(1, 0.5);
+      g.save(); g.translate(x, y); g.scale(1, 0.5); g.lineWidth = 1;
       circle(g, 0, R * 0.12, R * 1.18); g.fillStyle = 'rgba(29,47,111,.15)'; g.fill();
       circle(g, 0, 0, R * 1.16); g.fillStyle = '#fff'; g.fill(); ink(g, 2.5);
       circle(g, 0, 0, R * 0.98); g.strokeStyle = '#d4def0'; g.lineWidth = 2; g.stroke();
@@ -388,21 +464,28 @@
     },
     // gentle per-frame work (the oven bakes while you are elsewhere)
     update: function (dt, S) {
-      var it = S.item; if (!it) return;
-      if (it.stage === 'oven') {
-        it.insT = Math.min(1, it.insT + dt / 0.45);
-        if (it.insT >= 1) {
-          var was = it.bake;
-          it.bake = Math.min(1, it.bake + dt / BAKE_S);
-          var c = DONE[S.ticket.order.done].c;
-          if (was < c - ZONE && it.bake >= c - ZONE) { S.sfx('tick'); S.flash('piec'); }
+      S.tickets.forEach(function (t) {
+        var it = t.item; if (!it) return;
+        if (it.stage === 'oven') {
+          it.insT = Math.min(1, it.insT + dt / 0.45);
+          if (it.insT >= 1) {
+            var was = it.bake;
+            it.bake = Math.min(1, it.bake + dt / BAKE_S);
+            var c = DONE[t.order.done].c;
+            if (was < c - ZONE && it.bake >= c - ZONE) { S.sfx('tick'); S.flash('piec'); if (S.view !== 'piec' || t !== S.ticket) S.say('Pizza w piecu gotowa!'); }
+          }
         }
-      }
-      for (var i = it.cutT.length - 1; i >= 0; i--) { it.cutT[i].t += dt; if (it.cutT[i].t > 0.45) it.cutT.splice(i, 1); }
+        for (var i = it.cutT.length - 1; i >= 0; i--) { it.cutT[i].t += dt; if (it.cutT[i].t > 0.45) it.cutT.splice(i, 1); }
+      });
     },
-    hud: function (S) {   // tab badges
-      var it = S.item, o = S.ticket && S.ticket.order, b = {};
-      if (it && it.stage === 'oven' && o) { var c = DONE[o.done].c; b.piec = Math.abs(it.bake - c) <= ZONE ? '!' : Math.round(it.bake * 100) + '%'; }
+    hud: function (S) {   // tab badges: the oven shows the pizza that is closest to done
+      var b = {}, best = null;
+      S.tickets.forEach(function (t) {
+        var it = t.item; if (!it || it.stage !== 'oven') return;
+        var c = DONE[t.order.done].c, v = Math.abs(it.bake - c) <= ZONE ? '!' : Math.round(it.bake * 100) + '%';
+        if (v === '!' || best == null) best = v;
+      });
+      if (best) b.piec = best;
       return b;
     }
   };
@@ -515,7 +598,7 @@
       var now = S.T; if (now - (S.lastPaint || 0) > 0.12) { S.lastPaint = now; S.sfx('paint'); }
       if (tool === 'cheese' && !REDUCED && Math.random() < 0.5) S.crumb(S.L.cx + b.x * S.L.R, S.L.cy + b.y * S.L.R, '#ffd64d');
       var cv = coverage(tool === 'sauce' ? it.sg : it.cg);
-      if (cv >= 0.7 && !S['done_' + tool]) { S['done_' + tool] = true; S.sfx('star'); S.say(tool === 'sauce' ? 'Sos gotowy!' : 'Ser gotowy!'); }
+      if (cv >= 0.7 && !it['done_' + tool]) { it['done_' + tool] = true; S.sfx('star'); S.say(tool === 'sauce' ? 'Sos gotowy!' : 'Ser gotowy!'); }
     },
     down: function (S, x, y) {
       var it = S.item; if (!it || it.stage !== 'top') return;
@@ -568,7 +651,7 @@
       if (it.stage !== 'top') { var w = PIZZERIA.where(it); return [{ id: 'goWhere', label: 'Idź: ' + S.stationName(w) + ' →', main: true, on: function () { S.go(w); } }]; }
       var ready = coverage(it.sg) >= 0.5 && coverage(it.cg) >= 0.5 && this.complete(S);
       return [
-        { id: 'clear', label: '↺ Od nowa', on: function () { S.replaceItem(); S.sfx('whoosh'); S.done_sauce = S.done_cheese = false; S.tool = 'sauce'; } },
+        { id: 'clear', label: '↺ Od nowa', on: function () { S.replaceItem(); S.sfx('whoosh'); S.tool = 'sauce'; } },
         { id: 'oven', label: 'Do pieca →', main: true, pulse: ready, on: function () { it.stage = 'oven'; it.insT = 0; S.sfx('whoosh'); S.go('piec'); } }
       ];
     }
@@ -581,8 +664,8 @@
       L.cx = W / 2; L.gy = 30; L.gh = Math.max(40, Math.min(56, H * 0.1));
       L.fy = H - Math.max(18, H * 0.06);                                    // floor line
       var top = L.gy + L.gh + 58;                                           // below the gauge and its label
-      L.ow = Math.min(W * 0.86, 640, (L.fy - top) / 0.62); L.oh = L.ow * 0.68;
-      L.oy = L.fy - L.oh;
+      L.ow = Math.min(W * 0.86, 640, (L.fy - top) / 0.79); L.oh = L.ow * 0.68;  // 0.79: the chimney stays below the gauge too
+      L.oy = L.fy - L.oh; L.sayY = L.oy + 6;
       L.mx = L.cx; L.my = L.oy + L.oh * 0.84; L.mw = L.ow * 0.52; L.mh = L.oh * 0.42;
       L.pr = L.mw * 0.36;
     },
@@ -614,6 +697,11 @@
         g.beginPath(); g.moveTo(fx - mw * 0.06, my - mh * 0.15); g.quadraticCurveTo(fx, my - mh * 0.15 - fh * 1.5, fx + mw * 0.06, my - mh * 0.15); g.closePath();
         g.fillStyle = f === 1 ? '#ffd85a' : '#f39a2a'; g.fill();
       }
+      // another ticket's pizza baking at the back
+      S.tickets.forEach(function (t) {
+        if (t === S.ticket || !t.item || t.item.stage !== 'oven') return;
+        g.save(); g.translate(mx - mw * 0.24, my - mh * 0.3); g.scale(1, 0.42); drawPizza(g, t.item, L.pr * 0.62); g.restore();
+      });
       // pizza inside
       if (it && it.stage === 'oven') {
         var e = it.insT, py = lerp(H + L.pr, my - mh * 0.12, 1 - Math.pow(1 - e, 3));
@@ -670,17 +758,23 @@
       S.say(Math.abs(d) <= ZONE ? 'Idealnie upieczona!' : d < 0 ? 'Trochę blada, ale zjadliwa!' : 'Mocno przypieczona!');
       if (Math.abs(d) <= ZONE) { S.sfx('star'); S.sparkle(S.L.mx, S.L.my); }
     },
+    pale: function (S) { var it = S.item; return it.stage === 'baked' && it.bake < DONE[S.ticket.order.done].c - ZONE; },
+    again: function (S) { var it = S.item; it.stage = 'oven'; it.baked = null; it.insT = 1; S.sfx('whoosh'); S.say('Dopiekamy!'); },
     down: function (S, x, y) {
       var it = S.item, L = S.L; if (!it) return;
       var onOven = Math.abs(x - L.cx) < L.ow / 2 && y > L.oy - 20 && y < L.oy + L.oh + 20;
-      if (it.stage === 'oven' && it.insT >= 1 && onOven) this.takeOut(S);
+      if (it.stage === 'oven' && it.insT >= 1 && onOven) {
+        // a tap takes the pizza out only when it is (almost) ready, so a stray touch does not spoil it; the button always works
+        if (it.bake >= DONE[S.ticket.order.done].c - ZONE) this.takeOut(S); else { S.sfx('tap'); S.say('Jeszcze chwilka!'); }
+      }
       else if (it.stage === 'top' && onOven) { it.stage = 'oven'; it.insT = 0; S.sfx('whoosh'); }
+      else if (onOven && this.pale(S)) this.again(S);
     },
     hint: function (S) {
       var it = S.item; if (!it) return 'Najpierw przyjmij zamówienie przy ladzie.';
       if (it.stage === 'top') return 'Najpierw połóż dodatki. Albo włóż pizzę od razu.';
-      if (it.stage === 'oven') return 'Wyjmij pizzę, gdy wskazówka będzie w ramce.';
-      if (it.stage === 'baked') return 'Upieczona! Teraz krojenie.';
+      if (it.stage === 'oven') return S.tickets.some(function (t) { return t !== S.ticket && t.item.stage === 'top'; }) ? 'Pizza się piecze. Możesz zacząć następną: dotknij jej karteczki.' : 'Wyjmij pizzę, gdy wskazówka będzie w ramce.';
+      if (it.stage === 'baked') return this.pale(S) ? 'Trochę blada. Możesz ją dopiec.' : 'Upieczona! Teraz krojenie.';
       return PIZZERIA.whereText[PIZZERIA.where(it)];
     },
     buttons: function (S) {
@@ -688,7 +782,7 @@
       if (!it) return [{ id: 'goLada', label: '← Do lady', main: true, on: function () { S.go('lada'); } }];
       if (it.stage === 'top') return [{ id: 'goTop', label: '← Dodatki', on: function () { S.go('dodatki'); } }, { id: 'in', label: 'Włóż pizzę', main: true, on: function () { it.stage = 'oven'; it.insT = 0; S.sfx('whoosh'); } }];
       if (it.stage === 'oven') { var c = DONE[S.ticket.order.done].c; return [{ id: 'out', label: 'Wyjmij!', main: true, pulse: Math.abs(it.bake - c) <= ZONE, disabled: it.insT < 1, on: function () { me.takeOut(S); } }]; }
-      if (it.stage === 'baked') return [{ id: 'cut', label: 'Do krojenia →', main: true, pulse: true, on: function () { it.stage = 'cut'; S.go('krojenie'); } }];
+      if (it.stage === 'baked') return (this.pale(S) ? [{ id: 'again', label: '← Dopiecz', on: function () { me.again(S); } }] : []).concat([{ id: 'cut', label: 'Do krojenia →', main: true, pulse: true, on: function () { it.stage = 'cut'; S.go('krojenie'); } }]);
       var w = PIZZERIA.where(it); return [{ id: 'goWhere', label: 'Idź: ' + S.stationName(w) + ' →', main: true, on: function () { S.go(w); } }];
     }
   };
@@ -792,59 +886,12 @@
   function angDiff(a, b) { var d = Math.abs(((a - b) % Math.PI + Math.PI) % Math.PI); return Math.min(d, Math.PI - d); }
 
   // hub card picture
-  PIZZERIA.card = function (g, w, h, T) {
-    g.fillStyle = '#bfe3ff'; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#8fd06b'; g.fillRect(0, h * 0.86, w, h * 0.14);
-    var x0 = w * 0.14, x1 = w * 0.86, y0 = h * 0.22, y1 = h * 0.88;
-    rr(g, x0, y0, x1 - x0, y1 - y0, 6); g.fillStyle = '#fbe3c4'; g.fill(); ink(g, 3);
-    // sign
-    rr(g, x0 + 10, h * 0.06, x1 - x0 - 20, h * 0.15, 10); g.fillStyle = '#fff'; g.fill(); ink(g, 3);
-    txt(g, 'Pizzeria Okruszek', w / 2, h * 0.137, h * 0.11, '#c8432d');
-    // awning
-    var n = 8, aw = (x1 - x0 + 16) / n;
-    for (var i = 0; i < n; i++) {
-      g.beginPath(); g.moveTo(x0 - 8 + i * aw, y0 + 4); g.lineTo(x0 - 8 + (i + 1) * aw, y0 + 4); g.lineTo(x0 - 8 + (i + 1) * aw, y0 + h * 0.12); g.arc(x0 - 8 + (i + 0.5) * aw, y0 + h * 0.12, aw / 2, 0, Math.PI); g.closePath();
-      g.fillStyle = i % 2 ? '#fff' : '#e2533f'; g.fill(); ink(g, 2);
-    }
-    // door
-    rr(g, w * 0.6, h * 0.48, w * 0.15, y1 - h * 0.48, 6); g.fillStyle = '#b5713c'; g.fill(); ink(g, 2.5);
-    rr(g, w * 0.62, h * 0.52, w * 0.11, h * 0.14, 4); g.fillStyle = '#d6efff'; g.fill(); ink(g, 2);
-    // window with a pizza
-    rr(g, w * 0.2, h * 0.46, w * 0.34, h * 0.3, 6); g.fillStyle = '#d6efff'; g.fill(); ink(g, 2.5);
-    var fake = { tops: [{ k: 'salami', n: 4 }, { k: 'grzyby', n: 2 }], done: 1, slices: 6 };
-    drawOrderPizza(g, fake, w * 0.37, h * 0.62, h * 0.12);
+  PIZZERIA.card = function (g, w, h) {
+    var p = shopCard(g, w, h, { wall: '#fbe3c4', sign: 'Pizzeria Okruszek', signCol: '#c8432d', awning: '#e2533f', door: '#b5713c' });
+    drawOrderPizza(g, { tops: [{ k: 'salami', n: 4 }, { k: 'grzyby', n: 2 }], done: 1, slices: 6 }, p.x, p.y + 3, p.s);
   };
 
-  // =====================================================================
-  // Burgerownia (coming soon): only a picture for now
-  // =====================================================================
-  var BURGER = {
-    id: 'burger', name: 'Burgerownia', soon: true,
-    card: function (g, w, h) {
-      g.fillStyle = '#bfe3ff'; g.fillRect(0, 0, w, h);
-      g.fillStyle = '#8fd06b'; g.fillRect(0, h * 0.86, w, h * 0.14);
-      var x0 = w * 0.14, x1 = w * 0.86, y0 = h * 0.22, y1 = h * 0.88;
-      rr(g, x0, y0, x1 - x0, y1 - y0, 6); g.fillStyle = '#e5f0ff'; g.fill(); ink(g, 3);
-      rr(g, x0 + 10, h * 0.06, x1 - x0 - 20, h * 0.15, 10); g.fillStyle = '#fff'; g.fill(); ink(g, 3);
-      txt(g, 'Burgerownia', w / 2, h * 0.137, h * 0.11, '#3f86d8');
-      var n = 8, aw = (x1 - x0 + 16) / n;
-      for (var i = 0; i < n; i++) {
-        g.beginPath(); g.moveTo(x0 - 8 + i * aw, y0 + 4); g.lineTo(x0 - 8 + (i + 1) * aw, y0 + 4); g.lineTo(x0 - 8 + (i + 1) * aw, y0 + h * 0.12); g.arc(x0 - 8 + (i + 0.5) * aw, y0 + h * 0.12, aw / 2, 0, Math.PI); g.closePath();
-        g.fillStyle = i % 2 ? '#fff' : '#f2b51d'; g.fill(); ink(g, 2);
-      }
-      rr(g, w * 0.6, h * 0.48, w * 0.15, y1 - h * 0.48, 6); g.fillStyle = '#7d8fb0'; g.fill(); ink(g, 2.5);
-      // burger
-      var bx = w * 0.37, by = h * 0.62, s = h * 0.13;
-      g.beginPath(); g.moveTo(bx - s * 1.2, by); g.bezierCurveTo(bx - s * 1.2, by - s * 1.3, bx + s * 1.2, by - s * 1.3, bx + s * 1.2, by); g.closePath(); g.fillStyle = '#e9a13f'; g.fill(); ink(g, 2.5);
-      rr(g, bx - s * 1.3, by, s * 2.6, s * 0.25, 4); g.fillStyle = '#5cbc4b'; g.fill(); ink(g, 2);
-      rr(g, bx - s * 1.2, by + s * 0.25, s * 2.4, s * 0.4, 6); g.fillStyle = '#7a4326'; g.fill(); ink(g, 2);
-      rr(g, bx - s * 1.2, by + s * 0.65, s * 2.4, s * 0.4, 8); g.fillStyle = '#e9a13f'; g.fill(); ink(g, 2.5);
-      [[-0.5, -0.6], [0.1, -0.8], [0.6, -0.5]].forEach(function (p) { g.beginPath(); g.ellipse(bx + p[0] * s, by + p[1] * s, s * 0.1, s * 0.05, 0.3, 0, 7); g.fillStyle = '#fff6d8'; g.fill(); });
-    }
-  };
-
-  // next restaurants go here
-  var RESTAURANTS = [PIZZERIA, BURGER];
+  function rests() { return [PIZZERIA].concat(NG.restauracje.mods); }
 
   // =====================================================================
   // Tile picture
@@ -882,9 +929,10 @@
     '.rs-card .ln b{font-weight:400;color:' + GOLD + '}',
     '.rs-card .go{align-self:flex-start;margin-top:6px;font-size:1.35rem;padding:6px 18px;border-radius:14px;border:3px solid ' + INK + ';background:' + GOLD + ';color:#2a1d00;box-shadow:0 3px 0 ' + INK + '}',
     '.rs-card .tops{display:block;height:34px;width:100%;margin-top:2px}',
-    '.rs-card.soon{filter:grayscale(.85);opacity:.8;cursor:default}',
+    '.rs-card.soon{cursor:default}',
+    '.rs-card.soon .pic canvas{filter:grayscale(.85);opacity:.7}',
     '.rs-card.soon:active{transform:none}',
-    '.rs-card .soonb{position:absolute;top:12px;right:-34px;transform:rotate(30deg);background:#7a4fc4;color:#fff;font-size:1.25rem;padding:2px 44px;border:2px solid ' + INK + '}',
+    '.rs-card .soonb{position:absolute;top:14px;right:-40px;transform:rotate(30deg);background:#7a4fc4;color:#fff;font-size:1.2rem;padding:2px 48px;border:2px solid ' + INK + '}',
     '.rs-book{background:#fff;border:3px solid ' + INK + ';border-radius:20px;padding:10px 14px 14px;box-shadow:0 4px 0 rgba(29,47,111,.18)}',
     '.rs-book h3{margin:0 0 8px;font-weight:400;font-size:1.5rem}',
     '.rs-book h3 small{color:' + MUTED + ';font-size:1.05rem;margin-left:8px}',
@@ -904,6 +952,10 @@
     '.rs-tk:nth-child(2n){transform:rotate(1.5deg)}',
     '.rs-tk::before{content:"";position:absolute;left:50%;top:-6px;width:14px;height:12px;margin-left:-7px;background:#f2b51d;border:2px solid ' + INK + ';border-radius:3px}',
     '.rs-tk.cur{border-color:' + GOLD + ';box-shadow:0 0 0 3px ' + GOLD + ',0 3px 0 rgba(0,0,0,.25)}',
+    '.rs-tk.pick{cursor:pointer}',
+    '.rs-tk .chip{position:absolute;right:-4px;bottom:-6px;font-size:.9rem;line-height:1.15;background:#fff;border:2px solid ' + INK + ';border-radius:10px;padding:0 6px;white-space:nowrap;display:none}',
+    '.rs-tk .chip.on{display:block}',
+    '.rs-tk .chip.hot{background:#e2533f;color:#fff;animation:rsbob 1s ease-in-out infinite}',
     '.rs-tk canvas{display:block}',
     '.rs-tk .nm{position:absolute;left:6px;top:2px;font-size:.85rem;color:' + MUTED + ';white-space:nowrap}',
     '.rs-empty{color:#f8e2c4;font-size:1.15rem;align-self:center;padding-top:10px}',
@@ -928,6 +980,7 @@
     '.rs-tab svg{width:34px;height:34px}',
     '.rs-tab span{font-size:1.02rem;line-height:1}',
     '.rs-tab.on{background:#fff4d6;border-color:' + GOLD + ';box-shadow:0 0 0 3px ' + GOLD + ' inset}',
+    '.rs-tab.fl{animation:rspulse .7s ease-in-out infinite;background:#ffe9e2}',
     '.rs-tab .bd{position:absolute;top:-9px;right:-6px;min-width:26px;height:26px;border-radius:13px;background:#e2533f;color:#fff;border:2px solid ' + INK + ';font-size:.95rem;line-height:22px;padding:0 5px;display:none}',
     '.rs-tab .bd.on{display:block;animation:rsbob 1s ease-in-out infinite}',
     '.rs-tab .bd.soft{background:#fff;color:' + INK + ';animation:none}',
@@ -947,10 +1000,12 @@
     '.rs-tip{display:flex;align-items:center;gap:10px;font-size:1.6rem}',
     '.rs-tip b{font-weight:400;color:' + GOLD + '}',
     '.rs-tip small{display:block;font-size:1rem;color:' + MUTED + '}',
+    '.rs-advice{font-size:1.1rem;line-height:1.15;text-align:center;background:#fff4d6;border:2px solid ' + GOLD + ';border-radius:12px;padding:4px 10px}',
     '@keyframes rspin{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}',
     '@keyframes rspulse{50%{transform:scale(1.07)}}',
     '@keyframes rsbob{50%{transform:translateY(-3px)}}',
     '@media (max-width:520px){.rs-act{flex-wrap:wrap;gap:4px 8px;padding:4px 8px}.rs-hint{flex-basis:100%;text-align:center;font-size:1.05rem}.rs-b{min-height:44px;font-size:1.05rem;padding:2px 10px}.rs-b.main{font-size:1.25rem;padding:2px 14px}.rs-tab span{font-size:.9rem}.rs-tab svg{width:30px;height:30px}.rs-tab{min-height:56px;border-radius:14px}.rs-tabs{gap:4px;padding:5px 5px calc(5px + env(safe-area-inset-bottom,0px))}.rs-rail{gap:6px;padding:6px 6px 8px;min-height:90px}.rs-tix{gap:6px}.rs-dots i{width:12px;height:12px}.rs-jarl{font-size:1.05rem;padding:0 6px}}',
+    '@media (min-width:1800px) and (min-height:800px){.rs-tab{max-width:300px;min-height:84px}.rs-tab svg{width:46px;height:46px}.rs-tab span{font-size:1.35rem}.rs-act{min-height:80px}.rs-hint{font-size:1.55rem}.rs-b{min-height:60px;font-size:1.45rem;padding:4px 20px}.rs-b.main{font-size:1.75rem;padding:4px 28px}.rs-jarl{font-size:1.6rem}.rs-dots i{width:22px;height:22px}.rs-tk .chip{font-size:1.15rem}.rs-sc{max-width:520px}}',
     '@media (prefers-reduced-motion:reduce){.rs *{animation:none!important;transition:none!important}}'
   ].join('\n');
 
@@ -958,21 +1013,20 @@
   var SVG_STAR = function (on) { return '<svg viewBox="0 0 24 24"><path d="M12 2 l2.9 6.2 6.8.8 -5 4.6 1.4 6.7 -6.1-3.4 -6.1 3.4 1.4-6.7 -5-4.6 6.8-.8z" fill="' + (on ? '#f2b51d' : '#eef1f8') + '" stroke="#1d2f6f" stroke-width="1.8" stroke-linejoin="round"/></svg>'; };
   var SVG_CLOCK = '<circle cx="20" cy="21" r="14" fill="#fff" stroke="#1d2f6f" stroke-width="2.5"/><path d="M20 12 v9 l6 4" stroke="#1d2f6f" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
   var SVG_LADA = '<path d="M5 33 h30" stroke="#1d2f6f" stroke-width="3" stroke-linecap="round"/><path d="M9 30 a11 11 0 0 1 22 0 z" fill="#f2b51d" stroke="#1d2f6f" stroke-width="2.5" stroke-linejoin="round"/><circle cx="20" cy="16" r="2.6" fill="#1d2f6f"/><path d="M14 25 q1 -5 5 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>';
-  var SVG_PODAJ = '<ellipse cx="20" cy="27" rx="16" ry="6" fill="#fff" stroke="#1d2f6f" stroke-width="2.5"/><path d="M12 24 l8 -14 l8 14 z" fill="#ffd95a" stroke="#1d2f6f" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 24 h16" stroke="#efc57e" stroke-width="3"/><circle cx="20" cy="18" r="2" fill="#d8433b"/>';
-  var SVG_HERE = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#efc57e" stroke="#1d2f6f" stroke-width="2"/><circle cx="12" cy="12" r="7" fill="#d9412e"/><circle cx="9" cy="10" r="2" fill="#ffd95a"/><circle cx="14" cy="14" r="2" fill="#ffd95a"/></svg>';
   function svg(inner) { return '<svg viewBox="0 0 40 40" aria-hidden="true">' + inner + '</svg>'; }
 
   // =====================================================================
   // Game
   // =====================================================================
-  function freshR() { return { shifts: 0, pizzas: 0, perfect: 0, best: 0, open: null }; }
+  function freshR() { return { shifts: 0, made: 0, perfect: 0, best: 0, open: null }; }
   function migrate(s) {
     s = s && typeof s === 'object' ? s : {};
     var o = { v: 1, seenHelp: !!s.seenHelp, guests: {}, r: {} };
     if (s.guests && typeof s.guests === 'object') SPECIES.forEach(function (k) { var n = +s.guests[k]; if (n > 0) o.guests[k] = Math.floor(n); });
-    RESTAURANTS.forEach(function (R) {
+    rests().forEach(function (R) {
       var src = s.r && typeof s.r === 'object' && s.r[R.id] && typeof s.r[R.id] === 'object' ? s.r[R.id] : {}, d = freshR();
-      ['shifts', 'pizzas', 'perfect', 'best'].forEach(function (k) { var v = +src[k]; d[k] = isFinite(v) && v > 0 ? Math.floor(v) : 0; });
+      if (src.made == null && src.pizzas != null) src.made = src.pizzas;   // the first version counted only pizzas
+      ['shifts', 'made', 'perfect', 'best'].forEach(function (k) { var v = +src[k]; d[k] = isFinite(v) && v > 0 ? Math.floor(v) : 0; });
       var op = src.open;
       if (op && typeof op === 'object' && +op.done >= 0 && +op.done < SHIFT_N) d.open = { done: Math.floor(+op.done), hearts: Math.max(0, Math.floor(+op.hearts || 0)), tips: clamp(Math.floor(+op.tips || 0), 0, SHIFT_N * TIP_MAX) };
       o.r[R.id] = d;
@@ -985,11 +1039,17 @@
     medals: [
       { id: 'p10', stat: 'pizzas', at: 10, tier: 1, text: '10 pizz' },
       { id: 'p50', stat: 'pizzas', at: 50, tier: 2, text: '50 pizz' },
-      { id: 'p150', stat: 'pizzas', at: 150, tier: 3, text: '150 pizz' }
+      { id: 'p150', stat: 'pizzas', at: 150, tier: 3, text: '150 pizz' },
+      { id: 'b10', stat: 'burgers', at: 10, tier: 1, text: '10 burgerów' },
+      { id: 'b50', stat: 'burgers', at: 50, tier: 2, text: '50 burgerów' },
+      { id: 'b150', stat: 'burgers', at: 150, tier: 3, text: '150 burgerów' },
+      { id: 'l10', stat: 'lody', at: 10, tier: 1, text: '10 lodów' },
+      { id: 'l50', stat: 'lody', at: 50, tier: 2, text: '50 lodów' },
+      { id: 'l150', stat: 'lody', at: 150, tier: 3, text: '150 lodów' }
     ],
     quests: [
-      { id: 'pizzas', stat: 'pizzas', n: [3, 5], text: 'Upiecz {n} {pizza} w Restauracjach', forms: ['pizzę', 'pizze', 'pizz'] },
-      { id: 'perfect', stat: 'perfect', n: [1, 2], text: 'Zrób {n} {pizza} na 3 serduszka', forms: ['pizzę', 'pizze', 'pizz'] }
+      { id: 'meals', stat: 'meals', n: [3, 5], text: 'Nakarm {n} {gosc} w Restauracjach', forms: ['gościa', 'gości', 'gości'] },
+      { id: 'perfect', stat: 'perfect', n: [1, 2], text: 'Zrób {n} {danie} na 3 serduszka w Restauracjach', forms: ['danie', 'dania', 'dań'] }
     ],
     stickers: [
       { id: 'first', emoji: '🍕', name: 'Pierwsza pizza' },
@@ -998,7 +1058,14 @@
       { id: 'pet', emoji: '🏡', name: 'Mój zwierzak w pizzerii' },
       { id: 'eight', emoji: '🔪', name: 'Osiem kawałków' },
       { id: 'tops', emoji: '🫒', name: 'Wszystkie dodatki' },
-      { id: 'guests', emoji: '🐾', name: 'Wszyscy goście' }
+      { id: 'guests', emoji: '🐾', name: 'Wszyscy goście' },
+      { id: 'burger', emoji: '🍔', name: 'Pierwszy burger' },
+      { id: 'tower', emoji: '🗼', name: 'Prosta wieża' },
+      { id: 'btops', emoji: '🥓', name: 'Wszystkie składniki' },
+      { id: 'lody', emoji: '🍦', name: 'Pierwsze lody' },
+      { id: 'three', emoji: '🍨', name: 'Trzy gałki' },
+      { id: 'ltops', emoji: '🍒', name: 'Wszystkie smaki' },
+      { id: 'chef', emoji: '👩‍🍳', name: 'Trzy restauracje' }
     ],
 
     mount: function (root0, ctx) {
@@ -1023,25 +1090,26 @@
         var inner = el('div', 'rs-hub-in'); hubEl.appendChild(inner);
         inner.appendChild(el('div', 'rs-hd', '<h2>Restauracje</h2><p>Gotuj dla zwierzaków. Za dobre jedzenie dostaniesz napiwki w ★.</p>'));
         var cards = el('div', 'rs-cards'); inner.appendChild(cards);
-        RESTAURANTS.forEach(function (R) {
-          var b = el('button', 'rs-card' + (R.soon ? ' soon' : '')); b.type = 'button';
+        rests().forEach(function (R) {
+          var d = st.r[R.id], lock = lockOf(R);
+          var b = el('button', 'rs-card' + (lock ? ' soon' : '')); b.type = 'button';
           var pic = el('span', 'pic'), cv = document.createElement('canvas'); cv.width = 480; cv.height = 300; pic.appendChild(cv); b.appendChild(pic);
           var cg = cv.getContext('2d'); R.card(cg, 480, 300, 0);
           var bd = el('div', 'bd'); b.appendChild(bd);
           bd.appendChild(el('div', 'nm', R.name));
-          if (R.soon) {
-            bd.appendChild(el('div', 'ln', 'Wkrótce otworzymy!'));
+          if (lock) {
+            bd.appendChild(el('div', 'ln', 'Otworzy się po ' + lock.need + ' ' + pl(lock.need, 'zmianie', 'zmianach', 'zmianach') + ' w: ' + lock.R.name + '.'));
+            bd.appendChild(el('div', 'ln', 'Jeszcze <b>' + lock.left + '</b> ' + pl(lock.left, 'zmiana', 'zmiany', 'zmian') + '!'));
             b.appendChild(el('div', 'soonb', 'Wkrótce!'));
-            b.onclick = function () { ctx.sfx('tap'); ctx.toast('Burgerownia jeszcze się buduje!'); };
+            b.onclick = function () { ctx.sfx('tap'); ctx.toast(R.name + ': jeszcze ' + lock.left + ' ' + pl(lock.left, 'zmiana', 'zmiany', 'zmian') + ' w: ' + lock.R.name + '.'); };
           } else {
-            var d = st.r[R.id];
             bd.appendChild(el('div', 'ln', d.open ? 'Zmiana trwa: gość ' + (d.open.done + 1) + ' z ' + SHIFT_N : 'Zmiana: <b>' + SHIFT_PRICE + ' ★</b> · ' + SHIFT_N + ' gości'));
-            bd.appendChild(el('div', 'ln', 'Upieczone: ' + d.pizzas + ' · zmiany: ' + d.shifts));
-            if (R === PIZZERIA) {
+            bd.appendChild(el('div', 'ln', R.madeLabel + ': ' + d.made + ' · zmiany: ' + d.shifts));
+            if (R.unlockRow) {
               var tc = smallCanvas(300, 34); tc.c.className = 'tops'; tc.c.style.width = '100%'; bd.appendChild(tc.c);
-              drawTopsRow(tc.g, 300, 34, d.shifts);
-              var next = TOPS.filter(function (t) { return t.at > d.shifts; })[0];
-              if (next) { var k = next.at - d.shifts; bd.appendChild(el('div', 'ln', 'Nowy dodatek za ' + k + ' ' + pl(k, 'zmianę', 'zmiany', 'zmian'))); }
+              R.unlockRow(tc.g, 300, 34, d.shifts);
+              var k = R.nextUnlock(d.shifts);
+              if (k) bd.appendChild(el('div', 'ln', R.unlockWord + ' za ' + k + ' ' + pl(k, 'zmianę', 'zmiany', 'zmian')));
             }
             bd.appendChild(el('span', 'go', d.open ? 'Dokończ zmianę' : 'Otwórz'));
             b.onclick = function () { ctx.sfx('open'); openRestaurant(R); };
@@ -1062,13 +1130,11 @@
         inner.appendChild(book);
         root.appendChild(hubEl);
       }
-      function drawTopsRow(g, w, h, shifts) {
-        var n = TOPS.length, s = Math.min(h * 0.36, w / n / 2.4);
-        TOPS.forEach(function (t, i) {
-          var x = (i + 0.5) * w / n, y = h / 2, ok = shifts >= t.at;
-          g.save(); g.globalAlpha = ok ? 1 : 0.22; g.translate(x, y); drawTop(g, t.k, s); g.restore();
-          if (!ok) { rr(g, x - 5, y - 2, 10, 8, 2); g.fillStyle = MUTED; g.fill(); g.beginPath(); g.arc(x, y - 2, 3.5, Math.PI, 0); g.strokeStyle = MUTED; g.lineWidth = 2; g.stroke(); }
-        });
+      // a restaurant opens after some shifts in the one before it
+      function lockOf(R) {
+        if (!R.req) return null;
+        var P = rests().filter(function (x) { return x.id === R.req.id; })[0], have = P ? st.r[P.id].shifts : 0;
+        return P && have < R.req.shifts && !st.r[R.id].shifts && !st.r[R.id].open ? { R: P, need: R.req.shifts, left: R.req.shifts - have } : null;
       }
       function drawPetFit(g, pet, x, y, w, h, stt) {
         var A = petArt(); if (!A) { circle(g, x + w / 2, y + h / 2, h * 0.35); g.fillStyle = '#e9a46b'; g.fill(); ink(g, 2); return; }
@@ -1122,10 +1188,10 @@
         btnsEl = el('div', 'rs-btns'); act.appendChild(btnsEl);
         tabsEl = el('div', 'rs-tabs'); shiftEl.appendChild(tabsEl);
 
-        var views = [{ k: 'lada', n: 'Lada', icon: SVG_LADA }].concat(R.stations).concat([{ k: 'podaj', n: 'Podaj', icon: SVG_PODAJ }]);
+        var views = [{ k: 'lada', n: 'Lada', icon: SVG_LADA }].concat(R.stations).concat([{ k: 'podaj', n: 'Podaj', icon: R.podajIcon }]);
         tabBtns = {};
         views.forEach(function (v) {
-          var b = el('button', 'rs-tab', svg(v.icon) + '<span>' + v.n + '</span><i class="bd"></i><i class="here">' + SVG_HERE + '</i>'); b.type = 'button';
+          var b = el('button', 'rs-tab', svg(v.icon) + '<span>' + v.n + '</span><i class="bd"></i><i class="here"><svg viewBox="0 0 24 24">' + R.hereIcon + '</svg></i>'); b.type = 'button';
           b.onclick = function () { if (S && S.view !== v.k) { ctx.sfx('swap'); S.go(v.k); } };
           tabsEl.appendChild(b); tabBtns[v.k] = b;
         });
@@ -1133,7 +1199,7 @@
         S = {
           R: R, d: d, shifts: d.shifts, view: 'lada', W: 1, H: 1, u: 1, T: 0, t: 0,
           done: d.open.done, hearts: d.open.hearts, tips: d.open.tips, spawned: d.open.done, spawnT: 0,
-          custs: [], tickets: [], item: null, ticket: null, fx: [], tool: 'sauce', drag: null, guides: d.shifts < 3,
+          custs: [], tickets: [], ticket: null, fx: [], drag: null,
           petUsed: false, flashT: {}, sig: '', tsig: '', lastNow: 0, ended: false,
           sfx: function (n) { ctx.sfx(n); },
           go: go,
@@ -1144,8 +1210,11 @@
           sparkle: function (x, y) { if (REDUCED) return; for (var i = 0; i < 10; i++) { var a = i / 10 * 7; S.fx.push({ kind: 'star', x: x, y: y, vx: Math.cos(a) * 160, vy: Math.sin(a) * 160 - 40, life: 0.8, max: 0.8 }); } },
           steam: function (x, y) { S.fx.push({ kind: 'steam', x: x + rnd(-6, 6), y: y, vx: rnd(-8, 8), vy: -rnd(30, 50), life: 1.6, max: 1.6, r: rnd(8, 14) }); },
           flash: function (k) { S.flashT[k] = 2; },
-          replaceItem: function () { S.item = R.newItem(S.ticket.order); }
+          replaceItem: function () { S.ticket.item = R.newItem(S.ticket.order); }
         };
+        // the dish of the current ticket
+        Object.defineProperty(S, 'item', { get: function () { return S.ticket ? S.ticket.item : null; } });
+        if (R.init) R.init(S);
 
         function layout() {
           if (!cv) return;
@@ -1154,6 +1223,7 @@
           dpr = Math.min(3, window.devicePixelRatio || 1);
           cv.width = Math.round(S.W * dpr); cv.height = Math.round(S.H * dpr);
           S.u = Math.min(S.W / 420, S.H / 470);
+          S.L = null;
           var st2 = R[S.view]; if (st2 && st2.layout) st2.layout(S);
           renderRail(true);
         }
@@ -1168,7 +1238,13 @@
 
       function go(k, quiet) {
         if (!S) return;
-        S.view = k; S.drag = null;
+        S.view = k; S.drag = null; S.L = null;
+        // a station shows the dish that has work there: switch tickets when the current one has none
+        if (k !== 'lada') {
+          var has = function (t) { return k === 'podaj' ? S.R.ready(t.item) : S.R.at ? S.R.at(t.item, k) : S.R.where(t.item) === k; };
+          if (!(S.ticket && has(S.ticket))) { var other = S.tickets.filter(has)[0]; if (other) setTicket(other); }
+        }
+        if (S.flashT[k]) S.flashT[k] = 0;
         var st2 = S.R[k]; if (st2) { if (st2.layout) st2.layout(S); if (st2.enter) st2.enter(S); }
         Object.keys(tabBtns).forEach(function (t) { tabBtns[t].classList.toggle('on', t === k); });
         if (!quiet && k === 'podaj') callPickup();
@@ -1176,7 +1252,9 @@
       }
 
       // ---------- customers ----------
-      var SPOT = { door: { x: -150, d: 0 }, queue: { x: -95, d: 0.3 }, order: { x: -80, d: 1 }, pickup: { x: 125, d: 1 }, t0: { x: -175, d: 0.5 }, t1: { x: 175, d: 0.5 } };
+      // tx: where the table stands next to the guest
+      var SPOT = { door: { x: -150, d: 0 }, queue: { x: -150, d: 0.35 }, order: { x: -105, d: 1 }, pickup: { x: 100, d: 1 }, t0: { x: -175, d: 0.5, tx: 52 }, t1: { x: 175, d: 0.5, tx: -52 }, t2: { x: 15, d: 0.2, tx: 50 } };
+      var TABLES = ['t0', 't1', 't2'], DINE_S = 9;
       function spawn() {
         S.spawned++; S.spawnT = 0;
         var pet = null, name, fem = false, vip = false;
@@ -1199,58 +1277,61 @@
         S.sfx('open');
         if (S.view !== 'lada' && c.spot === 'order') S.flash('lada');
       }
-      function freeTable() { var used = S.custs.map(function (c) { return c.spot; }); return used.indexOf('t0') < 0 ? 't0' : used.indexOf('t1') < 0 ? 't1' : 'queue'; }
+      function freeTable() { var used = S.custs.map(function (c) { return c.spot; }); return TABLES.filter(function (k) { return used.indexOf(k) < 0; })[0] || null; }
       function atSpot(c) { var p = SPOT[c.spot]; return p && Math.abs(c.x - p.x) < 2 && Math.abs(c.d - p.d) < 0.02; }
       function takeOrder(c) {
         if (!c || c.state !== 'order' || !atSpot(c)) return;
-        var t = { id: c.id, cust: c, order: c.preview || S.R.newOrder(S.shifts), at: S.t };
-        c.ticket = t; c.state = 'wait'; c.spot = freeTable(); c.say = '';
+        var order = c.preview || S.R.newOrder(S.shifts);
+        var t = { id: c.id, cust: c, order: order, item: S.R.newItem(order), at: null };
+        c.ticket = t; c.state = 'wait'; c.spot = freeTable() || 'queue'; c.say = '';
         S.tickets.push(t);
         S.sfx('buy');
-        if (!S.ticket) nextTicket();
+        if (!S.ticket) setTicket(t);
         var q = S.custs.filter(function (o) { return o.spot === 'queue' && o.state === 'in'; })[0];
         if (q) q.spot = 'order';
         renderRail(true); S.sig = ''; refresh();
         S.say('Zamówienie przyjęte!');
       }
-      function nextTicket() {
-        S.ticket = S.tickets[0] || null;
-        S.item = S.ticket ? S.R.newItem(S.ticket.order) : null;
-        S.done_sauce = S.done_cheese = false;
-        if (S.ticket && S.R.dodatki && S.R.dodatki.enter) S.R.dodatki.enter(S);
+      // the time for the "Czas" stars starts when the ticket is first picked up, not while it waits on the rail
+      function setTicket(t) {
+        S.ticket = t || null; S.drag = null;
+        if (t && t.at == null) t.at = S.t;
+        if (t && S.R.onTicket) S.R.onTicket(S);
+        renderRail(true); S.sig = '';
       }
       function callPickup() {
         var t = S.ticket; if (!t || !S.item || !S.R.ready(S.item)) return;
-        var c = t.cust; if (c.spot !== 'pickup' && c.state === 'wait') { c.spot = 'pickup'; c.state = 'pickup'; }
+        if (S.custs.some(function (o) { return o.spot === 'pickup' && o !== t.cust; })) return;
+        var c = t.cust; if (c.spot !== 'pickup' && c.state === 'wait') { c.table = c.spot; c.spot = 'pickup'; c.state = 'pickup'; }
       }
       function serve() {
         var t = S.ticket, c = t && t.cust; if (!c || c.state !== 'pickup' || !atSpot(c) || S.card) return;
         var parts = S.R.score(t.order, S.item), avg = 0;
         parts.forEach(function (p) { avg += p.v; }); avg /= parts.length;
-        var secs = S.t - t.at, fast = secs <= FAST_S;
-        parts.push({ k: 'time', v: fast ? 1 : secs <= OK_S ? 0.6 : 0.3 });
+        var secs = S.t - t.at, fast = secs <= S.R.fastS;
+        parts.push({ k: 'time', n: 'Czas', icon: SVG_CLOCK, v: fast ? 1 : secs <= S.R.okS ? 0.6 : 0.3 });
         var hearts = avg >= 0.82 ? 3 : avg >= 0.5 ? 2 : 1;
         var perfect = parts.slice(0, 3).every(function (p) { return p.v >= 0.82; });
         var tip = clamp(2 + Math.round(3 * avg) + (fast && hearts >= 2 ? 1 : 0) + (c.vip ? 1 : 0), TIP_MIN, TIP_MAX);   // the speed bonus only for a good pizza
         tip = Math.max(0, Math.min(tip, SHIFT_N * TIP_MAX - S.tips));
         S.done++; S.hearts += hearts; S.tips += tip;
         if (tip > 0) ctx.refund(tip, 'napiwek');
-        var d = S.d; d.pizzas++; if (perfect) d.perfect++;
+        var d = S.d; d.made++; if (perfect) d.perfect++;
         d.open = S.done < SHIFT_N ? { done: S.done, hearts: S.hearts, tips: S.tips } : d.open;
         if (!c.vip) st.guests[c.pet.sp] = (st.guests[c.pet.sp] || 0) + 1;
         save();
-        ctx.stat('pizzas', 1);
-        if (perfect) { ctx.stat('perfect', 1); ctx.sticker('perfect'); }
-        ctx.sticker('first');
+        ctx.stat(S.R.stat, 1); ctx.stat('meals', 1);
+        if (perfect) { ctx.stat('perfect', 1); if (S.R.id === 'pizzeria') ctx.sticker('perfect'); }
+        if (S.R.id === 'pizzeria') ctx.sticker('first');
         if (c.vip) ctx.sticker('pet');
-        if (t.order.slices === 8 && S.item.cuts.length === 4) ctx.sticker('eight');
+        if (S.R.onServe) S.R.onServe(t.order, t.item, ctx, parts);
         if (SPECIES.every(function (k) { return st.guests[k]; })) ctx.sticker('guests');
         // reaction
-        c.state = 'eat'; c.happy = 3; c.hopT = REDUCED ? 0 : 1.2; c.say = pick(SAY_BYE[hearts]);
+        c.state = 'eat'; c.happy = 3; c.hopT = REDUCED ? 0 : 1.2; c.say = pick(S.R.bye[hearts]);
         S.sfx(hearts === 3 ? 'win' : 'harvest');
         var pos = custPos(c);
-        if (!REDUCED) for (var i = 0; i < hearts * 2 + 1; i++) S.fx.push({ kind: 'heart', x: pos.x + rnd(-30, 30) * S.u, y: pos.y - 90 * S.u, vx: rnd(-30, 30), vy: -rnd(50, 90), life: 1.6 + i * 0.1, max: 1.6 + i * 0.1 });
-        S.served = S.item; S.item = null;
+        if (!REDUCED) for (var i = 0; i < hearts * 2 + 1; i++) S.fx.push({ kind: 'heart', x: pos.x + (i % 2 ? 1 : -1) * rnd(60, 110) * S.u, y: pos.y - rnd(40, 110) * S.u, vx: rnd(-30, 30), vy: -rnd(50, 90), life: 1.6 + i * 0.1, max: 1.6 + i * 0.1 });
+        S.served = t; S.tickets = S.tickets.filter(function (x) { return x !== t; }); S.ticket = null;
         later(function () { if (S) showScore(c, parts, hearts, tip); }, REDUCED ? 300 : 1100);
         renderRail(true); S.sig = ''; refresh();
       }
@@ -1265,14 +1346,15 @@
         var hs = el('div', 'rs-hearts'); for (var i = 0; i < 3; i++) { var w = el('span', '', SVG_HEART(i < hearts)); if (w.firstChild) w.firstChild.style.animationDelay = (0.15 + i * 0.25) + 's'; hs.appendChild(w); }
         sc.appendChild(hs);
         var rows = el('div', 'rs-rows'); sc.appendChild(rows);
-        var ICONS = { top: S.R.stations[0].icon, bake: S.R.stations[1].icon, cut: S.R.stations[2].icon, time: SVG_CLOCK };
-        var NAMES = { top: 'Dodatki', bake: 'Pieczenie', cut: 'Krojenie', time: 'Czas' };
         parts.forEach(function (p) {
           var n = p.v >= 0.82 ? 3 : p.v >= 0.5 ? 2 : 1;
-          rows.appendChild(el('span', '', '<svg class="ic" viewBox="0 0 40 40">' + ICONS[p.k] + '</svg>'));
-          rows.appendChild(el('span', '', NAMES[p.k]));
+          rows.appendChild(el('span', '', '<svg class="ic" viewBox="0 0 40 40">' + p.icon + '</svg>'));
+          rows.appendChild(el('span', '', p.n));
           rows.appendChild(el('span', 'st', SVG_STAR(n >= 1) + SVG_STAR(n >= 2) + SVG_STAR(n >= 3)));
         });
+        // one piece of advice: for the weakest kitchen part that lost a star
+        var weak = parts.filter(function (p) { return p.tip && p.v < 0.82; }).sort(function (a, b) { return a.v - b.v; })[0];
+        if (weak) sc.appendChild(el('div', 'rs-advice', weak.tip));
         var tipEl = el('div', 'rs-tip'), jar = smallCanvas(64, 70); tipEl.appendChild(jar.c);
         tipEl.appendChild(el('div', '', 'Napiwek: <b>+' + tip + ' ★</b><small>w słoiku: ' + S.tips + ' ★</small>'));
         sc.appendChild(tipEl);
@@ -1293,27 +1375,29 @@
       }
       function closeScore(c) {
         if (scoreEl) { scoreEl.remove(); scoreEl = null; }
-        S.card = false; S.served = null;
-        c.state = 'out'; c.spot = 'door'; c.say = '';
-        S.tickets = S.tickets.filter(function (t) { return t.cust !== c; });
-        nextTicket();
-        renderRail(true);
+        S.card = false;
+        // the guest carries the plate to a table and eats there; with no free table it is a takeaway
+        var tb = c.table && !S.custs.some(function (o) { return o.spot === c.table; }) ? c.table : freeTable();
+        c.say = '';
+        if (tb) { c.state = 'dine'; c.spot = tb; c.food = S.served; c.dineT = DINE_S; } else { c.state = 'out'; c.spot = 'door'; }
+        S.served = null;
+        setTicket(S.tickets[0]);
         if (S.done >= SHIFT_N) { endShift(); return; }
-        go(S.custs.some(function (o) { return o.state === 'order'; }) || !S.ticket ? 'lada' : 'dodatki');
+        go(S.custs.some(function (o) { return o.state === 'order'; }) || !S.ticket ? 'lada' : S.R.where(S.ticket.item));
       }
       function endShift() {
-        var R = S.R, d = S.d, before = R === PIZZERIA ? unlockedTops(d.shifts).length : 0;
+        var R = S.R, d = S.d;
         S.ended = true;
         d.shifts++; d.open = null; d.best = Math.max(d.best, S.hearts);
         save();
         ctx.stat('shifts', 1); ctx.stat('best', S.hearts, 'max');
         if (S.hearts >= SHIFT_N * 3) ctx.sticker('hearts');
         var lines = [SHIFT_N + ' ' + pl(SHIFT_N, 'gość', 'gości', 'gości') + ' najedzonych!', 'Napiwki: ' + S.tips + ' ★ (już w skarbonce)'];
-        if (R === PIZZERIA) {
-          var now = unlockedTops(d.shifts);
-          if (now.length > before) lines.push({ text: 'Nowy dodatek: ' + now.filter(function (t) { return t.at === d.shifts; }).map(function (t) { return t.n; }).join(', ') + '!' });
-          if (now.length === TOPS.length) ctx.sticker('tops');
-        }
+        var fresh = R.newUnlocks ? R.newUnlocks(d.shifts) : [];
+        if (fresh.length) lines.push({ text: R.unlockWord + ': ' + fresh.join(', ') + '!' });
+        if (R.unlocked && R.unlocked(d.shifts) >= R.unlockN) ctx.sticker(R.id === 'pizzeria' ? 'tops' : R.id === 'burger' ? 'btops' : 'ltops');
+        rests().forEach(function (X) { if (X.req && X.req.id === R.id && d.shifts === X.req.shifts) lines.push({ text: 'Otwiera się ' + X.name + '!' }); });
+        if (rests().length >= 3 && rests().every(function (X) { return st.r[X.id].shifts > 0; })) ctx.sticker('chef');
         ctx.sfx('win');
         var hearts = S.hearts;
         later(function () {
@@ -1341,9 +1425,10 @@
           } else {
             c.x = p.x; c.d = p.d;
             c.face = c.spot === 't1' ? -1 : 1;
-            if (c.spot === 'order' && c.state === 'in') { c.state = 'order'; c.say = pick(SAY_HI); S.sfx('open'); if (S.view !== 'lada') S.flash('lada'); S.sig = ''; }
+            if (c.spot === 'order' && c.state === 'in') { c.state = 'order'; c.say = pick(S.R.hi); S.sfx('open'); if (S.view !== 'lada') S.flash('lada'); S.sig = ''; }
             if (c.spot === 'pickup' && c.state === 'pickup' && !c.arrived) { c.arrived = true; S.sig = ''; }
           }
+          if (c.state === 'dine' && atSpot(c)) { c.dineT -= dt; c.happy = 1; if (c.dineT <= 0) { c.state = 'out'; c.spot = 'door'; c.food = null; } }
           c.alpha = c.state === 'out' ? clamp(c.d / 0.15, 0, 1) : Math.min(1, c.alpha + dt * 3);
           if (c.hopT > 0) c.hopT = Math.max(0, c.hopT - dt);
           if (c.happy > 0) c.happy = Math.max(0, c.happy - dt);
@@ -1354,7 +1439,7 @@
       function update(dt) {
         if (!S || S.ended) return;
         S.t += dt; S.T = T;
-        var present = S.custs.filter(function (c) { return c.state !== 'out'; }).length;
+        var present = S.custs.filter(function (c) { return c.state !== 'out' && c.state !== 'dine'; }).length;
         S.spawnT += dt;
         if (S.spawned < SHIFT_N && present < MAX_IN && (present === 0 ? S.spawnT >= 1 : S.spawnT >= NEXT_GAP)) spawn();
         updateCusts(dt);
@@ -1381,12 +1466,19 @@
         g2.fillStyle = 'rgba(29,47,111,.12)'; g2.fillRect(0, wallB - 34 * u, W, 3);
         // windows across the whole width (never behind the door)
         var doorX = cx + SPOT.door.x * u, ww = 96 * u, wh = 84 * u, wy = wallB - 34 * u - wh - 18 * u;
-        for (var wx = cx + 60 * u; wx < W + ww; wx += 250 * u) drawWindow(g2, wx, wy, ww, wh, u);
-        for (var wx2 = cx - 330 * u; wx2 > -ww; wx2 -= 250 * u) drawWindow(g2, wx2, wy, ww, wh, u);
+        for (var wx = cx + 60 * u; wx < W + ww; wx += 250 * u) drawWindow(g2, wx, wy, ww, wh, u, R.curtain);
+        for (var wx2 = cx - 330 * u; wx2 > -ww; wx2 -= 250 * u) drawWindow(g2, wx2, wy, ww, wh, u, R.curtain);
+        // the menu board between the door and the first window
+        var bw = 62 * u, bx0 = cx - 42 * u - bw / 2;
+        rr(g2, bx0, wy, bw, wh, 6 * u); g2.fillStyle = '#8a5a33'; g2.fill(); ink(g2, 3);
+        rr(g2, bx0 + 5 * u, wy + 5 * u, bw - 10 * u, wh - 10 * u, 3 * u); g2.fillStyle = '#2f5d50'; g2.fill();
+        if (R.board) R.board(g2, cx - 42 * u, wy + wh * 0.36, 15 * u);
+        g2.strokeStyle = 'rgba(255,255,255,.7)'; g2.lineWidth = 2 * u; g2.lineCap = 'round';
+        [0.68, 0.8].forEach(function (k, i) { g2.beginPath(); g2.moveTo(bx0 + 14 * u, wy + wh * k); g2.lineTo(bx0 + bw - (14 + i * 10) * u, wy + wh * k); g2.stroke(); });
         // sign
         var sw = Math.min(W - 24, 300 * u), sh = 44 * u;
         rr(g2, cx - sw / 2, 10 * u, sw, sh, 12 * u); g2.fillStyle = '#fff'; g2.fill(); ink(g2, 3);
-        txt(g2, R.sign, cx, 10 * u + sh / 2 + 2, 30 * u, '#c8432d');
+        txt(g2, R.sign, cx, 10 * u + sh / 2 + 2, 30 * u, R.signCol);
         // lamps
         [-120, 120].forEach(function (lx) {
           var X = cx + lx * u * 1.6; g2.beginPath(); g2.moveTo(X, 0); g2.lineTo(X, 70 * u); g2.strokeStyle = INK; g2.lineWidth = 2; g2.stroke();
@@ -1401,33 +1493,39 @@
         g2.fillStyle = R.floor1; g2.fillRect(0, wallB, W, H - wallB);
         g2.fillStyle = R.floor2; var ts = 40 * u, rowH = 18 * u;
         for (var ry = 0, yy = wallB; yy < H; ry++, yy += rowH) for (var xx = ((ry % 2) * ts) - ts + (cx % (ts * 2)); xx < W; xx += ts * 2) g2.fillRect(xx, yy, ts, rowH);
-        // tables
-        ['t0', 't1'].forEach(function (k) {
-          var p = custPos({ x: SPOT[k].x + (k === 't0' ? 52 : -52), d: SPOT[k].d });
+        // tables; a dining guest's plate stands on the table
+        TABLES.forEach(function (k) {
+          var p = custPos({ x: SPOT[k].x + SPOT[k].tx, d: SPOT[k].d });
           var s = p.s / 1.4;
           g2.beginPath(); g2.moveTo(p.x, p.y - 2); g2.lineTo(p.x, p.y - 34 * s); g2.strokeStyle = INK; g2.lineWidth = 4 * s; g2.stroke();
           g2.beginPath(); g2.ellipse(p.x, p.y, 16 * s, 4 * s, 0, 0, 7); g2.fillStyle = INK; g2.fill();
           g2.beginPath(); g2.ellipse(p.x, p.y - 36 * s, 30 * s, 9 * s, 0, 0, 7); g2.fillStyle = '#fff'; g2.fill(); ink(g2, 2.5);
-          g2.beginPath(); g2.ellipse(p.x, p.y - 36 * s, 22 * s, 5.5 * s, 0, 0, 7); g2.fillStyle = '#f39cab'; g2.fill();
+          g2.beginPath(); g2.ellipse(p.x, p.y - 36 * s, 22 * s, 5.5 * s, 0, 0, 7); g2.fillStyle = R.cloth; g2.fill();
+          var eater = S.custs.filter(function (c) { return c.state === 'dine' && c.spot === k && c.food && atSpot(c); })[0];
+          if (eater) { g2.save(); g2.globalAlpha = clamp(eater.dineT / 1.5, 0, 1); R.drawServe(g2, eater.food.item, p.x, p.y - 38 * s, 19 * s, eater.food.order); g2.restore(); }
         });
         // customers, far ones first
         var list = S.custs.slice().sort(function (a, b) { return a.d - b.d; });
         list.forEach(function (c) { drawCust(g2, c); });
-        // counter
-        g2.fillStyle = R.counter; g2.fillRect(0, ct, W, H - ct);
-        g2.fillStyle = R.counter2; for (var sx = (cx % (52 * u)) - 52 * u; sx < W; sx += 52 * u) g2.fillRect(sx, ct + 16 * u, 22 * u, H - ct);
-        rr(g2, -10, ct - 6 * u, W + 20, 18 * u, 6 * u); g2.fillStyle = '#f6e7cf'; g2.fill(); ink(g2, 3);
-        // till at the order spot
-        var tx = cx + (SPOT.order.x + 105) * u, tw = 54 * u, th = 34 * u;
-        rr(g2, tx - tw / 2, ct - 6 * u - th, tw, th, 6 * u); g2.fillStyle = '#7d8fb0'; g2.fill(); ink(g2, 2.5);
-        rr(g2, tx - tw / 2 + 6 * u, ct - 6 * u - th + 6 * u, tw - 12 * u, 12 * u, 3 * u); g2.fillStyle = '#c8f0c0'; g2.fill();
-        // bell on the counter
-        var bx = cx + (SPOT.pickup.x + 66) * u, by = ct - 6 * u;
-        g2.beginPath(); g2.arc(bx, by, 13 * u, Math.PI, 0); g2.closePath(); g2.fillStyle = GOLD; g2.fill(); ink(g2, 2);
-        // the pizza waiting on the counter
-        var it = S.item;
-        if (it && R.ready(it)) R.drawServe(g2, it, cx + SPOT.pickup.x * u, ct + 2 * u, 56 * u);
-        else if (S.served) R.drawServe(g2, S.served, cx + SPOT.pickup.x * u, ct + 2 * u, 56 * u);
+        // counter: the top is a wide band, so a plate has room in front of a small guest
+        var topH = 42 * u, ty = ct - 6 * u;
+        g2.fillStyle = R.counter; g2.fillRect(0, ty + topH - 4, W, H);
+        g2.fillStyle = R.counter2; for (var sx = (cx % (52 * u)) - 52 * u; sx < W; sx += 52 * u) g2.fillRect(sx, ty + topH + 8 * u, 22 * u, H);
+        rr(g2, -10, ty, W + 20, topH, 6 * u); g2.fillStyle = '#f6e7cf'; g2.fill(); ink(g2, 3);
+        g2.fillStyle = 'rgba(29,47,111,.07)'; g2.fillRect(0, ty + topH - 9 * u, W, 6 * u);
+        // till, right of the guest who orders
+        var tx = cx + 22 * u, tw = 50 * u, th = 34 * u, tb = ty + 14 * u;
+        rr(g2, tx - tw / 2, tb - th, tw, th, 6 * u); g2.fillStyle = '#7d8fb0'; g2.fill(); ink(g2, 2.5);
+        rr(g2, tx - tw / 2 + 6 * u, tb - th + 6 * u, tw - 12 * u, 12 * u, 3 * u); g2.fillStyle = '#c8f0c0'; g2.fill();
+        // the tip jar fills up during the shift
+        var jx = cx + 68 * u, jw = 24 * u, jh = 32 * u, jb = ty + 16 * u;
+        rr(g2, jx - jw / 2, jb - jh, jw, jh, 6 * u); g2.fillStyle = 'rgba(214,239,255,.75)'; g2.fill(); ink(g2, 2);
+        for (var q = 0; q < Math.min(S.tips, 27); q++) coin(g2, jx + ((q % 3) - 1) * 6.5 * u + (Math.floor(q / 3) % 2 ? 1.5 * u : -1.5 * u), jb - 5 * u - Math.floor(q / 3) * 3 * u, 3.6 * u);
+        rr(g2, jx - jw / 2 + 3 * u, jb - jh - 4 * u, jw - 6 * u, 6 * u, 2 * u); g2.fillStyle = '#c99257'; g2.fill(); ink(g2, 1.5);
+        // the dish waiting on the counter
+        var pp = platePos(), it = S.item;
+        if (it && R.ready(it)) R.drawServe(g2, it, pp.x, pp.y, pp.r, S.ticket.order);
+        else if (S.served) R.drawServe(g2, S.served.item, pp.x, pp.y, pp.r, S.served.order);
         // speech bubbles
         S.custs.forEach(function (c) {
           if (c.say && c.state === 'eat') sayBubble(g2, c, c.say);
@@ -1437,12 +1535,13 @@
           }
         });
       }
-      function drawWindow(g2, x, y, w, h, u) {
+      function platePos() { var u = S.u; return { x: Math.min(S.W / 2 + 172 * u, S.W - 66 * u), y: S.H * 0.79 + 14 * u, r: 50 * u }; }
+      function drawWindow(g2, x, y, w, h, u, curtain) {
         rr(g2, x - w / 2, y, w, h, 8 * u); g2.fillStyle = '#d6efff'; g2.fill(); ink(g2, 3);
         g2.beginPath(); g2.moveTo(x, y); g2.lineTo(x, y + h); g2.moveTo(x - w / 2, y + h * 0.5); g2.lineTo(x + w / 2, y + h * 0.5); g2.strokeStyle = INK; g2.lineWidth = 2.5; g2.stroke();
         g2.beginPath(); g2.moveTo(x - w / 2 - 6 * u, y - 4 * u); g2.lineTo(x - w * 0.15, y - 4 * u); g2.quadraticCurveTo(x - w * 0.3, y + h * 0.45, x - w / 2 - 6 * u, y + h * 0.6); g2.closePath();
         g2.moveTo(x + w / 2 + 6 * u, y - 4 * u); g2.lineTo(x + w * 0.15, y - 4 * u); g2.quadraticCurveTo(x + w * 0.3, y + h * 0.45, x + w / 2 + 6 * u, y + h * 0.6); g2.closePath();
-        g2.fillStyle = '#e2533f'; g2.fill(); ink(g2, 2);
+        g2.fillStyle = curtain; g2.fill(); ink(g2, 2);
       }
       function drawCust(g2, c) {
         var A = petArt(), p = custPos(c), s = p.s * (A ? A.size(c.pet) : 1);
@@ -1454,6 +1553,7 @@
         g2.translate(p.x - (G.x0 + G.x1) / 2 * s * c.face, p.y - lift); g2.scale(s * c.face, s);
         A.draw(g2, c.pet, { t: T, legs: c.walking ? c.legs : 0, pose: 'stand', eye: c.happy > 0 ? 'happy' : 'open', mouth: c.happy > 1.5 ? 'open' : 'smile', wag: c.happy > 0 ? 1 : 0.2, seed: c.seed });
         g2.restore();
+        if (c.state === 'dine' && c.food && !atSpot(c)) S.R.drawServe(g2, c.food.item, p.x, p.y + G.top * s - 16 * S.u, 17 * S.u, c.food.order);   // carrying the plate
         if (c.vip) { var topY = p.y - lift + G.top * s - 12 * S.u; g2.save(); starPath(g2, p.x, topY, 10 * S.u); g2.fillStyle = '#f2b51d'; g2.fill(); ink(g2, 2); g2.restore(); }
       }
       function bubble(g2, c, w, h) {
@@ -1492,7 +1592,7 @@
           else if (f.kind === 'say') {
             var a = Math.min(1, k * 3), fs = Math.round(24 * clamp(u, 0.9, 1.3));
             g2.globalAlpha = a; g2.font = fs + 'px ' + FONT;
-            var w = g2.measureText(f.text).width + 28, h = fs + 16, x = S.W / 2 - w / 2, y = (S.view === 'piec' && S.L ? S.L.oy + 6 : 10) + (1 - Math.min(1, (f.max - f.life) * 6)) * 10;
+            var w = g2.measureText(f.text).width + 28, h = fs + 16, x = S.W / 2 - w / 2, y = (S.L && S.L.sayY != null ? S.L.sayY : 10) + (1 - Math.min(1, (f.max - f.life) * 6)) * 10;
             rr(g2, x, y, w, h, h / 2); g2.fillStyle = INK; g2.fill();
             txt(g2, f.text, S.W / 2, y + h / 2 + 1, fs, '#fff');
             g2.globalAlpha = 1;
@@ -1514,16 +1614,16 @@
         var orderC = S.custs.filter(function (c) { return c.state === 'order' && atSpot(c); })[0];
         if (S.view === 'lada') {
           if (orderC) return { hint: 'Dotknij gościa albo przycisku, żeby przyjąć zamówienie.', b: [{ id: 'take', label: 'Przyjmij zamówienie', main: true, pulse: true, on: function () { takeOrder(orderC); } }] };
-          if (S.item) { var w = S.R.where(S.item); return { hint: 'Zrób pizzę w kuchni.', b: [{ id: 'kitchen', label: 'Do kuchni →', main: true, pulse: !S.item.tops.length, on: function () { go(w); } }] }; }
+          if (S.item) { var w = S.R.where(S.item); return { hint: S.R.tx.make, b: [{ id: 'kitchen', label: 'Do kuchni →', main: true, pulse: !S.R.started(S.item), on: function () { go(w); } }] }; }
           return { hint: S.spawned < SHIFT_N ? 'Czekamy na gościa…' : 'Już prawie koniec zmiany!', b: [] };
         }
         // podaj
         var t = S.ticket, it = S.item;
-        if (S.card) return { hint: '', b: [] };
+        if (S.card || S.served) return { hint: '', b: [] };
         if (!t || !it) return { hint: orderC ? 'Ktoś czeka przy ladzie.' : 'Najpierw przyjmij zamówienie.', b: [{ id: 'goLada', label: '← Do lady', main: true, on: function () { go('lada'); } }] };
-        if (!S.R.ready(it)) { var w2 = S.R.where(it); return { hint: 'Najpierw zrób pizzę. ' + S.R.whereText[w2], b: [{ id: 'goWhere', label: 'Idź: ' + S.stationName(w2) + ' →', main: true, on: function () { go(w2); } }] }; }
+        if (!S.R.ready(it)) { var w2 = S.R.where(it); return { hint: S.R.tx.first + ' ' + S.R.whereText[w2], b: [{ id: 'goWhere', label: 'Idź: ' + S.stationName(w2) + ' →', main: true, on: function () { go(w2); } }] }; }
         var c = t.cust, here = c.state === 'pickup' && atSpot(c);
-        return { hint: here ? 'Podaj pizzę: ' + c.name + '.' : c.name + ' już idzie…', b: [{ id: 'back', label: '← Krojenie', on: function () { it.stage = 'cut'; go('krojenie'); } }, { id: 'serve', label: 'Podaj!', main: true, pulse: here, disabled: !here, on: serve }] };
+        return { hint: here ? S.R.tx.serve + ': ' + c.name + '.' : c.name + ' już idzie…', b: [{ id: 'back', label: S.R.backLabel, on: function () { go(S.R.back(it).k); } }, { id: 'serve', label: 'Podaj!', main: true, pulse: here, disabled: !here, on: serve }] };
       }
       var curBtns = [];
       function refresh() {
@@ -1546,10 +1646,13 @@
         if (S.custs.some(function (c) { return c.state === 'order' && atSpot(c); })) badges.lada = '!';
         if (S.item && S.R.ready(S.item)) badges.podaj = '!';
         var where = S.item ? S.R.where(S.item) : null;
-        var sig = JSON.stringify(badges) + where;
+        var fl = Object.keys(tabBtns).filter(function (k) { return S.flashT[k] > 0 && S.view !== k; }).join();
+        var sig = JSON.stringify(badges) + where + fl;
+        refreshChips();
         if (sig === S.tsig) return; S.tsig = sig;
         Object.keys(tabBtns).forEach(function (k) {
           var b = tabBtns[k], bd = b.querySelector('.bd'), v = badges[k];
+          b.classList.toggle('fl', S.flashT[k] > 0 && S.view !== k && !REDUCED);
           bd.textContent = v || ''; bd.className = 'bd' + (v ? ' on' : '') + (v && v !== '!' ? ' soft' : '');
           b.querySelector('.here').className = 'here' + (where === k ? ' on' : '');
         });
@@ -1560,20 +1663,34 @@
         var sig = S.tickets.map(function (t) { return t.id; }).join(',') + '|' + (S.ticket && S.ticket.id) + '|' + S.W + '|' + S.done + '|' + S.tips;
         if (!force && sig === railSig) return; railSig = sig;
         railTix.innerHTML = '';
-        var narrow = S.W < 520, wide = S.W >= 1100, tw = narrow ? 150 : wide ? 230 : 190, th = narrow ? 80 : wide ? 114 : 96;
+        var narrow = S.W < 520, wide = S.W >= 1100, xl = S.W >= 1800 && S.H >= 560, tw = narrow ? 150 : xl ? 320 : wide ? 230 : 190, th = narrow ? 80 : xl ? 158 : wide ? 114 : 96;
         if (!S.tickets.length) railTix.appendChild(el('div', 'rs-empty', 'Tu przypinamy zamówienia.'));
         S.tickets.forEach(function (t) {
-          var tk = el('div', 'rs-tk' + (t === S.ticket ? ' cur' : '')), c = smallCanvas(tw, th);
+          var tk = el('div', 'rs-tk' + (t === S.ticket ? ' cur' : '') + (S.tickets.length > 1 ? ' pick' : '')), c = smallCanvas(tw, th);
           tk.appendChild(c.c); railTix.appendChild(tk);
           S.R.drawOrder(c.g, t.order, tw, th);
           // the guest's face in the corner
           var A = petArt();
           if (A) { c.g.save(); c.g.globalAlpha = 0.95; drawPetFitTk(c.g, t.cust.pet, tw - 34, 2, 32, 26); c.g.restore(); }
           tk.title = t.cust.name;
+          t.chip = el('i', 'chip'); t.chipV = null; tk.appendChild(t.chip);
+          // a tap picks the ticket and walks to the station where its dish waits
+          tk.onclick = function () { if (!S || S.card) return; if (t !== S.ticket) { ctx.sfx('swap'); setTicket(t); } go(S.R.where(t.item)); };
         });
+        refreshChips();
         railDots.innerHTML = '';
         for (var i = 0; i < SHIFT_N; i++) railDots.appendChild(el('i', i < S.done ? 'on' : ''));
         railJar.innerHTML = '<b>★</b> ' + S.tips;
+      }
+      // the little label on a ticket: where its dish is
+      function refreshChips() {
+        if (!S.R.badge) return;
+        S.tickets.forEach(function (t) {
+          if (!t.chip) return;
+          var v = S.R.badge(t.item, t.order) || '';
+          if (v === t.chipV) return; t.chipV = v;
+          t.chip.textContent = v; t.chip.className = 'chip' + (v ? ' on' : '') + (/!$/.test(v) ? ' hot' : '');
+        });
       }
       function drawPetFitTk(g2, pet, x, y, w, h) { drawPetFit(g2, pet, x, y, w, h, { eye: 'open' }); }
 
@@ -1594,7 +1711,7 @@
           return;
         }
         if (S.view === 'podaj') {
-          var t = S.ticket; if (t && t.cust.state === 'pickup' && atSpot(t.cust)) { var q2 = custPos(t.cust); if (Math.abs(p.x - (S.W / 2 + SPOT.pickup.x * S.u)) < 90 * S.u && p.y > q2.y - 150 * S.u) serve(); }
+          var t = S.ticket; if (t && t.cust.state === 'pickup' && atSpot(t.cust)) { var q2 = custPos(t.cust); if (p.x > q2.x - 90 * S.u && p.x < platePos().x + 80 * S.u && p.y > q2.y - 150 * S.u) serve(); }
           return;
         }
         var stn = S.R[S.view]; if (stn.down) stn.down(S, p.x, p.y);
@@ -1621,7 +1738,7 @@
       showHub();
       if (!st.seenHelp) {
         st.seenHelp = true; save();
-        ctx.panel({ title: 'Restauracje', lines: ['Zwierzaki zamawiają przy ladzie.', 'Zrób jedzenie jak na karteczce: dodatki, piec, krojenie.', 'Za dobre jedzenie dostaniesz napiwek w ★.'], button: 'Zaczynamy!', closable: false });
+        ctx.panel({ title: 'Restauracje', lines: ['Zwierzaki zamawiają przy ladzie.', 'Zrób jedzenie dokładnie jak na karteczce.', 'Za dobre jedzenie dostaniesz napiwek w ★.'], button: 'Zaczynamy!', closable: false });
       }
 
       return {
