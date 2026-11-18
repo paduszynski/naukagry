@@ -127,7 +127,7 @@
   }
   function unlockedTops(shifts) { return TOPS.filter(function (t) { return shifts >= t.at; }); }
   // pizza bases: round, round with cheese baked into the rim, heart. at: shifts played before the base appears
-  var BASES = [{ k: 'round', n: 'okrągła', at: 0 }, { k: 'ser', n: 'z serem w brzegach', at: 1 }, { k: 'serce', n: 'serce', at: 2 }];
+  var BASES = [{ k: 'round', n: 'okrągła', at: 0 }, { k: 'wulkan', n: 'wulkan', at: 1 }, { k: 'serce', n: 'serce', at: 2 }];
   var BASEB = {}; BASES.forEach(function (b) { BASEB[b.k] = b; });
   function basesFor(shifts) { return BASES.filter(function (b) { return shifts >= b.at; }); }
   // the heart outline in pizza units: centred on its area centroid, farthest point at radius 1
@@ -156,14 +156,25 @@
     return in_;
   }
   // pull a point onto the base (for toppings dropped on the rim)
-  function intoBase(base, p, f) { for (var k = 0; k < 40 && !inBase(base, p.x, p.y, f); k++) { p.x *= 0.95; p.y *= 0.95; } return p; }
-  // the cheese rim of the 'ser' base
-  function cheeseRim(g, x, y, R, b) {
-    var lw = R * 0.075;
-    circle(g, x, y, R * 0.92); g.strokeStyle = INK; g.lineWidth = lw + Math.max(1.5, R * 0.02); g.stroke();
-    g.strokeStyle = mix('#ffd23f', '#e8a93a', b * 0.7); g.lineWidth = lw; g.stroke();
-    g.fillStyle = mix('#fff2a8', '#f4c95a', b * 0.7);
-    for (var i = 0; i < 12; i++) { var a = i / 12 * Math.PI * 2 + 0.2; circle(g, x + Math.cos(a) * R * 0.92, y + Math.sin(a) * R * 0.92, lw * 0.22); g.fill(); }
+  function intoBase(base, p, f) {
+    for (var k = 0; k < 40 && !inBase(base, p.x, p.y, f); k++) { p.x *= 0.95; p.y *= 0.95; }
+    if (base === 'wulkan') { var d = Math.hypot(p.x, p.y), m = CRATER + TOP_R + 0.02; if (d < m) { var a = d > 0.01 ? Math.atan2(p.y, p.x) : rnd(0, 7); p.x = Math.cos(a) * m; p.y = Math.sin(a) * m; } }
+    return p;
+  }
+  // the 'wulkan' base: a crust crater full of melted cheese in the middle; sauce, cheese and toppings go on the ring around it
+  var CRATER = 0.3;
+  function inCrater(base, x, y) { return base === 'wulkan' && Math.hypot(x, y) < CRATER + 0.06; }
+  function drawCrater(g, x, y, R, b, T) {
+    var cr = CRATER * R;
+    circle(g, x, y + cr * 0.12, cr * 1.18); g.fillStyle = 'rgba(29,47,111,.18)'; g.fill();
+    circle(g, x, y, cr * 1.16); g.fillStyle = crustCol(b + 0.05); g.fill(); ink(g, Math.max(1.5, R * 0.022));
+    circle(g, x, y, cr * 0.86); g.fillStyle = mix('#ffd23f', '#f0a830', b * 0.8); g.fill(); ink(g, Math.max(1, R * 0.014));
+    g.fillStyle = mix('#fff2a8', '#ffd86a', b * 0.6);
+    var t = T || 0;
+    [[-0.3, -0.25, 0.2], [0.28, -0.05, 0.14], [0.02, 0.32, 0.17], [-0.12, 0.05, 0.09]].forEach(function (q, i) {
+      var k = REDUCED ? 1 : 0.8 + 0.25 * Math.sin(t * 2.4 + i * 1.7);
+      circle(g, x + q[0] * cr, y + q[1] * cr, q[2] * cr * k); g.fill();
+    });
   }
 
   // one topping piece at (0,0), radius s
@@ -222,11 +233,11 @@
   function drawOrderPizza(g, o, x, y, R) {
     var b = DONE[o.done].c, base = o.base || 'round', heart = base === 'serce';
     basePath(g, base, x, y, R); g.fillStyle = crustCol(b); g.fill(); ink(g, Math.max(1.5, R * 0.05));
-    if (base === 'ser') cheeseRim(g, x, y, R, b);
     basePath(g, base, x, y, R * INNER); g.fillStyle = SAUCE; g.fill();
     if (heart) basePath(g, base, x, y, R * 0.72);
     else { g.beginPath(); for (var i = 0; i <= 24; i++) { var a = i / 24 * Math.PI * 2, q = R * (0.7 + (i % 2) * 0.05); g[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * q, y + Math.sin(a) * q); } g.closePath(); }
     g.fillStyle = mix('#ffd95a', '#e2a24a', b * 0.6); g.fill();
+    var volcano = base === 'wulkan';
     var list = []; o.tops.forEach(function (t) { for (var j = 0; j < t.n; j++) list.push(t.k); });
     // interleave kinds, sunflower layout
     var n = list.length, mixed = [], buckets = {};
@@ -234,7 +245,7 @@
     var keys = Object.keys(buckets); while (mixed.length < n) keys.forEach(function (k) { if (buckets[k].length) mixed.push(buckets[k].pop()); });
     var pr = R * (n > 9 ? 0.14 : 0.17);
     mixed.forEach(function (k, i) {
-      var rr2 = R * (heart ? 0.46 : 0.58) * Math.sqrt((i + 0.6) / n), a = i * 2.39996 + 0.4;
+      var rr2 = volcano ? R * (0.6 + 0.06 * (i % 2)) : R * (heart ? 0.46 : 0.58) * Math.sqrt((i + 0.6) / n), a = volcano ? i / n * Math.PI * 2 + 0.3 : i * 2.39996 + 0.4;
       g.save(); g.translate(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2); g.rotate(a); drawTop(g, k, pr); g.restore();
     });
     var cuts = o.slices / 2;
@@ -242,6 +253,7 @@
     g.strokeStyle = 'rgba(29,47,111,.75)'; g.lineWidth = Math.max(1, R * 0.035);
     for (var c = 0; c < cuts; c++) { var ca = c * Math.PI / cuts + Math.PI / 2; g.beginPath(); g.moveTo(x - Math.cos(ca) * R, y - Math.sin(ca) * R); g.lineTo(x + Math.cos(ca) * R, y + Math.sin(ca) * R); g.stroke(); }
     g.restore();
+    if (volcano) drawCrater(g, x, y, R, b);   // over the cut lines, so the crater reads at a glance
   }
   // the order as a picture: pizza + topping counts + doneness flames + slice count. Box (0,0,w,h).
   function drawOrder(g, o, w, h, opt) {
@@ -283,7 +295,7 @@
   var CELLS = {};
   function cellsFor(base) {
     if (CELLS[base]) return CELLS[base];
-    var a = []; for (var i = 0; i < GRID; i++) for (var j = 0; j < GRID; j++) { var x = (i + 0.5) / GRID * 2 - 1, y = (j + 0.5) / GRID * 2 - 1; if (inBase(base, x, y, INNER - 0.04)) a.push(j * GRID + i); }
+    var a = []; for (var i = 0; i < GRID; i++) for (var j = 0; j < GRID; j++) { var x = (i + 0.5) / GRID * 2 - 1, y = (j + 0.5) / GRID * 2 - 1; if (inBase(base, x, y, INNER - 0.04) && !inCrater(base, x, y)) a.push(j * GRID + i); }
     return (CELLS[base] = a);
   }
   function markGrid(grid, x, y, r) {
@@ -316,11 +328,11 @@
   function drawPizza(g, it, R, bakeOverride) {
     var b = bakeOverride != null ? bakeOverride : it.bake, base = it.base || 'round';
     basePath(g, base, 0, 0, R); g.fillStyle = crustCol(b); g.fill();
-    if (base === 'ser') cheeseRim(g, 0, 0, R, b);
     basePath(g, base, 0, 0, R * INNER); g.fillStyle = mix('#fbe9c6', '#e8c286', b); g.fill();
     g.drawImage(it.sauce, -R, -R, 2 * R, 2 * R);
     g.drawImage(it.cheese, -R, -R, 2 * R, 2 * R);
     var now = performance.now() / 1000;
+    if (base === 'wulkan') drawCrater(g, 0, 0, R, b, now);
     it.tops.forEach(function (p) {
       var age = now - (p.t0 || 0), k = REDUCED || age > 0.35 ? 1 : 1 + Math.sin(Math.min(1, age / 0.35) * Math.PI) * 0.35;
       g.save(); g.translate(p.x * R, p.y * R); g.rotate(p.rot); g.scale(k, k); drawTop(g, p.k, TOP_R * R * p.s); g.restore();
